@@ -17,6 +17,7 @@ import {
 import { Order, OrderStatus } from '../types';
 import { TrackingTimeline } from './shipping/TrackingTimeline';
 import { CourierCard } from './shipping/CourierCard';
+import { OptimizedImage } from './OptimizedImage';
 
 interface OrderTrackingModalProps {
   order: Order | null;
@@ -343,7 +344,14 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ order: i
                   <div key={item.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-none">
                     <div className="flex items-center space-x-3">
                       {itemImg ? (
-                        <img src={itemImg} alt={itemTitle} className="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0" />
+                        <OptimizedImage
+                          src={itemImg}
+                          alt={itemTitle}
+                          priority={false}
+                          width={80}
+                          className="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0"
+                          pictureClassName="w-10 h-10 shrink-0 block"
+                        />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center shrink-0">
                           3D
@@ -369,7 +377,14 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ order: i
                                   className="block w-7 h-7 rounded overflow-hidden border border-cyan-300 hover:border-cyan-500 hover:scale-105 transition-all"
                                   title={`Custom photo #${cIdx + 1}`}
                                 >
-                                  <img src={imgUrl} alt={`Custom photo ${cIdx + 1}`} className="w-full h-full object-cover" />
+                                  <OptimizedImage
+                                    src={imgUrl}
+                                    alt={`Custom photo ${cIdx + 1}`}
+                                    priority={false}
+                                    width={56}
+                                    className="w-full h-full object-cover"
+                                    pictureClassName="w-full h-full block"
+                                  />
                                 </a>
                               );
                             })}

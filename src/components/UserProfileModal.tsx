@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { User, Address, Order } from '../types';
 import { INDIAN_STATES, lookupPincode } from '../lib/pincode';
+import { OptimizedImage } from './OptimizedImage';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -72,10 +73,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         {/* Header */}
         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <img
+            <OptimizedImage
               src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
               alt={user.name}
+              priority={true}
+              width={96}
               className="w-12 h-12 rounded-xl object-cover bg-indigo-100 border-2 border-indigo-400"
+              pictureClassName="w-12 h-12 shrink-0 block"
             />
             <div>
               <h2 className="text-lg font-extrabold flex items-center gap-2">
@@ -186,7 +190,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     <div className="flex items-center space-x-2 overflow-x-auto pt-1">
                       {(ord.items || []).map((it) => (
                         <div key={it.id} className="flex items-center space-x-2 bg-white border border-slate-200 rounded-xl p-1.5 shrink-0 text-xs">
-                          <img src={it.productImage || ((it as any).product && (it as any).product.imageUrl)} alt={it.productTitle || ((it as any).product && (it as any).product.name)} className="w-8 h-8 rounded-lg object-cover" />
+                          <OptimizedImage
+                            src={it.productImage || ((it as any).product && (it as any).product.imageUrl) || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=200'}
+                            alt={it.productTitle || ((it as any).product && (it as any).product.name) || 'Product'}
+                            priority={false}
+                            width={64}
+                            className="w-8 h-8 rounded-lg object-cover"
+                            pictureClassName="w-8 h-8 shrink-0 block"
+                          />
                           <span className="font-semibold text-slate-800 max-w-[120px] truncate">{it.productTitle || ((it as any).product && (it as any).product.name)}</span>
                         </div>
                       ))}

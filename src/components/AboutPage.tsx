@@ -12,6 +12,7 @@ import {
   Compass,
   Palette
 } from 'lucide-react';
+import { OptimizedImage } from './OptimizedImage';
 
 interface AboutPageProps {
   onRequestQuoteClick?: () => void;
@@ -142,11 +143,14 @@ export const AboutPage: React.FC<AboutPageProps> = ({
 
           <div className="relative">
             <div className="aspect-[4/3] min-h-[250px] w-full rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
-              <img
+              <OptimizedImage
                 src="https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=1200"
                 alt="Personalized 3D Printed Lithophane Moon Lamp"
+                priority={false}
+                width={800}
+                sizes="(max-width: 640px) 100vw, 50vw"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                referrerPolicy="no-referrer"
+                pictureClassName="w-full h-full block"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
               <div className="absolute top-4 left-4 bg-slate-900/90 text-white px-3.5 py-1.5 rounded-xl border border-slate-700/80 text-xs font-extrabold flex items-center gap-2 backdrop-blur-xs shadow-lg">

@@ -28,6 +28,7 @@ import { updateProfileSchema, changePasswordSchema } from '../lib/validation';
 import { User, Order, Address } from '../types';
 import { apiFetch, setStoredAuth } from '../lib/api';
 import { INDIAN_STATES, lookupPincode } from '../lib/pincode';
+import { OptimizedImage } from './OptimizedImage';
 
 import { CustomerPrivacyTab } from './CustomerPrivacyTab';
 import { Shield } from 'lucide-react';
@@ -1090,7 +1091,14 @@ export const AccountDashboard: React.FC<AccountDashboardProps> = ({
                           <div className="flex items-center space-x-3 overflow-x-auto">
                             {order.items.slice(0, 3).map((item) => (
                               <div key={item.id} className="flex items-center space-x-2 bg-white border border-slate-200 rounded-xl p-1.5 shrink-0">
-                                <img src={item.productImage || ((item as any).product && (item as any).product.imageUrl)} alt={item.productTitle || ((item as any).product && (item as any).product.name)} className="w-8 h-8 rounded-lg object-cover" />
+                                <OptimizedImage
+                                  src={item.productImage || ((item as any).product && (item as any).product.imageUrl) || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=200'}
+                                  alt={item.productTitle || ((item as any).product && (item as any).product.name) || 'Order Item'}
+                                  priority={false}
+                                  width={64}
+                                  className="w-8 h-8 rounded-lg object-cover"
+                                  pictureClassName="w-8 h-8 shrink-0 block"
+                                />
                                 <div className="text-[11px] pr-2">
                                   <span className="font-bold text-slate-900 block max-w-[120px] truncate">{item.productTitle || ((item as any).product && (item as any).product.name)}</span>
                                   <span className="text-slate-500 text-[10px]">Qty: {item.quantity}</span>

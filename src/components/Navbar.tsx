@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NexraLogo } from './NexraLogo';
+import { OptimizedImage } from './OptimizedImage';
 import {
   ShoppingBag,
   Heart,
@@ -242,7 +243,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="flex items-center gap-3 p-2 bg-white hover:bg-indigo-50 rounded-xl border border-slate-200/60 cursor-pointer transition-colors group"
                     >
                       {s.image && (
-                        <img src={s.image} alt={s.title} className="w-10 h-10 object-cover rounded-lg border border-slate-100" />
+                        <OptimizedImage
+                          src={s.image}
+                          alt={s.title}
+                          priority={false}
+                          width={80}
+                          className="w-10 h-10 object-cover rounded-lg border border-slate-100"
+                          pictureClassName="w-10 h-10 shrink-0 block"
+                        />
                       )}
                       <div className="overflow-hidden">
                         <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 line-clamp-1 block">{s.title}</span>

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import app from '../app';
 import { prisma } from '../src/lib/prisma';
@@ -13,7 +13,7 @@ describe('Checkout, COD Order, Razorpay Order, 10 Consecutive Orders & Order Iso
 
   let testProduct: any = null;
 
-  it('Setup: Register User 1 and User 2 and fetch test product', async () => {
+  beforeAll(async () => {
     user1Email = `orderuser1_${Date.now()}@example.com`;
     const reg1 = await request(app)
       .post('/api/auth/register')

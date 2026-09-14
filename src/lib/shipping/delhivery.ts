@@ -114,8 +114,21 @@ export function formatDelhiveryHeaders(headers: Record<string, string> = {}) {
   const masked: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(headers)) {
-    if (key.toLowerCase() === 'authorization') {
-      masked[key] = typeof value === 'string' && /^Token\s+/i.test(value) ? 'Token ****' : value;
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey.includes('auth') ||
+      lowerKey.includes('token') ||
+      lowerKey.includes('secret') ||
+      lowerKey.includes('key') ||
+      lowerKey.includes('cookie')
+    ) {
+      if (typeof value === 'string' && value.startsWith('Token ')) {
+        masked[key] = 'Token ****';
+      } else if (typeof value === 'string' && value.startsWith('Bearer ')) {
+        masked[key] = 'Bearer ****';
+      } else {
+        masked[key] = '****';
+      }
     } else {
       masked[key] = value;
     }
@@ -504,7 +517,7 @@ Declared Value: ₹${queryParams.clv || 0}
     const diagnostic = getDiagnosticPayload(err, message);
 
     if (status === 404 || /404/.test(String(err.message || '')) || /not found|wrong endpoint|endpoint/i.test(String(respData?.detail || respData?.message || respData?.error || ''))) {
-      console.error('[Delhivery API Error] Rate API endpoint rejected the request:', formatDelhiveryHeaders({ Authorization: `Token ${token}` }));
+      console.error('[Delhivery API Error] Rate API endpoint rejected the request (404/Not Found):', rateUrl);
     }
 
     return {

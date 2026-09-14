@@ -46,35 +46,64 @@ import {
 } from './src/lib/validation.js';
 import * as delhiveryService from './src/lib/shipping/delhivery.js';
 import * as nimbuspostService from './src/lib/shipping/nimbuspost.js';
-import { generateRazorpayCustomOrderQr, deactivateRazorpayQrCode } from './src/lib/razorpayCustomOrder.js';
+import { generateRazorpayCustomOrderQr, deactivateRazorpayQrCode, verifyRazorpayWebhookSignature } from './src/lib/razorpayCustomOrder.js';
+import {
+  parseOffsetPagination,
+  parseCursorPagination,
+  buildPaginationMeta,
+  setPaginationHeaders,
+  encodeCursor,
+  decodeCursor
+} from './src/lib/pagination.js';
+import {
+  JWT_SECRET,
+  getClientIp,
+  validateRasterImageBuffer,
+  isTokenRevoked,
+  revokeToken
+} from './src/lib/authSecurity.js';
+import {
+  loginRateLimiter,
+  registrationRateLimiter,
+  passwordResetRateLimiter,
+  checkoutRateLimiter,
+  paymentInitiationRateLimiter,
+  uploadRateLimiter
+} from './src/lib/abuseProtection.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: any;
   authUser?: any;
+  rawBody?: Buffer;
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-in-production';
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
   fileFilter: (_req, file, cb) => {
-    const allowed = [
+    // SEC-M06: Only allow safe raster image formats. SVG and script-bearing vector formats are strictly forbidden.
+    const allowedMimes = [
       'image/jpeg',
       'image/jpg',
       'image/png',
       'image/webp',
       'image/gif',
-      'image/svg+xml',
       'image/avif',
       'image/heic',
       'image/heif'
     ];
-    const mime = (file.mimetype || '').toLowerCase();
-    if (allowed.includes(mime) || file.originalname.match(/\.(jpe?g|png|webp|gif|svg|avif|heic|heif)$/i)) {
+    const mime = (file.mimetype || '').toLowerCase().trim();
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const disallowedExts = ['.svg', '.svgz', '.html', '.htm', '.xml', '.js', '.php', '.sh'];
+
+    if (disallowedExts.includes(ext) || mime.includes('svg') || mime.includes('xml') || mime.includes('html')) {
+      return cb(new Error('Vector formats (SVG) and script files are strictly prohibited.'));
+    }
+
+    if (allowedMimes.includes(mime) || ext.match(/\.(jpe?g|png|webp|gif|avif|heic|heif)$/i)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Supported formats: JPG, PNG, WEBP, GIF, SVG, AVIF, HEIC.'));
+      cb(new Error('Invalid file type. Supported raster formats: JPG, PNG, WEBP, GIF, AVIF, HEIC.'));
     }
   }
 });
@@ -611,35 +640,204 @@ async function calculateServerShippingFee(input: {
   return Number(selectedOption.charge || 0);
 }
 
+async function batchFormatUserResponses(users: any[]) {
+  if (!users || users.length === 0) return [];
+  const missingAddressUserIds = Array.from(new Set(users.filter((u) => u && !u.addresses).map((u) => u.id).filter(Boolean)));
+  const addressMap = new Map<string, any[]>();
+  if (missingAddressUserIds.length > 0) {
+    const allAddresses = await prisma.address.findMany({
+      where: { userId: { in: missingAddressUserIds } },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }]
+    }).catch(() => []);
+    allAddresses.forEach((addr: any) => {
+      const list = addressMap.get(addr.userId) || [];
+      list.push(addr);
+      addressMap.set(addr.userId, list);
+    });
+  }
+
+  return users.map((user) => {
+    if (!user) return null;
+    const addresses = user.addresses || addressMap.get(user.id) || [];
+    const defaultAddr = addresses.find((a: any) => a.isDefault) || addresses[0];
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone || defaultAddr?.phone || '',
+      company: user.company || '',
+      gst: user.gst || '',
+      avatar: user.avatar || '',
+      avatarUrl: user.avatar || '',
+      addresses: addresses || [],
+      addressLine1: defaultAddr?.streetAddress || '',
+      addressLine2: defaultAddr?.apartment || '',
+      city: defaultAddr?.city || '',
+      state: defaultAddr?.state || '',
+      postalCode: defaultAddr?.postalCode || '',
+      country: defaultAddr?.country || 'India',
+      createdAt: user.createdAt ? safeToISOString(user.createdAt) : new Date().toISOString()
+    };
+  });
+}
+
 async function formatUserResponse(user: any) {
   if (!user) return null;
+  const [res] = await batchFormatUserResponses([user]);
+  return res;
+}
 
-  const addresses = user.addresses || await prisma.address.findMany({
-    where: { userId: user.id },
-    orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }]
-  }).catch(() => []);
+export interface LampOptionPriceInput {
+  productId: string;
+  basePrice: number;
+  selectedColour?: string | null;
+  selectedWattage?: string | null;
+  variantId?: string | null;
+}
 
-  const defaultAddr = addresses.find((a: any) => a.isDefault) || addresses[0];
+export interface LampOptionPriceResult {
+  unitPrice: number;
+  colourDelta: number;
+  wattageDelta: number;
+  selectedColour?: string;
+  selectedWattage?: string;
+  variantId?: string;
+}
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    phone: user.phone || defaultAddr?.phone || '',
-    company: user.company || '',
-    gst: user.gst || '',
-    avatar: user.avatar || '',
-    avatarUrl: user.avatar || '',
-    addresses: addresses || [],
-    addressLine1: defaultAddr?.streetAddress || '',
-    addressLine2: defaultAddr?.apartment || '',
-    city: defaultAddr?.city || '',
-    state: defaultAddr?.state || '',
-    postalCode: defaultAddr?.postalCode || '',
-    country: defaultAddr?.country || 'India',
-    createdAt: user.createdAt ? safeToISOString(user.createdAt) : new Date().toISOString()
-  };
+async function batchCalculateLampOptionPrices(
+  items: LampOptionPriceInput[]
+): Promise<Map<LampOptionPriceInput, LampOptionPriceResult>> {
+  const resultMap = new Map<LampOptionPriceInput, LampOptionPriceResult>();
+  if (!items || items.length === 0) return resultMap;
+
+  const productIds = Array.from(new Set(items.map((i) => i.productId).filter(Boolean)));
+  const variantIds = Array.from(new Set(items.map((i) => i.variantId).filter(Boolean))) as string[];
+
+  // Fetch all variants and lamp options in 2 batched queries instead of 2 * N queries
+  const [allVariants, allLampOptions] = await Promise.all([
+    productIds.length > 0
+      ? prisma.productVariant.findMany({
+          where: {
+            OR: [
+              { productId: { in: productIds }, isActive: true },
+              ...(variantIds.length > 0 ? [{ id: { in: variantIds }, isActive: true }] : [])
+            ]
+          }
+        }).catch(() => [])
+      : [],
+    productIds.length > 0
+      ? prisma.productLampOption.findMany({
+          where: { productId: { in: productIds }, isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }).catch(() => [])
+      : []
+  ]);
+
+  const variantsByProdId = new Map<string, any[]>();
+  const variantsById = new Map<string, any>();
+  allVariants.forEach((v: any) => {
+    variantsById.set(v.id, v);
+    const list = variantsByProdId.get(v.productId) || [];
+    list.push(v);
+    variantsByProdId.set(v.productId, list);
+  });
+
+  const lampOptionsByProdId = new Map<string, any[]>();
+  allLampOptions.forEach((opt: any) => {
+    const list = lampOptionsByProdId.get(opt.productId) || [];
+    list.push(opt);
+    lampOptionsByProdId.set(opt.productId, list);
+  });
+
+  for (const item of items) {
+    const { productId, basePrice, selectedColour, selectedWattage, variantId } = item;
+    const normColour = selectedColour ? String(selectedColour).trim() : null;
+    const normWattage = selectedWattage ? String(selectedWattage).trim() : null;
+
+    let matchingVariant: any = null;
+    if (variantId) {
+      matchingVariant = variantsById.get(variantId);
+      if (matchingVariant && (matchingVariant.productId !== productId || !matchingVariant.isActive)) {
+        matchingVariant = null;
+      }
+    }
+
+    if (!matchingVariant && (normColour || normWattage)) {
+      const prodVariants = variantsByProdId.get(productId) || [];
+      matchingVariant = prodVariants.find((v: any) => {
+        const vCol = (v.colour || (v.attributes as any)?.colour || '').trim();
+        const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim();
+        const colMatch = !normColour || vCol.toLowerCase() === normColour.toLowerCase();
+        const watMatch = !normWattage || vWat.toLowerCase() === normWattage.toLowerCase();
+        return colMatch && watMatch;
+      });
+    }
+
+    if (matchingVariant) {
+      const vPrice = Number(matchingVariant.price);
+      resultMap.set(item, {
+        unitPrice: vPrice,
+        colourDelta: 0,
+        wattageDelta: 0,
+        selectedColour: matchingVariant.colour || normColour || undefined,
+        selectedWattage: matchingVariant.wattage || normWattage || undefined,
+        variantId: matchingVariant.id
+      });
+      continue;
+    }
+
+    if (!normColour && !normWattage) {
+      resultMap.set(item, {
+        unitPrice: basePrice,
+        colourDelta: 0,
+        wattageDelta: 0,
+        variantId: variantId || undefined
+      });
+      continue;
+    }
+
+    const options = lampOptionsByProdId.get(productId) || [];
+    let colourDelta = 0;
+    let wattageDelta = 0;
+    let verifiedColour = normColour || undefined;
+    let verifiedWattage = normWattage || undefined;
+
+    if (normColour) {
+      const cMatch = options.find((o: any) =>
+        String(o.optionType).toUpperCase().includes('COL') &&
+        String(o.optionValue).trim().toLowerCase() === normColour.toLowerCase()
+      );
+      if (cMatch) {
+        colourDelta = Number(cMatch.priceDelta || 0);
+        verifiedColour = cMatch.optionValue;
+      }
+    }
+
+    if (normWattage) {
+      const wMatch = options.find((o: any) =>
+        String(o.optionType).toUpperCase().includes('WAT') &&
+        String(o.optionValue).trim().toLowerCase() === normWattage.toLowerCase()
+      );
+      if (wMatch) {
+        wattageDelta = Number(wMatch.priceDelta || 0);
+        verifiedWattage = wMatch.optionValue;
+      }
+    }
+
+    const unitPrice = basePrice + colourDelta + wattageDelta;
+    resultMap.set(item, {
+      unitPrice,
+      colourDelta,
+      wattageDelta,
+      selectedColour: verifiedColour,
+      selectedWattage: verifiedWattage,
+      variantId: variantId || undefined
+    });
+  }
+
+  return resultMap;
 }
 
 async function calculateLampOptionPrice(
@@ -649,99 +847,9 @@ async function calculateLampOptionPrice(
   selectedWattage?: string | null,
   variantId?: string | null
 ): Promise<{ unitPrice: number; colourDelta: number; wattageDelta: number; selectedColour?: string; selectedWattage?: string; variantId?: string }> {
-  const normColour = selectedColour ? String(selectedColour).trim() : null;
-  const normWattage = selectedWattage ? String(selectedWattage).trim() : null;
-
-  // 1. Check for matching ProductVariant first
-  try {
-    let matchingVariant: any = null;
-    if (variantId) {
-      matchingVariant = await prisma.productVariant.findFirst({
-        where: { id: variantId, productId, isActive: true }
-      });
-    }
-
-    if (!matchingVariant && (normColour || normWattage)) {
-      const allVariants = await prisma.productVariant.findMany({
-        where: { productId, isActive: true }
-      });
-
-      matchingVariant = allVariants.find((v: any) => {
-        const vCol = (v.colour || (v.attributes as any)?.colour || '').trim();
-        const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim();
-
-        const colMatch = !normColour || vCol.toLowerCase() === normColour.toLowerCase();
-        const watMatch = !normWattage || vWat.toLowerCase() === normWattage.toLowerCase();
-
-        return colMatch && watMatch;
-      });
-    }
-
-    if (matchingVariant) {
-      const vPrice = Number(matchingVariant.price);
-      return {
-        unitPrice: vPrice,
-        colourDelta: 0,
-        wattageDelta: 0,
-        selectedColour: matchingVariant.colour || normColour || undefined,
-        selectedWattage: matchingVariant.wattage || normWattage || undefined,
-        variantId: matchingVariant.id
-      };
-    }
-  } catch (err) {
-    console.warn('[calculateLampOptionPrice] Error checking ProductVariant:', err);
-  }
-
-  if (!normColour && !normWattage) {
-    return { unitPrice: basePrice, colourDelta: 0, wattageDelta: 0, variantId: variantId || undefined };
-  }
-
-  let options: any[] = [];
-  try {
-    options = await prisma.productLampOption.findMany({
-      where: { productId, isActive: true },
-      orderBy: { sortOrder: 'asc' }
-    });
-  } catch (err) {
-    console.warn('[LampOptions] Error querying product_lamp_options:', err);
-  }
-
-  let colourDelta = 0;
-  let wattageDelta = 0;
-  let verifiedColour = normColour || undefined;
-  let verifiedWattage = normWattage || undefined;
-
-  if (normColour) {
-    const cMatch = options.find((o: any) =>
-      String(o.optionType).toUpperCase().includes('COL') &&
-      String(o.optionValue).trim().toLowerCase() === normColour.toLowerCase()
-    );
-    if (cMatch) {
-      colourDelta = Number(cMatch.priceDelta || 0);
-      verifiedColour = cMatch.optionValue;
-    }
-  }
-
-  if (normWattage) {
-    const wMatch = options.find((o: any) =>
-      String(o.optionType).toUpperCase().includes('WAT') &&
-      String(o.optionValue).trim().toLowerCase() === normWattage.toLowerCase()
-    );
-    if (wMatch) {
-      wattageDelta = Number(wMatch.priceDelta || 0);
-      verifiedWattage = wMatch.optionValue;
-    }
-  }
-
-  const unitPrice = basePrice + colourDelta + wattageDelta;
-  return {
-    unitPrice,
-    colourDelta,
-    wattageDelta,
-    selectedColour: verifiedColour,
-    selectedWattage: verifiedWattage,
-    variantId: variantId || undefined
-  };
+  const item: LampOptionPriceInput = { productId, basePrice, selectedColour, selectedWattage, variantId };
+  const resMap = await batchCalculateLampOptionPrices([item]);
+  return resMap.get(item)!;
 }
 
 async function getFormattedCart(userId: string) {
@@ -807,34 +915,40 @@ async function getFormattedCart(userId: string) {
   }
 
   const rawItems = cart?.items || [];
-  const items = await Promise.all(
-    rawItems.map(async (ci: any) => {
-      const p = ci.product;
-      const v = ci.variant;
-      const basePrice = v ? Number(v.price) : (p ? Number(p.price) : 0);
-      const baseMrp = v ? Number(v.mrp) : (p ? Number(p.mrp) : basePrice);
+  const lampPriceInputs = rawItems.map((ci: any) => {
+    const p = ci.product;
+    const v = ci.variant;
+    const basePrice = v ? Number(v.price) : (p ? Number(p.price) : 0);
+    const effectiveColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
+    const effectiveWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
+    return {
+      productId: ci.productId,
+      basePrice,
+      selectedColour: effectiveColour,
+      selectedWattage: effectiveWattage,
+      variantId: ci.variantId || undefined
+    };
+  });
+  const calculatedPricesMap = await batchCalculateLampOptionPrices(lampPriceInputs);
 
-      let itemPrice = basePrice;
-      let effectiveColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
-      let effectiveWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
+  const items = rawItems.map((ci: any, idx: number) => {
+    const p = ci.product;
+    const v = ci.variant;
+    const basePrice = v ? Number(v.price) : (p ? Number(p.price) : 0);
+    const baseMrp = v ? Number(v.mrp) : (p ? Number(p.mrp) : basePrice);
 
-      // Only query lamp options if colour or wattage was explicitly requested
-      if (effectiveColour || effectiveWattage) {
-        try {
-          const priceCalc = await calculateLampOptionPrice(
-            ci.productId,
-            basePrice,
-            effectiveColour,
-            effectiveWattage,
-            ci.variantId || undefined
-          );
-          itemPrice = priceCalc.unitPrice;
-          if (priceCalc.selectedColour) effectiveColour = priceCalc.selectedColour;
-          if (priceCalc.selectedWattage) effectiveWattage = priceCalc.selectedWattage;
-        } catch (e) {
-          itemPrice = basePrice;
-        }
+    let effectiveColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
+    let effectiveWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
+
+    let itemPrice = basePrice;
+    if (effectiveColour || effectiveWattage) {
+      const priceCalc = calculatedPricesMap.get(lampPriceInputs[idx]);
+      if (priceCalc) {
+        itemPrice = priceCalc.unitPrice;
+        if (priceCalc.selectedColour) effectiveColour = priceCalc.selectedColour;
+        if (priceCalc.selectedWattage) effectiveWattage = priceCalc.selectedWattage;
       }
+    }
 
       const itemMrp = baseMrp + Math.max(0, itemPrice - basePrice);
       const itemTotal = itemPrice * ci.quantity;
@@ -915,8 +1029,7 @@ async function getFormattedCart(userId: string) {
           stockQuantity: v.stockQuantity ?? 100
         } : null
       };
-    })
-  );
+    });
 
   let subtotal = 0;
   for (const item of items) {
@@ -1263,9 +1376,6 @@ async function seedInitialDatabase() {
 
 // Authentication Middleware
 async function requireAuthMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const isAdminBypass = req.headers['x-admin-bypass'] === 'true' ||
-    (req.headers['x-user-email'] && String(req.headers['x-user-email']).includes('admin'));
-
   let token = req.cookies?.auth_token;
   if (!token) {
     const authHeader = req.headers.authorization;
@@ -1280,46 +1390,16 @@ async function requireAuthMiddleware(req: AuthenticatedRequest, res: Response, n
   }
 
   if (!token) {
-    if (isAdminBypass) {
-      let adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-      if (!adminUser) {
-        adminUser = await prisma.user.findFirst({ where: { email: 'admin@store.com' } });
-      }
-      if (!adminUser) {
-        try {
-          const hash = await bcrypt.hash('admin123', 10);
-          adminUser = await prisma.user.create({
-            data: {
-              email: 'admin@store.com',
-              name: 'Store Admin',
-              password: hash,
-              role: 'ADMIN'
-            }
-          });
-        } catch (e) {
-          adminUser = await prisma.user.findFirst();
-        }
-      }
-      if (adminUser) {
-        req.user = adminUser;
-        req.authUser = adminUser;
-        return next();
-      }
-    }
     return res.status(401).json({ error: 'Authentication required. Please log in.' });
   }
 
   try {
+    if (isTokenRevoked(token)) {
+      return res.status(401).json({ error: 'Session has been invalidated. Please log in again.' });
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string };
     if (!decoded || (!decoded.userId && !decoded.email)) {
-      if (isAdminBypass) {
-        let adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || await prisma.user.findFirst();
-        if (adminUser) {
-          req.user = adminUser;
-          req.authUser = adminUser;
-          return next();
-        }
-      }
       return res.status(401).json({ error: 'Invalid authentication token.' });
     }
 
@@ -1335,32 +1415,6 @@ async function requireAuthMiddleware(req: AuthenticatedRequest, res: Response, n
       });
     }
 
-    if (!user && (decoded.email || decoded.userId)) {
-      try {
-        const defaultPasswordHash = bcrypt.hashSync('password123', 10);
-        const emailToUse = decoded.email || 'varunmanurani@gmail.com';
-        user = await prisma.user.create({
-          data: {
-            id: decoded.userId || `usr-${Date.now()}`,
-            email: emailToUse,
-            name: emailToUse.split('@')[0] || 'User',
-            password: defaultPasswordHash,
-            role: (decoded.role as any) || 'CUSTOMER'
-          }
-        });
-      } catch (e) {
-        user = await prisma.user.findFirst({ where: { email: 'varunmanurani@gmail.com' } })
-            || await prisma.user.findFirst();
-      }
-    }
-
-    if (isAdminBypass && user && user.role !== 'ADMIN') {
-      let adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-      if (adminUser) {
-        user = adminUser;
-      }
-    }
-
     if (!user) {
       return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' });
     }
@@ -1369,49 +1423,11 @@ async function requireAuthMiddleware(req: AuthenticatedRequest, res: Response, n
     req.authUser = user;
     next();
   } catch (err) {
-    if (isAdminBypass) {
-      let adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || await prisma.user.findFirst();
-      if (adminUser) {
-        req.user = adminUser;
-        req.authUser = adminUser;
-        return next();
-      }
-    }
     return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
   }
 }
 
 async function requireAdminMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const isAdminBypass = req.headers['x-admin-bypass'] === 'true' ||
-    (req.headers['x-user-email'] && String(req.headers['x-user-email']).includes('admin'));
-
-  if (isAdminBypass) {
-    let adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-    if (!adminUser) {
-      adminUser = await prisma.user.findFirst({ where: { email: 'admin@store.com' } });
-    }
-    if (!adminUser) {
-      try {
-        const hash = await bcrypt.hash('admin123', 10);
-        adminUser = await prisma.user.create({
-          data: {
-            email: 'admin@store.com',
-            name: 'Store Admin',
-            password: hash,
-            role: 'ADMIN'
-          }
-        });
-      } catch (e) {
-        adminUser = await prisma.user.findFirst();
-      }
-    }
-    if (adminUser) {
-      req.user = adminUser;
-      req.authUser = adminUser;
-      return next();
-    }
-  }
-
   await requireAuthMiddleware(req, res, () => {
     if (req.user?.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
@@ -1422,38 +1438,97 @@ async function requireAdminMiddleware(req: AuthenticatedRequest, res: Response, 
 
 export const app = express();
 
+// Enable reverse proxy trust (Cloud Run / ingress) for accurate IP resolution in rate limiters
+app.set('trust proxy', 1);
+
 // Automatic DB seeding on server startup is DISABLED to ensure Supabase PostgreSQL is the sole source of truth.
-// seedInitialDatabase().catch((e) => console.warn('[DB Seed Warning]:', e));
-app.use(express.json());
+// Capture rawBody for cryptographic webhook verification
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(cookieParser());
 
-// CORS headers with Credentials support
+// SEC-H01: Strict CORS Allowlist
+const DEFAULT_ALLOWED_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'https://nexra3d.com',
+  'https://www.nexra3d.com'
+]);
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true; // Direct same-origin or server-to-server calls
+  const lower = origin.trim().toLowerCase();
+
+  const envOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (DEFAULT_ALLOWED_ORIGINS.has(lower) || envOrigins.includes(lower)) {
+    return true;
+  }
+
+  // Cloud Run previews and AI Studio container preview domains
+  if (/^https:\/\/[a-z0-9-]+-[a-z0-9]+-[a-z0-9]+\.a\.run\.app$/i.test(lower)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.run\.app$/i.test(lower)) return true;
+  if (/^https:\/\/([a-z0-9-]+\.)?ai\.studio$/i.test(lower)) return true;
+
+  return false;
+}
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
+    if (isAllowedOrigin(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Vary', 'Origin');
+    } else {
+      if (req.method === 'OPTIONS') {
+        return res.status(403).json({ error: 'CORS origin not permitted.' });
+      }
+    }
   }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-auth-token, x-admin-bypass, x-user-email, x-user-id, X-User-Id, X-Admin-Bypass, X-User-Email, Cache-Control, Pragma');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-auth-token, Cache-Control, Pragma');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
   next();
 });
 
-// API Health Check
+// SEC-M03: Security Headers Middleware
+app.use((req, res, next) => {
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.header('X-XSS-Protection', '0');
+  if (process.env.NODE_ENV === 'production') {
+    res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  res.header(
+    'Content-Security-Policy',
+    "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; " +
+    "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.googleusercontent.com https://images.unsplash.com https://*.razorpay.com; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com; " +
+    "frame-src 'self' https://api.razorpay.com https://*.razorpay.com; " +
+    "frame-ancestors 'self' https://*.google.com https://*.run.app https://ai.studio;"
+  );
+  next();
+});
+
+// API Health Check (Sanitized to not leak customer/user count telemetry)
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
-    const userCount = await prisma.user.count();
     const productCount = await prisma.product.count();
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      database: 'PostgreSQL via Prisma ORM',
-      userCount,
+      database: 'connected',
       productCount
     });
   } catch (err: any) {
@@ -1461,8 +1536,8 @@ app.get('/api/health', async (req: Request, res: Response) => {
   }
 });
 
-// Database Test Route
-app.get('/api/db-test', async (req: Request, res: Response) => {
+// Database Test Route (Restricted to Administrators)
+app.get('/api/db-test', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const userCount = await prisma.user.count();
     res.json({
@@ -1481,9 +1556,10 @@ app.get('/api/db-test', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/integrations/status', (req: Request, res: Response) => {
+// Diagnostic Integrations Status Route (Restricted to Administrators)
+app.get('/api/integrations/status', requireAdminMiddleware, (req: Request, res: Response) => {
   res.json({
-    developmentMode: true,
+    developmentMode: process.env.NODE_ENV !== 'production',
     services: [
       { id: 'database', name: 'Database (Prisma)', configured: true, description: 'PostgreSQL / Prisma ORM' },
       { id: 'razorpay', name: 'Razorpay Gateway', configured: Boolean(process.env.RAZORPAY_KEY_ID), description: 'Payments' },
@@ -1492,28 +1568,40 @@ app.get('/api/integrations/status', (req: Request, res: Response) => {
   });
 });
 
-// File / Image Upload
-app.post('/api/upload', upload.single('image') as any, async (req: Request, res: Response) => {
-  try {
-    if (req.file) {
-      const cloudinaryResult = await uploadImageToCloudinary(req.file.buffer, req.file.mimetype || 'image/jpeg', 'products');
-      if (cloudinaryResult && cloudinaryResult.url) {
-        return res.json({
-          success: true,
-          url: cloudinaryResult.url,
-          publicId: cloudinaryResult.publicId
-        });
+// File / Image Upload (Admin Only, Raster Buffer Validated, Rate Limited)
+app.post(
+  '/api/upload',
+  requireAdminMiddleware,
+  uploadRateLimiter.middleware(),
+  upload.single('image') as any,
+  async (req: Request, res: Response) => {
+    try {
+      if (req.file) {
+        // SEC-M06: Validate raster image buffer
+        const validation = validateRasterImageBuffer(req.file.buffer);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.reason || 'Invalid image buffer' });
+        }
+
+        const cloudinaryResult = await uploadImageToCloudinary(req.file.buffer, req.file.mimetype || 'image/jpeg', 'products');
+        if (cloudinaryResult && cloudinaryResult.url) {
+          return res.json({
+            success: true,
+            url: cloudinaryResult.url,
+            publicId: cloudinaryResult.publicId
+          });
+        }
       }
+      const { imageUrl } = req.body;
+      return res.json({
+        success: true,
+        url: imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800'
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Image upload failed: ' + (err.message || String(err)) });
     }
-    const { imageUrl } = req.body;
-    return res.json({
-      success: true,
-      url: imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800'
-    });
-  } catch (err: any) {
-    return res.status(500).json({ error: 'Image upload failed: ' + (err.message || String(err)) });
   }
-});
+);
 
 // ==================================================
 // 1. AUTHENTICATION & USER PROFILE
@@ -1521,7 +1609,7 @@ app.post('/api/upload', upload.single('image') as any, async (req: Request, res:
 
 // GET Current Authenticated User Session
 app.get(['/api/auth/me', '/api/user/profile'], async (req: AuthenticatedRequest, res: Response) => {
-  let token = req.cookies?.auth_token;
+  let token = req.cookies?.auth_token || req.cookies?.token;
   if (!token) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -1530,9 +1618,16 @@ app.get(['/api/auth/me', '/api/user/profile'], async (req: AuthenticatedRequest,
       token = authHeader;
     }
   }
+  if (!token && req.headers['x-auth-token']) {
+    token = req.headers['x-auth-token'] as string;
+  }
 
   if (!token) {
     return res.json({ user: null });
+  }
+
+  if (isTokenRevoked(token)) {
+    return res.status(401).json({ user: null, error: 'Session has been invalidated. Please log in again.' });
   }
 
   try {
@@ -1589,7 +1684,7 @@ app.get(['/api/auth/me', '/api/user/profile'], async (req: AuthenticatedRequest,
 });
 
 // REGISTER USER
-app.post('/api/auth/register', async (req: Request, res: Response) => {
+app.post('/api/auth/register', registrationRateLimiter.middleware(), async (req: Request, res: Response) => {
   if (req.body && req.body.email) {
     req.body.email = cleanNormalizeEmail(req.body.email);
   }
@@ -2047,7 +2142,7 @@ app.post('/api/auth/verify-email-otp', async (req: Request, res: Response) => {
 });
 
 // LOGIN USER
-app.post('/api/auth/login', async (req: Request, res: Response) => {
+app.post('/api/auth/login', loginRateLimiter.middleware(), async (req: Request, res: Response) => {
   if (req.body && req.body.email) {
     req.body.email = cleanNormalizeEmail(req.body.email);
   }
@@ -2192,6 +2287,20 @@ app.post(['/api/auth/supabase-sync', '/api/auth/google-sync'], async (req: Reque
 
 // LOGOUT
 app.post('/api/auth/logout', (req: Request, res: Response) => {
+  let token = req.cookies?.auth_token;
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (authHeader) {
+      token = authHeader;
+    }
+  }
+
+  if (token) {
+    revokeToken(token);
+  }
+
   const isProd = process.env.NODE_ENV === 'production';
   res.clearCookie('auth_token', {
     httpOnly: true,
@@ -2214,7 +2323,7 @@ async function logSecurityEvent(
   metadata?: any
 ) {
   try {
-    const ipAddress = req ? (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || 'unknown') : 'unknown';
+    const ipAddress = req ? getClientIp(req) : 'unknown';
     const userAgent = req ? (req.headers['user-agent'] || 'unknown') : 'unknown';
     await (prisma as any).securityEvent.create({
       data: {
@@ -2255,7 +2364,7 @@ app.post('/api/privacy/consent', async (req: AuthenticatedRequest, res: Response
         consentText: consentText || `Consent ${consentStatus.toLowerCase()} for ${purpose}`,
         withdrawnAt: consentStatus === 'WITHDRAWN' ? new Date() : null,
         source: 'WEB_APP',
-        ipAddress: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown',
+        ipAddress: getClientIp(req),
         userAgent: req.headers['user-agent'] || 'unknown'
       }
     });
@@ -2293,16 +2402,33 @@ app.post('/api/privacy/consent', async (req: AuthenticatedRequest, res: Response
 app.get('/api/privacy/consent-history', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const records = await (prisma as any).consentRecord.findMany({
-      where: {
-        OR: [
-          { userId },
-          { email: req.user!.email }
-        ]
-      },
-      orderBy: { createdAt: 'desc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const where = {
+      OR: [
+        { userId },
+        { email: req.user!.email }
+      ]
+    };
+
+    const [total, records] = await Promise.all([
+      (prisma as any).consentRecord.count({ where }),
+      (prisma as any).consentRecord.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + records.length < total
     });
-    return res.json({ success: true, records });
+    setPaginationHeaders(res, pagination);
+
+    return res.json({ success: true, records, pagination });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: 'Failed to fetch consent history: ' + (err.message || String(err)) });
   }
@@ -2519,7 +2645,7 @@ app.post('/api/privacy/delete-account', requireAuthMiddleware, async (req: Authe
           consentText: 'Account deleted by user',
           withdrawnAt: new Date(),
           source: 'WEB_APP',
-          ipAddress: (req.headers['x-forwarded-for'] as string) || req.socket?.remoteAddress || 'unknown',
+          ipAddress: getClientIp(req),
           userAgent: req.headers['user-agent'] || 'unknown'
         }
       });
@@ -2604,15 +2730,23 @@ app.post('/api/privacy/request', async (req: AuthenticatedRequest, res: Response
 app.get('/api/privacy/my-requests', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const requests = await (prisma as any).privacyRequest.findMany({
-      where: {
-        OR: [
-          { userId },
-          { email: req.user!.email }
-        ]
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const where = {
+      OR: [
+        { userId },
+        { email: req.user!.email }
+      ]
+    };
+
+    const [total, requests] = await Promise.all([
+      (prisma as any).privacyRequest.count({ where }),
+      (prisma as any).privacyRequest.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
 
     // Redact internal admin notes from customer view
     const sanitized = requests.map((r: any) => ({
@@ -2625,7 +2759,15 @@ app.get('/api/privacy/my-requests', requireAuthMiddleware, async (req: Authentic
       resolvedAt: r.resolvedAt
     }));
 
-    return res.json({ success: true, requests: sanitized });
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + requests.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    return res.json({ success: true, requests: sanitized, pagination });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: 'Failed to fetch privacy requests: ' + (err.message || String(err)) });
   }
@@ -2635,15 +2777,30 @@ app.get('/api/privacy/my-requests', requireAuthMiddleware, async (req: Authentic
 app.get('/api/admin/privacy/requests', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const { status, type } = req.query as any;
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
     const where: any = {};
     if (status) where.status = status;
     if (type) where.requestType = type;
 
-    const requests = await (prisma as any).privacyRequest.findMany({
-      where,
-      orderBy: { createdAt: 'desc' }
+    const [total, requests] = await Promise.all([
+      (prisma as any).privacyRequest.count({ where }),
+      (prisma as any).privacyRequest.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + requests.length < total
     });
-    return res.json({ success: true, requests });
+    setPaginationHeaders(res, pagination);
+
+    return res.json({ success: true, requests, pagination });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: 'Failed to fetch privacy requests: ' + (err.message || String(err)) });
   }
@@ -2673,11 +2830,25 @@ app.put('/api/admin/privacy/requests/:id', requireAdminMiddleware, async (req: R
 
 app.get('/api/admin/privacy/consents', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const consents = await (prisma as any).consentRecord.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const [total, consents] = await Promise.all([
+      (prisma as any).consentRecord.count(),
+      (prisma as any).consentRecord.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + consents.length < total
     });
-    return res.json({ success: true, consents });
+    setPaginationHeaders(res, pagination);
+
+    return res.json({ success: true, consents, pagination });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: 'Failed to fetch consent audit logs: ' + (err.message || String(err)) });
   }
@@ -2685,11 +2856,25 @@ app.get('/api/admin/privacy/consents', requireAdminMiddleware, async (req: Reque
 
 app.get('/api/admin/privacy/security-events', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const events = await (prisma as any).securityEvent.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const [total, events] = await Promise.all([
+      (prisma as any).securityEvent.count(),
+      (prisma as any).securityEvent.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + events.length < total
     });
-    return res.json({ success: true, events });
+    setPaginationHeaders(res, pagination);
+
+    return res.json({ success: true, events, pagination });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: 'Failed to fetch security events: ' + (err.message || String(err)) });
   }
@@ -2870,10 +3055,31 @@ app.put('/api/auth/password', requireAuthMiddleware, async (req: AuthenticatedRe
 const getAddressesHandler = async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user.id;
   try {
-    const addresses = await prisma.address.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }]
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { userId };
+
+    const [total, addresses] = await Promise.all([
+      prisma.address.count({ where }),
+      prisma.address.findMany({
+        where,
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + addresses.length < total
     });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ addresses, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(addresses);
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to fetch addresses' });
@@ -3133,32 +3339,51 @@ app.get('/api/products', async (req: Request, res: Response) => {
       ];
     }
 
-    let products = await prisma.product.findMany({
-      where: whereClause,
-      include: {
-        category: {
-          select: { id: true, name: true, slug: true }
+    const { page, limit: queryLimit, skip: querySkip } = parseOffsetPagination(req.query, 20, 500);
+    const take = req.query.all === 'true' ? undefined : queryLimit;
+    const skip = req.query.all === 'true' ? undefined : (offset !== undefined ? parseInt(String(offset), 10) : querySkip);
+
+    const [total, products] = await Promise.all([
+      prisma.product.count({ where: whereClause }),
+      prisma.product.findMany({
+        where: whereClause,
+        include: {
+          category: {
+            select: { id: true, name: true, slug: true }
+          },
+          images: {
+            select: { id: true, productId: true, url: true, publicId: true, altText: true, sortOrder: true, isPrimary: true },
+            orderBy: { sortOrder: 'asc' }
+          },
+          variants: {
+            select: { id: true, sku: true, name: true, price: true, mrp: true, stockQuantity: true, colour: true, wattage: true, attributes: true, isActive: true }
+          },
+          reviews: {
+            select: { rating: true, comment: true, userName: true, createdAt: true }
+          }
         },
-        images: {
-          select: { id: true, productId: true, url: true, publicId: true, altText: true, sortOrder: true, isPrimary: true },
-          orderBy: { sortOrder: 'asc' }
-        },
-        variants: {
-          select: { id: true, sku: true, name: true, price: true, mrp: true, stockQuantity: true, colour: true, wattage: true, attributes: true, isActive: true }
-        },
-        reviews: {
-          select: { rating: true, comment: true, userName: true, createdAt: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit ? parseInt(String(limit), 10) : undefined,
-      skip: offset ? parseInt(String(offset), 10) : undefined
-    });
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip
+      })
+    ]);
 
     const formattedProducts = products.map(formatPrismaProductResponse);
-    productListCache.set(cacheKey, { data: formattedProducts, expiresAt: Date.now() + PRODUCT_CACHE_TTL_MS });
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: take || total,
+      hasMore: (skip || 0) + products.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    const responsePayload = req.query.paginate === 'true'
+      ? { products: formattedProducts, pagination }
+      : formattedProducts;
+
+    productListCache.set(cacheKey, { data: responsePayload, expiresAt: Date.now() + PRODUCT_CACHE_TTL_MS });
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-    return res.json(formattedProducts);
+    return res.json(responsePayload);
   } catch (err: any) {
     console.error({
       name: err?.name,
@@ -3377,17 +3602,15 @@ app.put('/api/products/:id', requireAdminMiddleware, async (req: Request, res: R
 
     if (Array.isArray(images) && images.length > 0) {
       await prisma.productImage.deleteMany({ where: { productId: id } });
-      for (let i = 0; i < images.length; i++) {
-        await prisma.productImage.create({
-          data: {
-            productId: id,
-            url: images[i],
-            altText: updated.name,
-            sortOrder: i,
-            isPrimary: i === 0
-          }
-        });
-      }
+      await prisma.productImage.createMany({
+        data: images.map((imgUrl: string, i: number) => ({
+          productId: id,
+          url: imgUrl,
+          altText: updated.name,
+          sortOrder: i,
+          isPrimary: i === 0
+        }))
+      });
     }
 
     const fullProduct = await prisma.product.findUnique({
@@ -3432,10 +3655,31 @@ app.delete('/api/products/:id', requireAdminMiddleware, async (req: Request, res
 app.get('/api/products/:id/images', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const images = await prisma.productImage.findMany({
-      where: { productId: id },
-      orderBy: { sortOrder: 'asc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { productId: id };
+
+    const [total, images] = await Promise.all([
+      prisma.productImage.count({ where }),
+      prisma.productImage.findMany({
+        where,
+        orderBy: { sortOrder: 'asc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + images.length < total
     });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ images, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(images);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch product images' });
@@ -3457,6 +3701,10 @@ app.post(['/api/products/:id/images', '/api/products/:id/images/batch'], require
 
     // Process files uploaded via Multer
     for (const file of files) {
+      const rasterValidation = validateRasterImageBuffer(file.buffer);
+      if (!rasterValidation.valid) {
+        return res.status(400).json({ error: rasterValidation.reason || 'Invalid image buffer' });
+      }
       const uploadRes = await uploadImageToCloudinary(file.buffer, file.mimetype || 'image/jpeg', 'products');
       if (uploadRes?.url) {
         uploadedImages.push({ url: uploadRes.url, publicId: uploadRes.publicId || (uploadRes as any).public_id || null });
@@ -3520,20 +3768,26 @@ app.put('/api/products/:id/images/reorder', requireAdminMiddleware, async (req: 
 
   try {
     if (Array.isArray(imageOrders)) {
-      for (const item of imageOrders) {
-        if (item.id && typeof item.sortOrder === 'number') {
-          await prisma.productImage.update({
+      const updates = imageOrders
+        .filter((item: any) => item?.id && typeof item.sortOrder === 'number')
+        .map((item: any) =>
+          prisma.productImage.update({
             where: { id: item.id },
             data: { sortOrder: item.sortOrder }
-          }).catch(() => {});
-        }
+          })
+        );
+      if (updates.length > 0) {
+        await prisma.$transaction(updates);
       }
     } else if (Array.isArray(imageIds)) {
-      for (let i = 0; i < imageIds.length; i++) {
-        await prisma.productImage.update({
-          where: { id: imageIds[i] },
+      const updates = imageIds.map((imgId: string, i: number) =>
+        prisma.productImage.update({
+          where: { id: imgId },
           data: { sortOrder: i }
-        }).catch(() => {});
+        })
+      );
+      if (updates.length > 0) {
+        await prisma.$transaction(updates);
       }
     }
 
@@ -3636,10 +3890,31 @@ app.delete('/api/products/:id/images/:imageId', requireAdminMiddleware, async (r
 app.get('/api/products/:id/variants', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const variants = await prisma.productVariant.findMany({
-      where: { productId: id },
-      orderBy: { createdAt: 'asc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { productId: id };
+
+    const [total, variants] = await Promise.all([
+      prisma.productVariant.count({ where }),
+      prisma.productVariant.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + variants.length < total
     });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ variants, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(variants);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch product variants' });
@@ -4026,10 +4301,30 @@ app.delete('/api/products/:id/lamp-options/:optionId', requireAdminMiddleware, a
 
 app.get('/api/categories', async (req: Request, res: Response) => {
   try {
-    const categories = await prisma.category.findMany({
-      include: { subcategories: true },
-      orderBy: { name: 'asc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+
+    const [total, categories] = await Promise.all([
+      prisma.category.count(),
+      prisma.category.findMany({
+        include: { subcategories: true },
+        orderBy: { name: 'asc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + categories.length < total
     });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ categories, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(categories);
   } catch (err: any) {
     console.error({
@@ -4123,7 +4418,7 @@ app.delete('/api/categories/:id', requireAdminMiddleware, async (req: Request, r
 // ==================================================
 
 // Customization image upload endpoint for customer personalization photos
-app.post('/api/customization/upload', (req: Request, res: Response, next: NextFunction) => {
+app.post('/api/customization/upload', uploadRateLimiter.middleware(), (req: Request, res: Response, next: NextFunction) => {
   (upload.fields([{ name: 'images', maxCount: 20 }, { name: 'image', maxCount: 20 }]) as any)(req, res, (err: any) => {
     if (err) {
       const msg = err.message || 'File upload error';
@@ -4195,6 +4490,11 @@ app.post('/api/customization/upload', (req: Request, res: Response, next: NextFu
     for (const file of files) {
       if (file.mimetype && !allowedMimes.includes(file.mimetype.toLowerCase())) {
         return res.status(400).json({ success: false, error: `Invalid file format for "${file.originalname}". Allowed: JPG, PNG, WEBP.` });
+      }
+
+      const rasterCheck = validateRasterImageBuffer(file.buffer);
+      if (!rasterCheck.valid) {
+        return res.status(400).json({ success: false, error: rasterCheck.reason || `Invalid image content in "${file.originalname}".` });
       }
 
       if (file.size > 10 * 1024 * 1024) {
@@ -4390,9 +4690,16 @@ app.put('/api/cart/items/:itemId', requireAuthMiddleware, async (req: Authentica
   const userId = req.user.id;
 
   try {
-    const item = await prisma.cartItem.findUnique({ where: { id: itemId } });
+    const item = await prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: { cart: true }
+    });
     if (!item) {
       return res.status(404).json({ error: 'Cart item not found' });
+    }
+
+    if (item.cart?.userId !== userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Forbidden: You do not own this cart item' });
     }
 
     if (Number(quantity) <= 0) {
@@ -4416,7 +4723,19 @@ app.delete('/api/cart/items/:itemId', requireAuthMiddleware, async (req: Authent
   const userId = req.user.id;
 
   try {
-    await prisma.cartItem.delete({ where: { id: itemId } }).catch(() => null);
+    const item = await prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: { cart: true }
+    });
+    if (!item) {
+      return res.status(404).json({ error: 'Cart item not found' });
+    }
+
+    if (item.cart?.userId !== userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Forbidden: You do not own this cart item' });
+    }
+
+    await prisma.cartItem.delete({ where: { id: itemId } });
     const updatedCart = await getFormattedCart(userId);
     return res.json(updatedCart);
   } catch (err: any) {
@@ -4444,8 +4763,39 @@ app.delete('/api/cart', requireAuthMiddleware, async (req: AuthenticatedRequest,
 
 app.get('/api/wishlist', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
     const wishlist = await getFormattedWishlist(req.user.id);
-    return res.json(wishlist);
+    const allItems = wishlist?.items || [];
+    const total = allItems.length;
+
+    const paginatedItems = isAll ? allItems : allItems.slice(skip, skip + limit);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + paginatedItems.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({
+        ...wishlist,
+        items: paginatedItems,
+        pagination,
+        total,
+        page,
+        limit,
+        hasMore: pagination.hasMore
+      });
+    }
+
+    return res.json({
+      ...wishlist,
+      items: paginatedItems,
+      pagination
+    });
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to fetch wishlist' });
   }
@@ -4652,7 +5002,7 @@ export async function generateNextCustomOrderNumber(): Promise<string> {
   }
 }
 
-app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/checkout', requireAuthMiddleware, checkoutRateLimiter.middleware(), async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user.id;
   const { addressId, shippingAddress: customAddress, paymentMethod = 'RAZORPAY', couponCode, items: clientItems } = req.body;
 
@@ -4676,21 +5026,27 @@ app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedReques
           include: { items: { include: { product: { include: { images: true } }, variant: true } } }
         });
       }
+      const clientProductIds = Array.from(
+        new Set(clientItems.map((ci: any) => ci.productId || ci.product?.id || ci.id).filter(Boolean))
+      );
+      const existingProds = clientProductIds.length > 0 ? await prisma.product.findMany({
+        where: { id: { in: clientProductIds } },
+        select: { id: true }
+      }).catch(() => []) : [];
+      const validProdSet = new Set(existingProds.map((p) => p.id));
+
       for (const ci of clientItems) {
         const productId = ci.productId || ci.product?.id || ci.id;
         const quantity = Number(ci.quantity) || 1;
-        if (productId) {
-          const prodExists = await prisma.product.findUnique({ where: { id: productId } }).catch(() => null);
-          if (prodExists) {
-            await prisma.cartItem.create({
-              data: {
-                cartId: cart.id,
-                productId,
-                quantity,
-                variantId: ci.variantId || null
-              }
-            }).catch(() => {});
-          }
+        if (productId && validProdSet.has(productId)) {
+          await prisma.cartItem.create({
+            data: {
+              cartId: cart.id,
+              productId,
+              quantity,
+              variantId: ci.variantId || null
+            }
+          }).catch(() => {});
         }
       }
       cart = await prisma.cart.findUnique({
@@ -4730,7 +5086,25 @@ app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedReques
     let subtotal = 0;
     const orderItemsData = [];
 
-    for (const ci of cart.items) {
+    // Batch-calculate options and variant prices for all cart items in a single query
+    const checkoutPriceInputs = cart.items.map((ci: any) => {
+      const p = ci.product;
+      const v = ci.variant;
+      const basePrice = v ? Number(v.price) : Number(p?.price || 0);
+      const selectedColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
+      const selectedWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
+      return {
+        productId: p?.id || ci.productId,
+        basePrice,
+        selectedColour,
+        selectedWattage,
+        variantId: ci.variantId || undefined
+      };
+    });
+    const checkoutPriceMap = await batchCalculateLampOptionPrices(checkoutPriceInputs);
+
+    for (let ciIdx = 0; ciIdx < cart.items.length; ciIdx++) {
+      const ci = cart.items[ciIdx];
       const p = ci.product;
       const v = ci.variant;
       if (!p) continue;
@@ -4740,18 +5114,11 @@ app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedReques
       let selectedWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
 
       let unitPrice = basePrice;
-      try {
-        const priceCalc = await calculateLampOptionPrice(
-          p.id,
-          basePrice,
-          selectedColour,
-          selectedWattage
-        );
+      const priceCalc = checkoutPriceMap.get(checkoutPriceInputs[ciIdx]);
+      if (priceCalc) {
         unitPrice = priceCalc.unitPrice;
         if (priceCalc.selectedColour) selectedColour = priceCalc.selectedColour;
         if (priceCalc.selectedWattage) selectedWattage = priceCalc.selectedWattage;
-      } catch (valErr: any) {
-        return res.status(valErr.statusCode || 400).json({ error: valErr.message || 'Invalid option selection during checkout' });
       }
 
       const total = unitPrice * ci.quantity;
@@ -4869,18 +5236,35 @@ app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedReques
     let newOrder: any;
     try {
       newOrder = await prisma.$transaction(async (tx) => {
-        // 1. Verify stock for all items
+        // 1. Batch verify stock for all items
+        const itemProductIds = Array.from(new Set(cart.items.map((ci: any) => ci.product?.id).filter(Boolean)));
+        const itemVariantIds = Array.from(new Set(cart.items.map((ci: any) => ci.variantId).filter(Boolean))) as string[];
+
+        const [currentProds, currentVars] = await Promise.all([
+          itemProductIds.length > 0
+            ? tx.product.findMany({ where: { id: { in: itemProductIds } } })
+            : [],
+          itemVariantIds.length > 0
+            ? tx.productVariant.findMany({ where: { id: { in: itemVariantIds } } })
+            : []
+        ]);
+
+        const prodMap = new Map<string, any>();
+        currentProds.forEach((p: any) => prodMap.set(p.id, p));
+        const varMap = new Map<string, any>();
+        currentVars.forEach((v: any) => varMap.set(v.id, v));
+
         for (const ci of cart.items) {
           const p = ci.product;
           if (!p) continue;
 
-          const currentProd = await tx.product.findUnique({ where: { id: p.id } });
+          const currentProd = prodMap.get(p.id);
           if (!currentProd || currentProd.isActive === false) {
             throw new Error(`Product "${p.name}" is no longer available`);
           }
 
           if (ci.variantId) {
-            const currentVar = await tx.productVariant.findUnique({ where: { id: ci.variantId } });
+            const currentVar = varMap.get(ci.variantId);
             if (!currentVar || currentVar.isActive === false) {
               throw new Error(`The selected variant of "${p.name}" is no longer available`);
             }
@@ -4888,6 +5272,7 @@ app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedReques
               const available = Math.max(0, currentVar.stockQuantity);
               throw new Error(`Insufficient stock for ${currentProd.name} (${currentVar.name}). Only ${available} units available.`);
             }
+            currentVar.stockQuantity -= ci.quantity;
             // Decrement variant stock
             await tx.productVariant.update({
               where: { id: ci.variantId },
@@ -4899,6 +5284,7 @@ app.post('/api/checkout', requireAuthMiddleware, async (req: AuthenticatedReques
             const available = Math.max(0, currentProd.stockQuantity);
             throw new Error(`Insufficient stock for ${currentProd.name}. Only ${available} units available.`);
           }
+          currentProd.stockQuantity -= ci.quantity;
 
           // Decrement product stock
           await tx.product.update({
@@ -5476,14 +5862,8 @@ const formatOrder = (o: any) => {
 app.get('/api/orders', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   const userEmail = req.user?.email;
-  const adminQueryParam = req.query.admin === 'true';
-  const isAdmin = req.user?.role === 'ADMIN' ||
-    req.headers['x-admin-bypass'] === 'true' ||
-    adminQueryParam ||
-    (req.headers['x-user-email'] && String(req.headers['x-user-email']).includes('admin'));
+  const isAdmin = req.user?.role === 'ADMIN';
   const includePending = req.query.includePending === 'true';
-
-  console.log(`[GET /api/orders] Request received. admin=${adminQueryParam}, userId=${userId}, userEmail=${userEmail}, isAdmin=${isAdmin}`);
 
   try {
     const whereClause: any = {};
@@ -5522,24 +5902,60 @@ app.get('/api/orders', requireAuthMiddleware, async (req: AuthenticatedRequest, 
       }
     }
 
-    console.log('[GET /api/orders] Prisma query start...');
-    let rawOrders = await prisma.order.findMany({
-      where: whereClause,
-      include: {
-        items: {
-          include: {
-            product: { include: { images: true } },
-            variant: true,
-            customizationImages: true
-          }
+    const isPaginated = Boolean(req.query.page || req.query.limit || req.query.cursor || req.query.format === 'object');
+    const { limit, cursor, decoded: decodedCursor, page } = parseCursorPagination(req.query, 20);
+    const countWhere = { ...whereClause };
+
+    if (decodedCursor && decodedCursor.createdAt) {
+      const cursorDate = new Date(decodedCursor.createdAt);
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { createdAt: { lt: cursorDate } },
+            {
+              createdAt: cursorDate,
+              id: { lt: decodedCursor.id }
+            }
+          ]
+        }
+      ];
+    }
+
+    const skip = (isPaginated && !decodedCursor && page > 1) ? (page - 1) * limit : undefined;
+    const take = isPaginated ? (limit + 1) : undefined;
+
+    const [total, initialRawOrders] = await Promise.all([
+      prisma.order.count({ where: countWhere }),
+      prisma.order.findMany({
+        where: whereClause,
+        include: {
+          items: {
+            include: {
+              product: { include: { images: true } },
+              variant: true,
+              customizationImages: true
+            }
+          },
+          user: true,
+          shipment: { include: { statusHistory: true } },
+          payment: true,
+          coupon: true
         },
-        user: true,
-        shipment: { include: { statusHistory: true } },
-        payment: true,
-        coupon: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' }
+        ],
+        take,
+        skip
+      })
+    ]);
+
+    let rawOrders = initialRawOrders;
+    const hasMore = isPaginated ? (rawOrders.length > limit) : false;
+    if (hasMore) {
+      rawOrders = rawOrders.slice(0, limit);
+    }
 
     // Auto-sync active Delhivery shipments if last update is stale (> 2 mins)
     const activeToSync = rawOrders.filter(o =>
@@ -5559,7 +5975,7 @@ app.get('/api/orders', requireAuthMiddleware, async (req: AuthenticatedRequest, 
         } catch (e) {}
       }));
 
-      // Refresh list to include updated status
+      // Refresh page list to include updated status
       rawOrders = await prisma.order.findMany({
         where: whereClause,
         include: {
@@ -5575,16 +5991,48 @@ app.get('/api/orders', requireAuthMiddleware, async (req: AuthenticatedRequest, 
           payment: true,
           coupon: true
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' }
+        ],
+        take: isPaginated ? limit : undefined,
+        skip
       });
     }
 
-    console.log(`[GET /api/orders] Prisma query completion. Orders count: ${rawOrders.length}`);
+    const nextCursor = (hasMore && rawOrders.length > 0)
+      ? encodeCursor({ id: rawOrders[rawOrders.length - 1].id, createdAt: rawOrders[rawOrders.length - 1].createdAt })
+      : null;
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore,
+      nextCursor
+    });
+    setPaginationHeaders(res, pagination);
+
+    console.log(`[GET /api/orders] Prisma query completion. Orders count: ${rawOrders.length}, Total: ${total}`);
     console.log('[GET /api/orders] Formatter start...');
     const orders = rawOrders.map(formatOrder);
     console.log('[GET /api/orders] Formatter completion.');
 
-    return res.json(orders);
+    if (!isPaginated || req.query.format === 'array') {
+      return res.json(orders);
+    }
+
+    return res.json({
+      orders,
+      pagination,
+      data: orders,
+      items: orders,
+      total,
+      page,
+      limit,
+      hasMore,
+      nextCursor
+    });
   } catch (error: any) {
     console.error('[GET /api/orders] FAILED');
     console.error(error);
@@ -5739,10 +6187,7 @@ async function cancelOrderAndRestoreInventory(
 // Order Cancellation Route (Customer & Admin)
 app.post(['/api/orders/:id/cancel', '/api/admin/orders/:id/cancel'], requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const isAdmin = req.user.role === 'ADMIN' ||
-    req.headers['x-admin-bypass'] === 'true' ||
-    req.query.admin === 'true' ||
-    (req.headers['x-user-email'] && String(req.headers['x-user-email']).includes('admin'));
+  const isAdmin = req.user?.role === 'ADMIN';
 
   try {
     const cancelledOrder = await cancelOrderAndRestoreInventory(id, req.user.id, isAdmin, req.body?.reason);
@@ -5770,10 +6215,7 @@ app.post(['/api/orders/:id/cancel', '/api/admin/orders/:id/cancel'], requireAuth
 app.put(['/api/orders/:id/status', '/api/admin/orders/:id/status'], requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const { status, paymentStatus, title, description } = req.body;
-  const isAdmin = req.user.role === 'ADMIN' ||
-    req.headers['x-admin-bypass'] === 'true' ||
-    req.query.admin === 'true' ||
-    (req.headers['x-user-email'] && String(req.headers['x-user-email']).includes('admin'));
+  const isAdmin = req.user?.role === 'ADMIN';
 
   try {
     const existing = await prisma.order.findFirst({
@@ -5784,8 +6226,10 @@ app.put(['/api/orders/:id/status', '/api/admin/orders/:id/status'], requireAuthM
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    if (!isAdmin && existing.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized to update order status' });
+    if (!isAdmin) {
+      if (status !== 'CANCELLED' || paymentStatus || existing.userId !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied: Only administrators can update order or payment status' });
+      }
     }
 
     // If changing to CANCELLED, execute atomic cancellation and stock restoration
@@ -5842,15 +6286,34 @@ app.put(['/api/orders/:id/status', '/api/admin/orders/:id/status'], requireAuthM
 function verifyRazorpaySignature(orderId: string, paymentId: string, signature: string): boolean {
   if (!orderId || !paymentId || !signature) return false;
   const secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!secret) return true;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isTestOrDev = process.env.NODE_ENV === 'test' || !isProduction;
 
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(`${orderId}|${paymentId}`)
-    .digest('hex');
+  if (secret) {
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(`${orderId}|${paymentId}`)
+        .digest('hex');
 
-  if (expectedSignature === signature) return true;
-  if (signature.startsWith('sig_') || signature === 'simulated_signature' || signature.startsWith('pay_sim')) return true;
+      if (typeof signature === 'string' && signature.length === expectedSignature.length) {
+        if (crypto.timingSafeEqual(Buffer.from(expectedSignature, 'utf8'), Buffer.from(signature, 'utf8'))) {
+          return true;
+        }
+      }
+    } catch {
+      // invalid input format
+      return false;
+    }
+  }
+
+  // Strictly forbidden in production: test/simulated signatures are only accepted in automated test/dev mode when secret is missing
+  if (isTestOrDev && (!secret || process.env.NODE_ENV === 'test')) {
+    if (signature.startsWith('sig_') || signature === 'simulated_signature' || signature.startsWith('pay_sim')) {
+      return true;
+    }
+  }
+
   return false;
 }
 
@@ -5864,7 +6327,21 @@ const handleRazorpayCreateOrder = async (req: AuthenticatedRequest, res: Respons
 
     if (targetOrderId) {
       const dbOrder = await prisma.order.findUnique({ where: { id: targetOrderId } }).catch(() => null);
-      if (dbOrder && dbOrder.totalAmount !== null && dbOrder.totalAmount !== undefined) {
+      if (!dbOrder) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      // SEC-H04: Enforce customer order ownership
+      const isUserAdmin = req.user?.role === 'ADMIN' || req.user?.isAdmin;
+      if (!isUserAdmin && req.user?.id && dbOrder.userId && dbOrder.userId !== req.user.id) {
+        return res.status(403).json({ error: 'Forbidden: You do not have permission to pay for this order' });
+      }
+
+      if (dbOrder.paymentStatus === 'PAID') {
+        return res.status(400).json({ error: 'This order has already been paid' });
+      }
+
+      if (dbOrder.totalAmount !== null && dbOrder.totalAmount !== undefined) {
         effectiveAmount = Number(dbOrder.totalAmount);
       }
     }
@@ -5950,7 +6427,7 @@ const handleRazorpayCreateOrder = async (req: AuthenticatedRequest, res: Respons
       razorpayOrderId: simId,
       amount: amountInPaise,
       currency,
-      key: razorpayKeyId || 'rzp_test_TLmrZ8JjKdjoRQ',
+      key: razorpayKeyId || '',
       receipt: receipt || `rcpt_${Date.now()}`
     });
   } catch (err: any) {
@@ -6008,18 +6485,34 @@ const handleRazorpayVerifyPayment = async (req: AuthenticatedRequest, res: Respo
     }
 
     let updatedOrder = null;
-    const targetOrderId = orderId || razorpay_order_id;
     let prevPaymentStatus: string | undefined = undefined;
 
-    if (targetOrderId) {
-      const existingOrder = await prisma.order.findFirst({
-        where: { OR: [{ id: targetOrderId }, { razorpayOrderId: razorpay_order_id }] }
+    let existingOrder = null;
+    if (orderId) {
+      existingOrder = await prisma.order.findUnique({
+        where: { id: orderId }
       }).catch(() => null);
+    }
+    if (!existingOrder && razorpay_order_id) {
+      existingOrder = await prisma.order.findFirst({
+        where: { razorpayOrderId: razorpay_order_id }
+      }).catch(() => null);
+    }
+
+    if (existingOrder) {
+      // Authorization check: non-admin users can only verify their own orders
+      const isUserAdmin = req.user?.role === 'ADMIN' || req.user?.isAdmin;
+      if (!isUserAdmin && req.user?.id && existingOrder.userId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: You cannot verify payments for another customer’s order'
+        });
+      }
 
       prevPaymentStatus = existingOrder?.paymentStatus;
 
       updatedOrder = await prisma.order.update({
-        where: { id: existingOrder?.id || targetOrderId },
+        where: { id: existingOrder.id },
         data: {
           status: 'CONFIRMED',
           paymentStatus: 'PAID',
@@ -6028,23 +6521,8 @@ const handleRazorpayVerifyPayment = async (req: AuthenticatedRequest, res: Respo
           razorpaySignature: razorpay_signature
         },
         include: { items: { include: { product: true } }, user: true, shipment: true }
-      }).catch(async () => {
-        const foundByRzp = await prisma.order.findFirst({
-          where: { razorpayOrderId: razorpay_order_id }
-        });
-        if (foundByRzp) {
-          prevPaymentStatus = foundByRzp.paymentStatus;
-          return prisma.order.update({
-            where: { id: foundByRzp.id },
-            data: {
-              status: 'CONFIRMED',
-              paymentStatus: 'PAID',
-              razorpayPaymentId: razorpay_payment_id,
-              razorpaySignature: razorpay_signature
-            },
-            include: { items: { include: { product: true } }, user: true, shipment: true }
-          });
-        }
+      }).catch((updateErr) => {
+        console.error('[Razorpay Verify Update Failed]:', updateErr);
         return null;
       });
 
@@ -6078,6 +6556,86 @@ const handleRazorpayVerifyPayment = async (req: AuthenticatedRequest, res: Respo
 app.post(['/api/create-order', '/api/checkout/razorpay/create-order', '/api/payments/razorpay/create-order'], requireAuthMiddleware, handleRazorpayCreateOrder);
 app.post(['/api/verify-payment', '/api/checkout/razorpay/verify-payment', '/api/payments/razorpay/verify'], requireAuthMiddleware, handleRazorpayVerifyPayment);
 
+// Razorpay Webhook Handler with Cryptographic Signature Verification
+app.post(['/api/payments/razorpay/webhook', '/api/webhooks/razorpay'], async (req: Request, res: Response) => {
+  const signature = (req.headers['x-razorpay-signature'] as string) || '';
+  const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+
+  const isValid = verifyRazorpayWebhookSignature(rawBody, signature);
+  if (!isValid) {
+    console.warn('[Razorpay Webhook Warning] Webhook signature verification failed');
+    return res.status(400).json({ error: 'Invalid webhook signature' });
+  }
+
+  const event = req.body?.event;
+  const payload = req.body?.payload;
+
+  try {
+    if (event === 'payment.captured' || event === 'order.paid') {
+      const paymentEntity = payload?.payment?.entity;
+      const rzpOrderId = paymentEntity?.order_id || payload?.order?.entity?.id;
+      const rzpPaymentId = paymentEntity?.id;
+
+      if (rzpOrderId) {
+        const order = await prisma.order.findFirst({
+          where: { razorpayOrderId: rzpOrderId }
+        });
+
+        if (order && order.paymentStatus !== 'PAID') {
+          const prevStatus = order.paymentStatus;
+          const updated = await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: 'CONFIRMED',
+              paymentStatus: 'PAID',
+              razorpayPaymentId: rzpPaymentId || order.razorpayPaymentId
+            },
+            include: { items: { include: { product: true } }, user: true, shipment: true }
+          });
+          await incrementCouponUsageForOrder(updated, prevStatus);
+          await autoProcessShipment(updated.id, updated.shippingProvider);
+        }
+
+        const customOrder = await prisma.customOrder.findFirst({
+          where: { razorpayOrderId: rzpOrderId }
+        });
+        if (customOrder && customOrder.paymentStatus !== 'PAID') {
+          await prisma.customOrder.update({
+            where: { id: customOrder.id },
+            data: {
+              paymentStatus: 'PAID',
+              paidAt: new Date()
+            }
+          });
+        }
+      }
+    } else if (event === 'qr_code.credited') {
+      const qrEntity = payload?.qr_code?.entity;
+      const qrId = qrEntity?.id;
+
+      if (qrId) {
+        const customOrder = await prisma.customOrder.findFirst({
+          where: { razorpayQrId: qrId }
+        });
+        if (customOrder && customOrder.paymentStatus !== 'PAID') {
+          await prisma.customOrder.update({
+            where: { id: customOrder.id },
+            data: {
+              paymentStatus: 'PAID',
+              paidAt: new Date()
+            }
+          });
+        }
+      }
+    }
+
+    return res.json({ status: 'ok' });
+  } catch (err: any) {
+    console.error('[Razorpay Webhook Error]:', err);
+    return res.status(500).json({ error: 'Webhook processing error' });
+  }
+});
+
 // ==================================================
 // COUPONS API (Database Source of Truth)
 // ==================================================
@@ -6085,9 +6643,17 @@ app.post(['/api/verify-payment', '/api/checkout/razorpay/verify-payment', '/api/
 // GET all coupons (Admin and Store context)
 app.get(['/api/coupons', '/api/admin/coupons'], async (req: Request, res: Response) => {
   try {
-    const coupons = await prisma.coupon.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+
+    const [total, coupons] = await Promise.all([
+      prisma.coupon.count(),
+      prisma.coupon.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
 
     const formatted = coupons.map((c: any) => ({
       id: c.id,
@@ -6112,6 +6678,18 @@ app.get(['/api/coupons', '/api/admin/coupons'], async (req: Request, res: Respon
       createdAt: safeToISOString(c.createdAt),
       updatedAt: safeToISOString(c.updatedAt)
     }));
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + coupons.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ coupons: formatted, pagination });
+    }
 
     return res.json(formatted);
   } catch (err: any) {
@@ -6413,25 +6991,40 @@ async function validateCouponLogic(reqBody: any) {
   const itemsToCalc = reqItems || reqCartItems || [];
 
   if (Array.isArray(itemsToCalc) && itemsToCalc.length > 0) {
-    for (const item of itemsToCalc) {
+    const prodIds = Array.from(new Set(itemsToCalc.map((item: any) => item.productId || item.product?.id || item.id).filter(Boolean)));
+    const dbProducts = prodIds.length > 0 ? await prisma.product.findMany({
+      where: { id: { in: prodIds } }
+    }).catch(() => []) : [];
+    const prodMap = new Map(dbProducts.map((p: any) => [p.id, p]));
+
+    const couponPriceInputs = itemsToCalc.map((item: any) => {
+      const prodId = item.productId || item.product?.id || item.id;
+      const prod = prodMap.get(prodId);
+      const basePrice = prod ? Number(prod.price) : 0;
+      const selColour = item.selectedColour || item.variant?.colour || null;
+      const selWattage = item.selectedWattage || item.variant?.wattage || null;
+      return {
+        productId: prodId,
+        basePrice,
+        selectedColour: selColour,
+        selectedWattage: selWattage,
+        variantId: item.variantId || item.variant?.id || undefined
+      };
+    });
+    const calculatedPricesMap = await batchCalculateLampOptionPrices(couponPriceInputs);
+
+    for (let i = 0; i < itemsToCalc.length; i++) {
+      const item = itemsToCalc[i];
       const prodId = item.productId || item.product?.id || item.id;
       const qty = Number(item.quantity) || 1;
       if (!prodId) continue;
 
-      const prod = await prisma.product.findUnique({ where: { id: prodId } }).catch(() => null);
+      const prod = prodMap.get(prodId);
       if (!prod) continue;
 
       const basePrice = Number(prod.price);
-      const selColour = item.selectedColour || item.variant?.colour || null;
-      const selWattage = item.selectedWattage || item.variant?.wattage || null;
-
-      let unitPrice = basePrice;
-      try {
-        const priceCalc = await calculateLampOptionPrice(prod.id, basePrice, selColour, selWattage);
-        unitPrice = priceCalc.unitPrice;
-      } catch {
-        unitPrice = basePrice;
-      }
+      const priceCalc = calculatedPricesMap.get(couponPriceInputs[i]);
+      const unitPrice = priceCalc?.unitPrice ?? basePrice;
 
       calculatedSubtotal += unitPrice * qty;
     }
@@ -6500,7 +7093,31 @@ app.post(['/api/coupons/validate', '/api/coupons/apply'], async (req: Request, r
 
 app.get('/api/services', async (req: Request, res: Response) => {
   try {
-    const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { isActive: true };
+
+    const [total, services] = await Promise.all([
+      prisma.service.count({ where }),
+      prisma.service.findMany({
+        where,
+        orderBy: { sortOrder: 'asc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + services.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ services, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(services);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch services' });
@@ -6663,10 +7280,29 @@ app.post('/api/quote-requests', async (req: Request, res: Response) => {
 
 app.get('/api/quote-requests', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const quotes = await prisma.quoteRequest.findMany({
-      include: { service: true },
-      orderBy: { createdAt: 'desc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const [total, quotes] = await Promise.all([
+      prisma.quoteRequest.count(),
+      prisma.quoteRequest.findMany({
+        include: { service: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + quotes.length < total
     });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ quoteRequests: quotes, quotes, pagination });
+    }
+
     return res.json(quotes);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch quote requests' });
@@ -6676,16 +7312,37 @@ app.get('/api/quote-requests', requireAdminMiddleware, async (req: Request, res:
 app.get('/api/customer/quote-requests', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userEmail = req.user.email ? String(req.user.email).toLowerCase() : '';
-    const quotes = await prisma.quoteRequest.findMany({
-      where: {
-        OR: [
-          { userId: req.user.id },
-          { email: userEmail }
-        ]
-      },
-      include: { service: true },
-      orderBy: { createdAt: 'desc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const where = {
+      OR: [
+        { userId: req.user.id },
+        { email: userEmail }
+      ]
+    };
+
+    const [total, quotes] = await Promise.all([
+      prisma.quoteRequest.count({ where }),
+      prisma.quoteRequest.findMany({
+        where,
+        include: { service: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit,
+      hasMore: skip + quotes.length < total
     });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ quoteRequests: quotes, quotes, pagination });
+    }
+
     return res.json(quotes);
   } catch (err) {
     return res.json([]);
@@ -6695,7 +7352,31 @@ app.get('/api/customer/quote-requests', requireAuthMiddleware, async (req: Authe
 // FAQs, Testimonials, Banners
 app.get('/api/faqs', async (req: Request, res: Response) => {
   try {
-    const faqs = await prisma.fAQ.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { isActive: true };
+
+    const [total, faqs] = await Promise.all([
+      prisma.fAQ.count({ where }),
+      prisma.fAQ.findMany({
+        where,
+        orderBy: { sortOrder: 'asc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + faqs.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ faqs, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(faqs);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch FAQs' });
@@ -6713,7 +7394,30 @@ app.post('/api/faqs', requireAdminMiddleware, async (req: Request, res: Response
 
 app.get('/api/testimonials', async (req: Request, res: Response) => {
   try {
-    const testimonials = await prisma.testimonial.findMany({ where: { isActive: true } });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { isActive: true };
+
+    const [total, testimonials] = await Promise.all([
+      prisma.testimonial.count({ where }),
+      prisma.testimonial.findMany({
+        where,
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + testimonials.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ testimonials, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(testimonials);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch testimonials' });
@@ -6722,7 +7426,31 @@ app.get('/api/testimonials', async (req: Request, res: Response) => {
 
 app.get('/api/banners', async (req: Request, res: Response) => {
   try {
-    const banners = await prisma.banner.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const where = { isActive: true };
+
+    const [total, banners] = await Promise.all([
+      prisma.banner.count({ where }),
+      prisma.banner.findMany({
+        where,
+        orderBy: { sortOrder: 'asc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + banners.length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.paginate === 'true') {
+      return res.json({ banners, pagination, total, page, limit, hasMore: pagination.hasMore });
+    }
     return res.json(banners);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch banners' });
@@ -6737,20 +7465,26 @@ export async function autoExpirePendingCustomOrders(): Promise<void> {
     });
 
     const now = Date.now();
-    for (const ord of (awaitingOrders || [])) {
-      if (ord?.expiresAt && new Date(ord.expiresAt).getTime() <= now) {
-        if (ord.razorpayQrId) {
-          deactivateRazorpayQrCode(ord.razorpayQrId).catch(() => {});
-        }
-        await (prisma as any).customOrder.update({
-          where: { id: ord.id },
-          data: {
-            paymentStatus: 'EXPIRED',
-            updatedAt: new Date().toISOString()
-          }
-        });
+    const expiredOrders = (awaitingOrders || []).filter(
+      (ord: any) => ord?.expiresAt && new Date(ord.expiresAt).getTime() <= now
+    );
+
+    if (expiredOrders.length === 0) return;
+
+    for (const ord of expiredOrders) {
+      if (ord.razorpayQrId) {
+        deactivateRazorpayQrCode(ord.razorpayQrId).catch(() => {});
       }
     }
+
+    const expiredIds = expiredOrders.map((ord: any) => ord.id);
+    await (prisma as any).customOrder.updateMany({
+      where: { id: { in: expiredIds } },
+      data: {
+        paymentStatus: 'EXPIRED',
+        updatedAt: new Date().toISOString()
+      }
+    });
   } catch (err) {
     console.warn('Auto-expire custom orders check warning:', err);
   }
@@ -6874,23 +7608,71 @@ app.get('/api/admin/analytics', requireAdminMiddleware, async (req: Request, res
 
 app.get('/api/admin/customers', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const customers = await prisma.user.findMany({
-      include: { addresses: true, orders: true },
-      orderBy: { createdAt: 'desc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+
+    const [total, customers] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.findMany({
+        include: { addresses: true, orders: true },
+        orderBy: { createdAt: 'desc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const formatted = await batchFormatUserResponses(customers);
+    const enriched = formatted.map((f: any, idx: number) => ({
+      ...f,
+      ordersCount: customers[idx]?.orders?.length || 0
+    }));
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + customers.length < total
     });
-    const formatted = [];
-    for (const c of customers) {
-      formatted.push(await formatUserResponse(c));
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.format === 'array') {
+      return res.json(enriched);
     }
-    return res.json(formatted);
+
+    return res.json({
+      customers: enriched,
+      pagination,
+      data: enriched,
+      total,
+      page,
+      limit,
+      hasMore: pagination.hasMore
+    });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch customers' });
   }
 });
 
-// Transactional / Store Emails
-app.get('/api/emails', (req: Request, res: Response) => {
-  return res.json(INITIAL_EMAILS || []);
+// Transactional / Store Emails (Admin Only)
+app.get('/api/emails', requireAdminMiddleware, (req: Request, res: Response) => {
+  const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+  const isAll = req.query.all === 'true';
+  const allEmails = INITIAL_EMAILS || [];
+  const total = allEmails.length;
+  const emails = isAll ? allEmails : allEmails.slice(skip, skip + limit);
+
+  const pagination = buildPaginationMeta({
+    total,
+    page,
+    limit: isAll ? total : limit,
+    hasMore: isAll ? false : skip + emails.length < total
+  });
+  setPaginationHeaders(res, pagination);
+
+  if (req.query.paginate === 'true') {
+    return res.json({ emails, pagination, total, page, limit, hasMore: pagination.hasMore });
+  }
+  return res.json(emails);
 });
 
 // Product Search Suggestions
@@ -6955,22 +7737,42 @@ app.get('/api/products/:id/related', async (req: Request, res: Response) => {
 app.get('/api/products/:id/reviews', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const reviews = await prisma.review.findMany({
-      where: { productId: id },
-      orderBy: { createdAt: 'desc' }
-    });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
 
-    const totalReviews = reviews.length;
-    const averageRating = totalReviews > 0
-      ? Number((reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1))
+    const [totalReviews, aggregate, reviews] = await Promise.all([
+      prisma.review.count({ where: { productId: id } }),
+      prisma.review.aggregate({
+        where: { productId: id },
+        _avg: { rating: true }
+      }),
+      prisma.review.findMany({
+        where: { productId: id },
+        orderBy: { createdAt: 'desc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const averageRating = aggregate._avg.rating
+      ? Number(aggregate._avg.rating.toFixed(1))
       : 0.0;
+
+    const pagination = buildPaginationMeta({
+      total: totalReviews,
+      page,
+      limit: isAll ? totalReviews : limit,
+      hasMore: isAll ? false : skip + reviews.length < totalReviews
+    });
+    setPaginationHeaders(res, pagination);
 
     return res.json({
       reviews,
       summary: {
         averageRating,
         totalReviews
-      }
+      },
+      pagination
     });
   } catch (err) {
     return res.json({ reviews: [], summary: { averageRating: 0.0, totalReviews: 0 } });
@@ -6985,8 +7787,9 @@ app.post('/api/products/:id/reviews', async (req: Request, res: Response) => {
     let userId: string | null = null;
     let reviewerName = userName || 'Verified Customer';
 
+    let guestUser: any = null;
     const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
-    if (token) {
+    if (token && !isTokenRevoked(token)) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         if (decoded?.id) {
@@ -6999,7 +7802,7 @@ app.post('/api/products/:id/reviews', async (req: Request, res: Response) => {
     }
 
     if (!userId) {
-      let guestUser = await prisma.user.findFirst({
+      guestUser = await prisma.user.findFirst({
         where: { email: 'guest@nexra3d.com' }
       });
       if (!guestUser) {
@@ -7015,6 +7818,21 @@ app.post('/api/products/:id/reviews', async (req: Request, res: Response) => {
       userId = guestUser.id;
     }
 
+    // Determine if reviewer has a verified purchase for this product
+    let isVerifiedPurchase = false;
+    if (userId && (!guestUser || userId !== guestUser.id)) {
+      const purchase = await prisma.orderItem.findFirst({
+        where: {
+          productId: id,
+          order: {
+            userId: userId,
+            paymentStatus: 'PAID'
+          }
+        }
+      });
+      isVerifiedPurchase = Boolean(purchase);
+    }
+
     const review = await prisma.review.create({
       data: {
         productId: id,
@@ -7023,7 +7841,7 @@ app.post('/api/products/:id/reviews', async (req: Request, res: Response) => {
         rating: Number(rating || 5),
         title: title || 'Customer Review',
         comment: comment || '',
-        verifiedPurchase: true
+        verifiedPurchase: isVerifiedPurchase
       }
     });
 
@@ -7055,12 +7873,30 @@ app.post('/api/reviews/:id/report', async (req: Request, res: Response) => {
 app.post('/api/payments/razorpay/fail', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { orderId } = req.body;
-    if (orderId) {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { paymentStatus: 'FAILED' }
-      }).catch(() => {});
+    if (!orderId) {
+      return res.status(400).json({ error: 'orderId is required' });
     }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const isUserAdmin = req.user?.role === 'ADMIN' || (req.user as any)?.isAdmin;
+    if (!isUserAdmin && (!order.userId || order.userId !== req.user?.id)) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to modify this order' });
+    }
+
+    // Do not mark paid orders as failed
+    if (order.paymentStatus === 'PAID') {
+      return res.status(400).json({ error: 'Cannot record failure for an already paid order' });
+    }
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: 'FAILED' }
+    });
+
     return res.json({ success: true, message: 'Payment failure recorded' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Failed to record payment failure' });
@@ -7074,6 +7910,16 @@ app.post('/api/orders/:id/retry-payment', requireAuthMiddleware, async (req: Aut
       where: { OR: [{ id }, { orderNumber: id }] }
     });
     if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    const isUserAdmin = req.user?.role === 'ADMIN' || (req.user as any)?.isAdmin;
+    if (!isUserAdmin && (!order.userId || order.userId !== req.user?.id)) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to retry payment for this order' });
+    }
+
+    if (order.paymentStatus === 'PAID') {
+      return res.status(400).json({ error: 'This order has already been paid' });
+    }
+
     const razorpayOrderId = `order_retry_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     await prisma.order.update({
       where: { id: order.id },
@@ -7084,7 +7930,7 @@ app.post('/api/orders/:id/retry-payment', requireAuthMiddleware, async (req: Aut
       razorpayOrderId,
       amount: Math.round(Number(order.totalAmount) * 100),
       currency: 'INR',
-      key: process.env.RAZORPAY_KEY_ID || 'rzp_test_sample_key_id'
+      key: process.env.RAZORPAY_KEY_ID || ''
     });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to retry payment' });
@@ -7103,11 +7949,76 @@ app.get('/api/shipping/diagnostics', requireAdminMiddleware, async (_req: Reques
 
 app.get('/api/admin/shipments', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const shipments = await prisma.shipment.findMany({
-      include: { order: true, statusHistory: true },
-      orderBy: { createdAt: 'desc' }
+    const { limit, cursor, decoded: decodedCursor, page } = parseCursorPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const whereClause: any = {};
+
+    if (decodedCursor && decodedCursor.createdAt) {
+      const cursorDate = new Date(decodedCursor.createdAt);
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { createdAt: { lt: cursorDate } },
+            {
+              createdAt: cursorDate,
+              id: { lt: decodedCursor.id }
+            }
+          ]
+        }
+      ];
+    }
+
+    const skip = (!decodedCursor && page > 1 && !isAll) ? (page - 1) * limit : undefined;
+    const take = isAll ? undefined : limit + 1;
+
+    const [total, initialShipments] = await Promise.all([
+      prisma.shipment.count(),
+      prisma.shipment.findMany({
+        where: whereClause,
+        include: { order: true, statusHistory: true },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' }
+        ],
+        skip,
+        take
+      })
+    ]);
+
+    let shipments = initialShipments;
+    const hasMore = !isAll && shipments.length > limit;
+    if (hasMore) {
+      shipments = shipments.slice(0, limit);
+    }
+
+    const nextCursor = (hasMore && shipments.length > 0)
+      ? encodeCursor({ id: shipments[shipments.length - 1].id, createdAt: shipments[shipments.length - 1].createdAt })
+      : null;
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore,
+      nextCursor
     });
-    return res.json(shipments);
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.format === 'array') {
+      return res.json(shipments);
+    }
+
+    return res.json({
+      shipments,
+      pagination,
+      data: shipments,
+      total,
+      page,
+      limit,
+      hasMore,
+      nextCursor
+    });
   } catch (err) {
     return res.json([]);
   }
@@ -7262,6 +8173,21 @@ app.get('/api/shipments/:id/label', async (req: Request, res: Response) => {
       include: { order: true }
     });
     if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+
+    // Optional auth check: if token present, ensure user is admin or the order owner
+    const token = req.cookies?.auth_token || req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+    if (token && !isTokenRevoked(token)) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const isUserAdmin = decoded?.role === 'ADMIN' || decoded?.isAdmin;
+        if (!isUserAdmin && shipment.order?.userId && shipment.order.userId !== decoded?.id) {
+          return res.status(403).json({ error: 'Forbidden: You do not have permission to view this shipping label' });
+        }
+      } catch {
+        // invalid or unverified token
+      }
+    }
+
     return res.json({
       shipmentId: shipment.id,
       shipmentNumber: shipment.shipmentNumber,
@@ -7277,13 +8203,28 @@ app.get('/api/shipments/:id/label', async (req: Request, res: Response) => {
 
 app.get('/api/admin/payments/reconciliation', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: 'desc' }
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+
+    const [totalCount, matchedCount, pendingCount, failedCount, orders] = await Promise.all([
+      prisma.order.count(),
+      prisma.order.count({ where: { paymentStatus: 'PAID' } }),
+      prisma.order.count({ where: { paymentStatus: 'PENDING' } }),
+      prisma.order.count({ where: { paymentStatus: 'FAILED' } }),
+      prisma.order.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const pagination = buildPaginationMeta({
+      total: totalCount,
+      page,
+      limit: isAll ? totalCount : limit,
+      hasMore: isAll ? false : skip + orders.length < totalCount
     });
-    const totalCount = orders.length;
-    const matchedCount = orders.filter((o) => o.paymentStatus === 'PAID').length;
-    const pendingCount = orders.filter((o) => o.paymentStatus === 'PENDING').length;
-    const failedCount = orders.filter((o) => o.paymentStatus === 'FAILED').length;
+    setPaginationHeaders(res, pagination);
 
     return res.json({
       totalCount,
@@ -7291,7 +8232,8 @@ app.get('/api/admin/payments/reconciliation', requireAdminMiddleware, async (req
       pendingCount,
       failedCount,
       unmatchedCount: pendingCount + failedCount,
-      orders
+      orders,
+      pagination
     });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch reconciliation data' });
@@ -7324,16 +8266,85 @@ app.post('/api/admin/orders/:id/reconcile', requireAdminMiddleware, async (req: 
 // ==========================================
 
 // 1. Get all custom orders (Admin)
-app.get('/api/admin/custom-orders', requireAdminMiddleware, async (_req: Request, res: Response) => {
+app.get('/api/admin/custom-orders', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     await autoExpirePendingCustomOrders();
-    const orders = await (prisma as any).customOrder.findMany({
-      orderBy: { createdAt: 'desc' }
+
+    const { limit, cursor, decoded: decodedCursor, page } = parseCursorPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
+    const whereClause: any = {};
+
+    if (decodedCursor && decodedCursor.createdAt) {
+      const cursorDate = new Date(decodedCursor.createdAt);
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { createdAt: { lt: cursorDate } },
+            {
+              createdAt: cursorDate,
+              id: { lt: decodedCursor.id }
+            }
+          ]
+        }
+      ];
+    }
+
+    const skip = (!decodedCursor && page > 1 && !isAll) ? (page - 1) * limit : undefined;
+    const take = isAll ? undefined : limit + 1;
+
+    const [total, initialOrders] = await Promise.all([
+      (prisma as any).customOrder.count(),
+      (prisma as any).customOrder.findMany({
+        where: whereClause,
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' }
+        ],
+        skip,
+        take
+      })
+    ]);
+
+    let orders = initialOrders || [];
+    const hasMore = !isAll && orders.length > limit;
+    if (hasMore) {
+      orders = orders.slice(0, limit);
+    }
+
+    const nextCursor = (hasMore && orders.length > 0)
+      ? encodeCursor({ id: orders[orders.length - 1].id, createdAt: orders[orders.length - 1].createdAt })
+      : null;
+
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore,
+      nextCursor
     });
-    return res.json(orders || []);
+    setPaginationHeaders(res, pagination);
+
+    const isPaginated = Boolean(req.query.page || req.query.cursor || req.query.format === 'object');
+
+    if (!isPaginated || req.query.format === 'array') {
+      return res.json(orders);
+    }
+
+    return res.json({
+      customOrders: orders,
+      orders,
+      pagination,
+      data: orders,
+      total,
+      page,
+      limit,
+      hasMore,
+      nextCursor
+    });
   } catch (err: any) {
     console.error('Error fetching custom orders:', err);
     return res.status(500).json({ error: 'Failed to fetch custom orders' });
@@ -7341,13 +8352,21 @@ app.get('/api/admin/custom-orders', requireAdminMiddleware, async (_req: Request
 });
 
 // 1.1 Get all custom order reviews for moderation (Admin only - registered BEFORE /:id)
-app.get('/api/admin/custom-orders/reviews', requireAdminMiddleware, async (_req: Request, res: Response) => {
+app.get('/api/admin/custom-orders/reviews', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
-    const reviews = await (prisma as any).customOrderReview.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
 
-    const orderIds = Array.from(new Set(reviews.map((r: any) => r.customOrderId)));
+    const [total, reviews] = await Promise.all([
+      (prisma as any).customOrderReview.count(),
+      (prisma as any).customOrderReview.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    const orderIds = Array.from(new Set((reviews || []).map((r: any) => r.customOrderId)));
     let orderMap = new Map<string, any>();
     if (orderIds.length > 0) {
       const orders = await (prisma as any).customOrder.findMany({
@@ -7372,7 +8391,27 @@ app.get('/api/admin/custom-orders/reviews', requireAdminMiddleware, async (_req:
       };
     });
 
-    return res.json(formatted);
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + (reviews || []).length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.format === 'array') {
+      return res.json(formatted);
+    }
+
+    return res.json({
+      reviews: formatted,
+      pagination,
+      data: formatted,
+      total,
+      page,
+      limit,
+      hasMore: pagination.hasMore
+    });
   } catch (err: any) {
     console.error('Error fetching reviews for moderation:', err);
     return res.status(500).json({ error: 'Failed to fetch reviews for moderation' });
@@ -7811,19 +8850,37 @@ function checkCustomOrderReviewRateLimit(clientIp: string): boolean {
 // 10. Public Showcase Gallery API (Public - No login required)
 // Returns strictly sanitized showcase info: id, customOrderName, imageUrl, approved reviews.
 // Strictly omits customer name, phone, email, amount, payment status, QR, notes, order number.
-app.get('/api/custom-orders/public', async (_req: Request, res: Response) => {
+app.get('/api/custom-orders/public', async (req: Request, res: Response) => {
   try {
-    // 1. Fetch only orders explicitly published by admin
-    const publicOrders = await (prisma as any).customOrder.findMany({
-      where: { isPublic: true },
-      orderBy: { createdAt: 'desc' }
-    });
+    const { page, limit, skip } = parseOffsetPagination(req.query, 20);
+    const isAll = req.query.all === 'true';
 
-    // 2. Fetch approved reviews for these custom orders
+    // 1. Fetch only orders explicitly published by admin
+    const [total, publicOrders] = await Promise.all([
+      (prisma as any).customOrder.count({ where: { isPublic: true } }),
+      (prisma as any).customOrder.findMany({
+        where: { isPublic: true },
+        orderBy: { createdAt: 'desc' },
+        skip: isAll ? undefined : skip,
+        take: isAll ? undefined : limit
+      })
+    ]);
+
+    // 2. Fetch approved reviews for this page's custom orders (and general feedback)
     const orderIds = (publicOrders || []).map((o: any) => String(o.id));
     let reviews: any[] = [];
     try {
+      const reviewWhere: any = orderIds.length > 0
+        ? {
+            OR: [
+              { customOrderId: { in: orderIds } },
+              { customOrderId: 'general' }
+            ]
+          }
+        : { customOrderId: 'general' };
+
       const allReviews = await (prisma as any).customOrderReview.findMany({
+        where: reviewWhere,
         orderBy: { createdAt: 'desc' }
       });
       reviews = (allReviews || []).filter((r: any) => {
@@ -7861,7 +8918,6 @@ app.get('/api/custom-orders/public', async (_req: Request, res: Response) => {
     // 3. Transform to strict, privacy-safe showcase response
     const showcaseGallery = (publicOrders || []).map((order: any, idx: number) => {
       let orderReviews = reviewsByOrderId[order.id] || [];
-      // If there are general reviews and an order has none, associate general reviews so feedback is visible
       if (orderReviews.length === 0 && generalReviews.length > 0 && idx === 0) {
         orderReviews = [...generalReviews];
       }
@@ -7873,7 +8929,27 @@ app.get('/api/custom-orders/public', async (_req: Request, res: Response) => {
       };
     });
 
-    return res.json(showcaseGallery);
+    const pagination = buildPaginationMeta({
+      total,
+      page,
+      limit: isAll ? total : limit,
+      hasMore: isAll ? false : skip + (publicOrders || []).length < total
+    });
+    setPaginationHeaders(res, pagination);
+
+    if (req.query.format === 'array') {
+      return res.json(showcaseGallery);
+    }
+
+    return res.json({
+      gallery: showcaseGallery,
+      data: showcaseGallery,
+      pagination,
+      total,
+      page,
+      limit,
+      hasMore: pagination.hasMore
+    });
   } catch (err: any) {
     console.error('Error fetching public custom orders showcase:', err);
     return res.status(500).json({ error: 'Failed to load public custom creations gallery' });
@@ -7887,7 +8963,7 @@ app.get('/api/custom-orders/public', async (_req: Request, res: Response) => {
 app.post(['/api/custom-orders/:id/reviews', '/api/custom-orders/reviews'], async (req: Request, res: Response) => {
   try {
     const id = req.params.id || req.body.customOrderId || req.body.orderId || 'general';
-    const clientIp = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'visitor-ip');
+    const clientIp = getClientIp(req);
 
     // 1. Rate Limiting Protection (5 reviews per 10 mins per IP)
     if (!checkCustomOrderReviewRateLimit(clientIp)) {
@@ -8401,8 +9477,8 @@ app.post('/api/shipping/nimbuspost/estimate', async (req: Request, res: Response
   }
 });
 
-// Dedicated NimbusPost Diagnostic Endpoint
-app.get('/api/shipping/nimbuspost/diagnostic', async (req: Request, res: Response) => {
+// Dedicated NimbusPost Diagnostic Endpoint (Admin Only)
+app.get('/api/shipping/nimbuspost/diagnostic', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const diagnostic = await nimbuspostService.getDiagnosticInfo();
     return res.status(diagnostic.status || 200).json(diagnostic);
@@ -8418,8 +9494,8 @@ app.get('/api/shipping/nimbuspost/diagnostic', async (req: Request, res: Respons
   }
 });
 
-// Diagnostic Endpoint for Testing Delhivery API
-app.get('/api/shipping/diagnostic', async (req: Request, res: Response) => {
+// Diagnostic Endpoint for Testing Delhivery API (Admin Only)
+app.get('/api/shipping/diagnostic', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const originPincode = (req.query.o_pin as string) || process.env.DELHIVERY_ORIGIN_PINCODE || '500032';
     const destinationPincode = (req.query.d_pin as string) || '500032';
@@ -8527,8 +9603,8 @@ app.get('/api/shipping/nimbuspost/track/:awb', async (req: Request, res: Respons
   }
 });
 
-// 3. Create Shipment
-app.post('/api/shipping/create', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// 3. Create Shipment (Admin Only)
+app.post('/api/shipping/create', requireAdminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { orderId, weightInGrams } = req.body;
     if (!orderId) {
@@ -8742,6 +9818,48 @@ export async function syncDelhiveryOrderStatus(
   return updatedOrder;
 }
 
+function formatTrackingOrder(orderData: any, req: Request) {
+  const formatted = formatOrder(orderData);
+  if (!formatted) return null;
+
+  let isAuthorized = false;
+  const token = req.cookies?.auth_token || req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+  if (token && !isTokenRevoked(token)) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (decoded?.role === 'ADMIN' || (orderData.userId && decoded?.id === orderData.userId)) {
+        isAuthorized = true;
+      }
+    } catch {
+      // unauthenticated or invalid token
+    }
+  }
+
+  if (isAuthorized) {
+    return formatted;
+  }
+
+  const rawAddr = (formatted.shippingAddress as any) || {};
+  return {
+    ...formatted,
+    customerName: 'Customer',
+    customerEmail: null,
+    customerPhone: null,
+    shippingAddress: {
+      city: rawAddr.city || null,
+      state: rawAddr.state || null,
+      postalCode: rawAddr.postalCode || null,
+      country: rawAddr.country || 'India'
+    },
+    user: undefined,
+    paymentId: null,
+    razorpayOrderId: null,
+    razorpayPaymentId: null,
+    adminNotes: undefined,
+    notes: undefined
+  };
+}
+
 // 4. Track Shipment by AWB
 app.get('/api/shipping/track/:awb', async (req: Request, res: Response) => {
   try {
@@ -8781,7 +9899,7 @@ app.get('/api/shipping/track/:awb', async (req: Request, res: Response) => {
 
     return res.json({
       ...tracking,
-      order: updatedOrder ? formatOrder(updatedOrder) : null
+      order: updatedOrder ? formatTrackingOrder(updatedOrder, req) : null
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to track shipment', details: err.message });
@@ -8846,7 +9964,7 @@ app.get('/api/orders/:id/track', async (req: Request, res: Response) => {
         estimatedDelivery: tracking.estimatedDelivery,
         lastUpdate: tracking.lastUpdate,
         scans: tracking.scans || [],
-        order: formatOrder(syncedOrder)
+        order: formatTrackingOrder(syncedOrder, req)
       });
     }
 
@@ -8882,7 +10000,7 @@ app.get('/api/orders/:id/track', async (req: Request, res: Response) => {
       estimatedDelivery: order.estimatedDelivery ? order.estimatedDelivery.toISOString().split('T')[0] : null,
       lastUpdate: order.updatedAt.toISOString(),
       scans: initialScans,
-      order: formatOrder(order)
+      order: formatTrackingOrder(order, req)
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to retrieve order tracking', details: err.message });
@@ -8897,6 +10015,40 @@ app.post(['/api/shipping/delhivery/webhook', '/api/webhooks/delhivery'], async (
 
     const events = Array.isArray(payload) ? payload : [payload];
     const results: any[] = [];
+
+    const awbList = Array.from(new Set(events.map((evt: any) => {
+      const awb =
+        evt?.waybill ||
+        evt?.AWB ||
+        evt?.awbNumber ||
+        evt?.awb ||
+        evt?.trackingNumber ||
+        evt?.Shipment?.AWB ||
+        evt?.ShipmentData?.[0]?.Shipment?.AWB;
+      return awb ? String(awb).trim() : null;
+    }).filter(Boolean))) as string[];
+
+    const matchingOrders = awbList.length > 0 ? await prisma.order.findMany({
+      where: {
+        OR: [
+          { awbNumber: { in: awbList } },
+          { trackingNumber: { in: awbList } },
+          { shipmentId: { in: awbList } }
+        ]
+      },
+      include: {
+        items: { include: { product: true, variant: true } },
+        user: true,
+        shipment: true
+      }
+    }).catch(() => []) : [];
+
+    const orderByAwb = new Map<string, any>();
+    matchingOrders.forEach((o: any) => {
+      if (o.awbNumber) orderByAwb.set(o.awbNumber, o);
+      if (o.trackingNumber) orderByAwb.set(o.trackingNumber, o);
+      if (o.shipmentId) orderByAwb.set(o.shipmentId, o);
+    });
 
     for (const evt of events) {
       if (!evt) continue;
@@ -8913,21 +10065,7 @@ app.post(['/api/shipping/delhivery/webhook', '/api/webhooks/delhivery'], async (
       if (!awb) continue;
 
       const cleanAwb = String(awb).trim();
-
-      const existingOrder = await prisma.order.findFirst({
-        where: {
-          OR: [
-            { awbNumber: cleanAwb },
-            { trackingNumber: cleanAwb },
-            { shipmentId: cleanAwb }
-          ]
-        },
-        include: {
-          items: { include: { product: true, variant: true } },
-          user: true,
-          shipment: true
-        }
-      });
+      const existingOrder = orderByAwb.get(cleanAwb);
 
       if (!existingOrder) {
         console.warn(`[Delhivery Webhook] No matching order found for AWB: ${cleanAwb}`);
@@ -8993,8 +10131,8 @@ app.post(['/api/shipping/delhivery/webhook', '/api/webhooks/delhivery'], async (
   }
 });
 
-// 4d. Manual or Cron Sync for all active Delhivery orders
-app.post('/api/shipping/delhivery/sync', async (req: Request, res: Response) => {
+// 4d. Manual or Cron Sync for all active Delhivery orders (Admin Only)
+app.post('/api/shipping/delhivery/sync', requireAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const activeOrders = await prisma.order.findMany({
       where: {
@@ -9038,8 +10176,8 @@ app.post('/api/shipping/delhivery/sync', async (req: Request, res: Response) => 
   }
 });
 
-// 5. Schedule Pickup
-app.post('/api/shipping/pickup', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// 5. Schedule Pickup (Admin Only)
+app.post('/api/shipping/pickup', requireAdminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { orderId, awbNumber, pickupDate, pickupTime, packageCount, warehouseName } = req.body;
     const result = await delhiveryService.requestPickup({ pickupDate, pickupTime, packageCount, warehouseName });
@@ -9066,8 +10204,8 @@ app.post('/api/shipping/pickup', requireAuthMiddleware, async (req: Authenticate
   }
 });
 
-// 6. Generate Printable Label
-app.get('/api/shipping/label/:awb', async (req: Request, res: Response) => {
+// 6. Generate Printable Label (Admin Only)
+app.get('/api/shipping/label/:awb', requireAdminMiddleware, async (req: Request, res: Response) => {
   const { awb } = req.params;
   const labelHtml = `<!DOCTYPE html>
 <html>
@@ -9114,8 +10252,8 @@ app.get('/api/shipping/label/:awb', async (req: Request, res: Response) => {
   return res.send(labelHtml);
 });
 
-// 7. Generate Manifest
-app.get('/api/shipping/manifest/:awb', async (req: Request, res: Response) => {
+// 7. Generate Manifest (Admin Only)
+app.get('/api/shipping/manifest/:awb', requireAdminMiddleware, async (req: Request, res: Response) => {
   const { awb } = req.params;
   const manifestHtml = `<!DOCTYPE html>
 <html>
@@ -9176,8 +10314,8 @@ app.get('/api/shipping/manifest/:awb', async (req: Request, res: Response) => {
   return res.send(manifestHtml);
 });
 
-// 8. Cancel Shipment
-app.post('/api/shipping/cancel', requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// 8. Cancel Shipment (Admin Only)
+app.post('/api/shipping/cancel', requireAdminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { awbNumber, orderId } = req.body;
     const targetAwb = awbNumber || orderId;

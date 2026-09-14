@@ -191,14 +191,18 @@ export function verifyRazorpayWebhookSignature(
   signature: string,
   secret?: string
 ): boolean {
-  const webhookSecret = secret || process.env.RAZORPAY_WEBHOOK_SECRET;
+  const webhookSecret =
+    secret ||
+    process.env.RAZORPAY_WEBHOOK_SECRET ||
+    process.env.RAZORPAY_KEY_SECRET ||
+    (process.env.NODE_ENV !== 'production' ? 'dev_razorpay_webhook_secret_fallback_key_32_chars' : '');
+
   if (!webhookSecret) {
-    // If no secret configured in development, allow request but log warning
-    console.warn('[Razorpay Webhook] RAZORPAY_WEBHOOK_SECRET is not configured; skipping cryptographic verification in dev.');
-    return true;
+    console.error('[Razorpay Webhook Error]: RAZORPAY_WEBHOOK_SECRET is not configured in production.');
+    return false;
   }
 
-  if (!signature) return false;
+  if (!signature || typeof signature !== 'string') return false;
 
   try {
     const expectedSignature = crypto
@@ -206,7 +210,14 @@ export function verifyRazorpayWebhookSignature(
       .update(rawBody)
       .digest('hex');
 
-    return crypto.timingSafeEqual(Buffer.from(expectedSignature, 'utf8'), Buffer.from(signature, 'utf8'));
+    const sigBuf = Buffer.from(signature.trim(), 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+
+    if (sigBuf.length !== expectedBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expectedBuf, sigBuf);
   } catch (err) {
     console.error('[Razorpay Webhook] Signature verification failed:', err);
     return false;

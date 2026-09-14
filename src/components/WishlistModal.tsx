@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Heart, ShoppingBag, Trash2 } from 'lucide-react';
 import { Product } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface WishlistModalProps {
   isOpen: boolean;
@@ -48,11 +49,14 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                   className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center space-x-3 min-w-0">
-                    <img
+                    <OptimizedImage
                       src={pImg}
                       alt={p.title || p.name}
-                    className="w-14 h-14 object-contain p-1 rounded-xl border border-slate-200 bg-white shrink-0"
-                  />
+                      priority={false}
+                      width={120}
+                      className="w-14 h-14 object-contain p-1 rounded-xl border border-slate-200 bg-white shrink-0"
+                      pictureClassName="w-14 h-14 shrink-0 block"
+                    />
                   <div className="min-w-0">
                     <span className="text-[10px] font-bold text-indigo-600 uppercase block">{p.brand}</span>
                     <h4 className="text-xs font-bold text-slate-900 truncate">{p.title}</h4>

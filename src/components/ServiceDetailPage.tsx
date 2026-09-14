@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Service } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface ServiceDetailPageProps {
   service: Service;
@@ -98,10 +99,14 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({
           {/* Service Main Preview Image & Gallery */}
           <div className="space-y-4">
             <div className="aspect-[16/10] min-h-[250px] w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-950 relative">
-              <img
+              <OptimizedImage
                 src={selectedImage}
                 alt={service.name}
+                priority={true}
+                width={1000}
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 className="w-full h-full object-cover transition-all duration-300"
+                pictureClassName="w-full h-full block"
               />
             </div>
 
@@ -115,7 +120,14 @@ export const ServiceDetailPage: React.FC<ServiceDetailPageProps> = ({
                       selectedImage === imgUrl ? 'border-cyan-500 scale-105' : 'border-slate-700 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                    <OptimizedImage
+                      src={imgUrl}
+                      alt={`Gallery ${idx}`}
+                      priority={false}
+                      width={160}
+                      className="w-full h-full object-cover"
+                      pictureClassName="w-full h-full block"
+                    />
                   </button>
                 ))}
               </div>

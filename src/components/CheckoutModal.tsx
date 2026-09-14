@@ -388,7 +388,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         // Open Razorpay Standard Checkout JS Modal if script is available
         if (typeof (window as any).Razorpay !== 'undefined') {
-          const rzpKey = rzpData.key || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_TLmrZ8JjKdjoRQ';
+          const rzpKey = rzpData.key || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID;
+          if (!rzpKey) {
+            console.warn('Razorpay Public Key is not configured.');
+            setIsProcessingOrder(false);
+            setCheckoutError('Payment gateway public key is not configured. Please contact support.');
+            return;
+          }
           const options = {
             key: rzpKey,
             amount: rzpData.amount,
@@ -1127,11 +1133,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left space-y-2 text-xs font-medium">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Merchant:</span>
-                  <span className="font-bold text-slate-800">BrandStore E-Commerce</span>
+                  <span className="font-bold text-slate-800">NEXRA 3D Store</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Key ID:</span>
-                  <span className="font-mono text-slate-800 font-bold">rzp_test_sample_key</span>
+                  <span className="font-mono text-slate-800 font-bold">
+                    {razorpayOrderDetails?.key || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'Configured Gateway'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Supported Methods:</span>

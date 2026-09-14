@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShoppingBag, Trash2, Tag, ArrowRight, ShieldCheck, CheckCircle, Sparkles, Truck, Store, MapPin } from 'lucide-react';
 import { CartItem, Coupon } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -113,10 +114,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   key={item.id || `${item.productId}-${item.customizationText || ''}-${item.selectedColour || ''}-${item.selectedWattage || ''}`}
                   className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex gap-3 items-center"
                 >
-                  <img
+                  <OptimizedImage
                     src={itemImg}
                     alt={item.product.title || item.product.name}
+                    priority={false}
+                    width={128}
                     className="w-16 h-16 object-contain p-1 rounded-xl border border-slate-200 shrink-0 bg-white"
+                    pictureClassName="w-16 h-16 shrink-0 block"
                   />
 
                   <div className="flex-1 min-w-0 space-y-1">
@@ -140,11 +144,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           {((item as any).customizationImages || []).map((cImg: any, cIdx: number) => {
                             const imgUrl = cImg.imageUrl || cImg.url;
                             return (
-                              <img
+                              <OptimizedImage
                                 key={cImg.id || cIdx}
                                 src={imgUrl}
                                 alt={`Photo ${cIdx + 1}`}
+                                priority={false}
+                                width={64}
                                 className="w-8 h-8 object-cover rounded border border-cyan-300"
+                                pictureClassName="w-8 h-8 shrink-0 block"
                               />
                             );
                           })}

@@ -95,6 +95,7 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([phone])
   @@map("users")
 }
 
@@ -119,6 +120,7 @@ model Address {
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
+  @@index([userId, isDefault])
   @@map("addresses")
 }
 
@@ -354,6 +356,13 @@ model Order {
   @@index([orderNumber])
   @@index([status])
   @@index([couponId])
+  @@index([razorpayOrderId])
+  @@index([awbNumber])
+  @@index([trackingNumber])
+  @@index([shipmentId])
+  @@index([paymentStatus])
+  @@index([userId, paymentStatus])
+  @@index([createdAt(sort: Desc)])
   @@map("orders")
 }
 
@@ -380,6 +389,7 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+  @@index([variantId])
   @@map("order_items")
 }
 
@@ -685,6 +695,7 @@ model EmailVerificationOTP {
   createdAt DateTime  @default(now())
 
   @@index([email])
+  @@index([email, usedAt, expiresAt])
   @@map("email_verification_otps")
 }
 
@@ -795,6 +806,9 @@ model CustomOrder {
   @@index([phone])
   @@index([paymentStatus])
   @@index([isPublic])
+  @@index([razorpayOrderId])
+  @@index([razorpayQrId])
+  @@index([createdAt(sort: Desc)])
   @@map("custom_orders")
 }
 
@@ -812,6 +826,8 @@ model CustomOrderReview {
   createdAt     DateTime    @default(now())
 
   @@index([customOrderId])
+  @@index([isApproved, createdAt(sort: Desc)])
+  @@index([status])
   @@map("custom_order_reviews")
 }
 

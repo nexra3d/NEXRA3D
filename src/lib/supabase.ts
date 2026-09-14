@@ -1,48 +1,62 @@
-import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabaseUrl, supabaseAnonKey, supabaseServiceKey, isSupabaseConfigured } from './supabaseConfig';
 
-const getEnvVar = (key: string): string => {
-  const metaEnv = (import.meta as any)?.env;
-  if (metaEnv && metaEnv[key]) {
-    return metaEnv[key];
+export { supabaseUrl, supabaseAnonKey, supabaseServiceKey, isSupabaseConfigured };
+
+let _clientPromise: Promise<SupabaseClient | null> | null = null;
+let _adminPromise: Promise<SupabaseClient | null> | null = null;
+
+// Synchronous references kept for backward compatibility; initialized asynchronously
+export let supabase: SupabaseClient | null = null;
+export let supabaseAdmin: SupabaseClient | null = null;
+
+export async function getSupabaseClient(): Promise<SupabaseClient | null> {
+  if (!isSupabaseConfigured) return null;
+  if (!_clientPromise) {
+    _clientPromise = import('@supabase/supabase-js').then(({ createClient }) => {
+      const client = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      });
+      supabase = client;
+      return client;
+    });
   }
-  if (typeof process !== 'undefined' && process?.env && process.env[key]) {
-    return process.env[key];
+  return _clientPromise;
+}
+
+export async function getSupabaseAdmin(): Promise<SupabaseClient | null> {
+  if (!isSupabaseConfigured) return null;
+  const key = supabaseServiceKey || supabaseAnonKey;
+  if (!key) return null;
+  if (!_adminPromise) {
+    _adminPromise = import('@supabase/supabase-js').then(({ createClient }) => {
+      const admin = createClient(supabaseUrl, key);
+      supabaseAdmin = admin;
+      return admin;
+    });
   }
-  return '';
-};
+  return _adminPromise;
+}
 
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || getEnvVar('SUPABASE_URL') || '';
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_PUBLISHABLE_KEY') || getEnvVar('VITE_SUPABASE_ANON_KEY') || getEnvVar('SUPABASE_ANON_KEY') || '';
-const supabaseServiceKey = getEnvVar('SUPABASE_SERVICE_ROLE_KEY') || '';
-
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl && 
-  supabaseAnonKey && 
-  !supabaseUrl.includes('example.supabase.co')
-);
-
-// Anonymous client for public/client operations
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
-  : null;
-
-// Service Role client for administrative backend operations (bypasses RLS)
-export const supabaseAdmin = (isSupabaseConfigured && supabaseServiceKey)
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : supabase;
+// Auto-initialize if configured in browser environment
+if (isSupabaseConfigured && typeof window !== 'undefined') {
+  getSupabaseClient().catch(() => {});
+}
 
 export async function testSupabaseConnection() {
-  if (!isSupabaseConfigured || !supabase) {
+  if (!isSupabaseConfigured) {
     return { success: false, message: 'SUPABASE_URL and SUPABASE_ANON_KEY environment variables are missing.' };
   }
   try {
-    const { error } = await supabase.from('_health_check').select('*').limit(1);
+    const sb = await getSupabaseClient();
+    if (!sb) {
+      return { success: false, message: 'Could not initialize Supabase client.' };
+    }
+    const { error } = await sb.from('_health_check').select('*').limit(1);
     if (error && error.code !== 'PGRST301' && error.code !== '42P01') {
       return { success: false, message: error.message };
     }
@@ -54,11 +68,15 @@ export async function testSupabaseConnection() {
 
 // Google Sign In via Supabase Auth
 export async function signInWithGoogle() {
-  if (!supabase || !isSupabaseConfigured) {
+  if (!isSupabaseConfigured) {
     throw new Error('Supabase is not configured. Please add SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
   }
+  const sb = await getSupabaseClient();
+  if (!sb) {
+    throw new Error('Failed to initialize Supabase client.');
+  }
   const redirectTo = window.location.origin + '/login';
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo,
@@ -74,11 +92,15 @@ export async function signInWithGoogle() {
 
 // Forgot Password Email via Supabase Auth
 export async function sendForgotPasswordEmail(email: string) {
-  if (!supabase || !isSupabaseConfigured) {
+  if (!isSupabaseConfigured) {
     throw new Error('Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
   }
+  const sb = await getSupabaseClient();
+  if (!sb) {
+    throw new Error('Failed to initialize Supabase client.');
+  }
   const redirectTo = window.location.origin + '/reset-password';
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+  const { data, error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo
   });
   if (error) throw error;
@@ -87,10 +109,14 @@ export async function sendForgotPasswordEmail(email: string) {
 
 // Update User Password via Supabase Auth
 export async function updateSupabasePassword(newPassword: string) {
-  if (!supabase || !isSupabaseConfigured) {
+  if (!isSupabaseConfigured) {
     throw new Error('Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
   }
-  const { data, error } = await supabase.auth.updateUser({
+  const sb = await getSupabaseClient();
+  if (!sb) {
+    throw new Error('Failed to initialize Supabase client.');
+  }
+  const { data, error } = await sb.auth.updateUser({
     password: newPassword
   });
   if (error) throw error;

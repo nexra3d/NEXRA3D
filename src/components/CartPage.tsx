@@ -15,6 +15,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { User } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface CartItemData {
   id: string;
@@ -276,10 +277,13 @@ export const CartPage: React.FC<CartPageProps> = ({
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                     {/* Product Image */}
                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border border-slate-200 overflow-hidden shrink-0 bg-slate-50 relative p-1">
-                      <img
-                        src={item.product.imageUrl || '/placeholder.jpg'}
+                      <OptimizedImage
+                        src={item.product.imageUrl || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=400'}
                         alt={item.product.name}
+                        priority={false}
+                        width={200}
                         className="w-full h-full object-contain"
+                        pictureClassName="w-full h-full flex items-center justify-center"
                       />
                       {!item.isStockSufficient && (
                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center p-1 text-center">
@@ -337,7 +341,14 @@ export const CartPage: React.FC<CartPageProps> = ({
                                   className="block w-10 h-10 rounded-lg overflow-hidden border border-cyan-300 hover:border-cyan-500 hover:scale-105 transition-all relative group shadow-xs"
                                   title={`Photo #${cIdx + 1} - Click to enlarge`}
                                 >
-                                  <img src={imgUrl} alt={`Custom Photo ${cIdx + 1}`} className="w-full h-full object-cover" />
+                                  <OptimizedImage
+                                    src={imgUrl}
+                                    alt={`Custom Photo ${cIdx + 1}`}
+                                    priority={false}
+                                    width={80}
+                                    className="w-full h-full object-cover"
+                                    pictureClassName="w-full h-full block"
+                                  />
                                 </a>
                               );
                             })}

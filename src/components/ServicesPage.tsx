@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Service } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 import {
   Box,
   Layers,
@@ -119,11 +120,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-md transition-all group"
             >
               <div className="relative h-48 bg-slate-900 overflow-hidden">
-                <img
+                <OptimizedImage
                   src={service.imageUrl || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800'}
                   alt={service.name}
+                  priority={false}
+                  width={600}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
+                  pictureClassName="w-full h-full block"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                 {service.isFeatured && (

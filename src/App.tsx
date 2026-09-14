@@ -1,37 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
-import { ProductGrid } from './components/ProductGrid';
-import { ProductDetailsModal } from './components/ProductDetailsModal';
-import { CartDrawer } from './components/CartDrawer';
-import { CheckoutModal } from './components/CheckoutModal';
-import { OrderTrackingModal } from './components/OrderTrackingModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import { WishlistModal } from './components/WishlistModal';
-import { AuthModal } from './components/AuthModal';
-import { EmailInboxModal } from './components/EmailInboxModal';
-import { AdminDashboard } from './components/AdminDashboard';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { LoginPage } from './components/LoginPage';
-import { RegisterPage } from './components/RegisterPage';
-import { AccountDashboard } from './components/AccountDashboard';
-import { UnauthorizedPage } from './components/UnauthorizedPage';
-import { CartPage } from './components/CartPage';
-import { WishlistPage } from './components/WishlistPage';
-import { AboutPage } from './components/AboutPage';
-import { ContactPage } from './components/ContactPage';
-import { ServicesPage } from './components/ServicesPage';
-import { ServiceDetailPage } from './components/ServiceDetailPage';
-import { AerospacePage } from './components/AerospacePage';
-import { QuoteRequestModal } from './components/QuoteRequestModal';
 import { Footer } from './components/Footer';
 import { WhatsAppFloatingButton } from './components/WhatsAppFloatingButton';
-import { InstagramPopup } from './components/InstagramPopup';
-
-import { AdminLoginPage } from './components/AdminLoginPage';
-import { ForgotPasswordPage } from './components/ForgotPasswordPage';
-import { ResetPasswordPage } from './components/ResetPasswordPage';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { isSupabaseConfigured } from './lib/supabaseConfig';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 import { apiFetch, getStoredToken, getStoredUser, clearStoredAuth, setStoredAuth } from './lib/api';
 import {
@@ -46,11 +20,58 @@ import {
   ProductFilterState,
   Service
 } from './types';
-
-import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
-import { CustomOrdersShowcasePage } from './components/CustomOrdersShowcasePage';
-import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { useSEO } from './hooks/useSEO';
+
+// Code Splitting: Lazy loaded pages and major views (loaded on route navigation)
+const ProductGrid = lazy(() => import('./components/ProductGrid').then((m) => ({ default: m.ProductGrid })));
+const AerospacePage = lazy(() => import('./components/AerospacePage').then((m) => ({ default: m.AerospacePage })));
+const ServicesPage = lazy(() => import('./components/ServicesPage').then((m) => ({ default: m.ServicesPage })));
+const ServiceDetailPage = lazy(() => import('./components/ServiceDetailPage').then((m) => ({ default: m.ServiceDetailPage })));
+const CustomOrdersShowcasePage = lazy(() => import('./components/CustomOrdersShowcasePage').then((m) => ({ default: m.CustomOrdersShowcasePage })));
+const AboutPage = lazy(() => import('./components/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazy(() => import('./components/ContactPage').then((m) => ({ default: m.ContactPage })));
+const PrivacyPolicyPage = lazy(() => import('./components/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
+const LoginPage = lazy(() => import('./components/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('./components/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import('./components/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('./components/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
+const AccountDashboard = lazy(() => import('./components/AccountDashboard').then((m) => ({ default: m.AccountDashboard })));
+const UnauthorizedPage = lazy(() => import('./components/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage })));
+const CartPage = lazy(() => import('./components/CartPage').then((m) => ({ default: m.CartPage })));
+const WishlistPage = lazy(() => import('./components/WishlistPage').then((m) => ({ default: m.WishlistPage })));
+const AdminLoginPage = lazy(() => import('./components/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })));
+
+// Code Splitting: Admin Dashboard (240KB+ component lazy-loaded strictly on admin launch)
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+
+// Code Splitting: Lazy loaded Modals & Drawers (loaded on demand only when opened)
+const ProductDetailsModal = lazy(() => import('./components/ProductDetailsModal').then((m) => ({ default: m.ProductDetailsModal })));
+const CartDrawer = lazy(() => import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
+const OrderTrackingModal = lazy(() => import('./components/OrderTrackingModal').then((m) => ({ default: m.OrderTrackingModal })));
+const WishlistModal = lazy(() => import('./components/WishlistModal').then((m) => ({ default: m.WishlistModal })));
+const UserProfileModal = lazy(() => import('./components/UserProfileModal').then((m) => ({ default: m.UserProfileModal })));
+const AuthModal = lazy(() => import('./components/AuthModal').then((m) => ({ default: m.AuthModal })));
+const EmailInboxModal = lazy(() => import('./components/EmailInboxModal').then((m) => ({ default: m.EmailInboxModal })));
+const QuoteRequestModal = lazy(() => import('./components/QuoteRequestModal').then((m) => ({ default: m.QuoteRequestModal })));
+const InstagramPopup = lazy(() => import('./components/InstagramPopup').then((m) => ({ default: m.InstagramPopup })));
+
+// Suspense Loading Fallbacks
+const PageLoadingFallback: React.FC = () => (
+  <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 w-full">
+    <div className="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mb-3" />
+    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Loading...</span>
+  </div>
+);
+
+const ModalLoadingFallback: React.FC = () => (
+  <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 shadow-2xl flex items-center space-x-3 text-white">
+      <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs font-semibold text-slate-300">Loading...</span>
+    </div>
+  </div>
+);
 
 type ViewType =
   | 'home'
@@ -493,6 +514,8 @@ export default function App() {
       const ordData = await safeFetchJson('/api/orders');
       if (Array.isArray(ordData)) {
         setUserOrders(ordData);
+      } else if (ordData && Array.isArray(ordData.orders)) {
+        setUserOrders(ordData.orders);
       }
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -537,8 +560,12 @@ export default function App() {
   // Handle Logout
   const handleLogout = async () => {
     try {
-      if (supabase && isSupabaseConfigured) {
-        await supabase.auth.signOut();
+      if (isSupabaseConfigured) {
+        try {
+          const { getSupabaseClient } = await import('./lib/supabase');
+          const sb = await getSupabaseClient();
+          if (sb) await sb.auth.signOut();
+        } catch (_) {}
       }
       await apiFetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
@@ -726,7 +753,7 @@ export default function App() {
 
   // Supabase Auth listener (Google OAuth & Password Recovery handling)
   useEffect(() => {
-    if (!supabase || !isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) return;
 
     // Check URL hash/query for recovery token
     const checkRecovery = () => {
@@ -739,40 +766,48 @@ export default function App() {
     };
     checkRecovery();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setCurrentView('reset-password');
-        window.history.pushState(null, '', '/reset-password');
-      } else if (session?.user?.email) {
-        try {
-          const syncRes = await fetch('/api/auth/supabase-sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: session.user.email,
-              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
-              avatar: session.user.user_metadata?.avatar_url
-            })
-          });
-          const syncData = await syncRes.json();
-          if (syncRes.ok && syncData.user) {
-            setStoredAuth(syncData.token, syncData.user);
-            setUser(syncData.user);
-            await refreshUserData();
-            const path = window.location.pathname;
-            if (path === '/login' || path === '/register' || path === '/forgot-password') {
-              setCurrentView('home');
-              window.history.pushState(null, '', '/');
+    let subscription: any = null;
+
+    import('./lib/supabase').then(async ({ getSupabaseClient }) => {
+      const sb = await getSupabaseClient();
+      if (!sb) return;
+
+      const { data } = sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setCurrentView('reset-password');
+          window.history.pushState(null, '', '/reset-password');
+        } else if (session?.user?.email) {
+          try {
+            const syncRes = await fetch('/api/auth/supabase-sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: session.user.email,
+                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
+                avatar: session.user.user_metadata?.avatar_url
+              })
+            });
+            const syncData = await syncRes.json();
+            if (syncRes.ok && syncData.user) {
+              setStoredAuth(syncData.token, syncData.user);
+              setUser(syncData.user);
+              await refreshUserData();
+              const path = window.location.pathname;
+              if (path === '/login' || path === '/register' || path === '/forgot-password') {
+                setCurrentView('home');
+                window.history.pushState(null, '', '/');
+              }
             }
+          } catch (err) {
+            console.error('Failed to sync Supabase auth user:', err);
           }
-        } catch (err) {
-          console.error('Failed to sync Supabase auth user:', err);
         }
-      }
-    });
+      });
+      subscription = data?.subscription;
+    }).catch(() => {});
 
     return () => {
-      authListener?.subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -1293,8 +1328,9 @@ export default function App() {
         }}
       />
 
-      {/* VIEW ROUTER BODY */}
-      {currentView === 'login' && (
+      {/* VIEW ROUTER BODY (Code-split with Suspense) */}
+      <Suspense fallback={<PageLoadingFallback />}>
+        {currentView === 'login' && (
         <LoginPage
           onLoginSuccess={(loggedUser) => {
             setUser(loggedUser);
@@ -1583,6 +1619,7 @@ export default function App() {
           />
         </main>
       )}
+      </Suspense>
 
       {/* Global Footer */}
       <Footer
@@ -1623,160 +1660,178 @@ export default function App() {
       {/* Privacy Cookie Consent Banner */}
       <CookieConsentBanner onNavigatePrivacyPolicy={() => setCurrentView('privacy-policy')} />
 
-      {/* MODALS & DRAWERS */}
+      {/* MODALS & DRAWERS (Code-split with Suspense, loaded on-demand) */}
+      <Suspense fallback={<ModalLoadingFallback />}>
+        {/* Quote Request Modal */}
+        {isQuoteModalOpen && (
+          <QuoteRequestModal
+            isOpen={isQuoteModalOpen}
+            onClose={() => setIsQuoteModalOpen(false)}
+            selectedService={quoteService}
+            services={services}
+            onQuoteSubmitted={(req) => {
+              showToast(`Quote request #${req.id.slice(-6).toUpperCase()} submitted successfully!`);
+            }}
+          />
+        )}
 
-      {/* Quote Request Modal */}
-      <QuoteRequestModal
-        isOpen={isQuoteModalOpen}
-        onClose={() => setIsQuoteModalOpen(false)}
-        selectedService={quoteService}
-        services={services}
-        onQuoteSubmitted={(req) => {
-          showToast(`Quote request #${req.id.slice(-6).toUpperCase()} submitted successfully!`);
-        }}
-      />
-
-      {/* MODALS & DRAWERS */}
-
-      {/* 1. Product Quick View Details Modal */}
-      {quickViewProduct && (
-        <ProductDetailsModal
-          product={quickViewProduct}
-          onClose={() => {
-            setQuickViewProduct(null);
-            if (typeof window !== 'undefined') {
-              const url = new URL(window.location.href);
-              url.searchParams.delete('product');
-              url.searchParams.delete('productId');
-              window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+        {/* 1. Product Quick View Details Modal */}
+        {quickViewProduct && (
+          <ProductDetailsModal
+            product={quickViewProduct}
+            onClose={() => {
+              setQuickViewProduct(null);
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('product');
+                url.searchParams.delete('productId');
+                window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+              }
+            }}
+            isWishlisted={wishlistProductIds.includes(quickViewProduct.id)}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={(p, variantId, qty, customizationText, selectedColour, selectedWattage, customizationImages) =>
+              handleAddToCart(p, variantId, qty || 1, customizationText, selectedColour, selectedWattage, customizationImages)
             }
-          }}
-          isWishlisted={wishlistProductIds.includes(quickViewProduct.id)}
-          onToggleWishlist={handleToggleWishlist}
-          onAddToCart={(p, variantId, qty, customizationText, selectedColour, selectedWattage, customizationImages) =>
-            handleAddToCart(p, variantId, qty || 1, customizationText, selectedColour, selectedWattage, customizationImages)
-          }
-          onBuyNow={(p, customizationText, selectedColour, selectedWattage, variantId, customizationImages) => {
-            handleAddToCart(p, variantId, 1, customizationText, selectedColour, selectedWattage, customizationImages);
-            handleProceedToCheckout();
-          }}
-          onSelectRelatedProduct={(p) => setQuickViewProduct(p)}
-        />
-      )}
+            onBuyNow={(p, customizationText, selectedColour, selectedWattage, variantId, customizationImages) => {
+              handleAddToCart(p, variantId, 1, customizationText, selectedColour, selectedWattage, customizationImages);
+              handleProceedToCheckout();
+            }}
+            onSelectRelatedProduct={(p) => setQuickViewProduct(p)}
+          />
+        )}
 
-      {/* 2. Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        cartSummary={cartData}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveCartItem}
-        appliedCoupon={appliedCoupon}
-        discountAmount={discountAmount}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={handleRemoveCoupon}
-        onProceedToCheckout={handleProceedToCheckout}
-      />
+        {/* 2. Cart Drawer */}
+        {isCartOpen && (
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cartItems={cartItems}
+            cartSummary={cartData}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            appliedCoupon={appliedCoupon}
+            discountAmount={discountAmount}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={handleRemoveCoupon}
+            onProceedToCheckout={handleProceedToCheckout}
+          />
+        )}
 
-      {/* 3. Checkout Modal (Razorpay + COD) */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        cartItems={cartItems}
-        cartSummary={cartData}
-        savedAddresses={savedAddresses}
-        appliedCoupon={appliedCoupon}
-        discountAmount={discountAmount}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={handleRemoveCoupon}
-        onAddNewAddress={handleAddNewAddress}
-        onOrderCompleted={handleOrderCompleted}
-        currentUser={user}
-        onOpenAuth={() => {
-          setIsCheckoutOpen(false);
-          setIsAuthOpen(true);
-        }}
-      />
+        {/* 3. Checkout Modal (Razorpay + COD) */}
+        {isCheckoutOpen && (
+          <CheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            cartItems={cartItems}
+            cartSummary={cartData}
+            savedAddresses={savedAddresses}
+            appliedCoupon={appliedCoupon}
+            discountAmount={discountAmount}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={handleRemoveCoupon}
+            onAddNewAddress={handleAddNewAddress}
+            onOrderCompleted={handleOrderCompleted}
+            currentUser={user}
+            onOpenAuth={() => {
+              setIsCheckoutOpen(false);
+              setIsAuthOpen(true);
+            }}
+          />
+        )}
 
-      {/* 4. Order Tracking Modal */}
-      <OrderTrackingModal
-        order={trackingOrder}
-        onClose={() => setTrackingOrder(null)}
-      />
+        {/* 4. Order Tracking Modal */}
+        {trackingOrder && (
+          <OrderTrackingModal
+            order={trackingOrder}
+            onClose={() => setTrackingOrder(null)}
+          />
+        )}
 
-      {/* 5. Wishlist Modal */}
-      <WishlistModal
-        isOpen={isWishlistOpen}
-        onClose={() => setIsWishlistOpen(false)}
-        wishlistProducts={wishlistProducts}
-        onRemoveFromWishlist={handleToggleWishlist}
-        onAddToCart={handleAddToCart}
-      />
+        {/* 5. Wishlist Modal */}
+        {isWishlistOpen && (
+          <WishlistModal
+            isOpen={isWishlistOpen}
+            onClose={() => setIsWishlistOpen(false)}
+            wishlistProducts={wishlistProducts}
+            onRemoveFromWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+          />
+        )}
 
-      {/* 6. User Profile & Order History Modal */}
-      <UserProfileModal
-        isOpen={isProfileOpen}
-        user={user}
-        onClose={() => setIsProfileOpen(false)}
-        addresses={savedAddresses}
-        orders={userOrders}
-        onAddNewAddress={handleAddNewAddress}
-        onTrackOrder={(ord) => setTrackingOrder(ord)}
-        onLogout={() => {
-          handleLogout();
-          setIsProfileOpen(false);
-        }}
-      />
+        {/* 6. User Profile & Order History Modal */}
+        {isProfileOpen && (
+          <UserProfileModal
+            isOpen={isProfileOpen}
+            user={user}
+            onClose={() => setIsProfileOpen(false)}
+            addresses={savedAddresses}
+            orders={userOrders}
+            onAddNewAddress={handleAddNewAddress}
+            onTrackOrder={(ord) => setTrackingOrder(ord)}
+            onLogout={() => {
+              handleLogout();
+              setIsProfileOpen(false);
+            }}
+          />
+        )}
 
-      {/* 7. Auth Login / Register Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLoginSuccess={(u) => {
-          setUser(u);
-          refreshUserData();
-          setIsAuthOpen(false);
-          setIsProfileOpen(false);
-          showToast(`Welcome back, ${u.name}!`);
-        }}
-        onNavigateForgotPassword={() => {
-          setIsAuthOpen(false);
-          setCurrentView('forgot-password');
-        }}
-      />
+        {/* 7. Auth Login / Register Modal */}
+        {isAuthOpen && (
+          <AuthModal
+            isOpen={isAuthOpen}
+            onClose={() => setIsAuthOpen(false)}
+            onLoginSuccess={(u) => {
+              setUser(u);
+              refreshUserData();
+              setIsAuthOpen(false);
+              setIsProfileOpen(false);
+              showToast(`Welcome back, ${u.name}!`);
+            }}
+            onNavigateForgotPassword={() => {
+              setIsAuthOpen(false);
+              setCurrentView('forgot-password');
+            }}
+          />
+        )}
 
+        {/* 8. Resend Email Logs Inspector Modal */}
+        {isEmailInboxOpen && (
+          <EmailInboxModal
+            isOpen={isEmailInboxOpen}
+            onClose={() => setIsEmailInboxOpen(false)}
+            emails={emails}
+          />
+        )}
 
-      {/* 8. Resend Email Logs Inspector Modal */}
-      <EmailInboxModal
-        isOpen={isEmailInboxOpen}
-        onClose={() => setIsEmailInboxOpen(false)}
-        emails={emails}
-      />
+        {/* 9. Admin Dashboard (Heaviest component, rendered only when opened) */}
+        {isAdminOpen && (
+          <ErrorBoundary fallbackTitle="Unable to load Admin Dashboard">
+            <AdminDashboard
+              isOpen={isAdminOpen}
+              onClose={() => setIsAdminOpen(false)}
+              products={allProducts.length > 0 ? allProducts : products}
+              categories={categories}
+              orders={userOrders}
+              coupons={coupons}
+              onRefreshData={() => {
+                invalidateClientProductCache();
+                fetchData();
+                fetchAllProducts(true);
+                fetchFilteredProducts();
+              }}
+            />
+          </ErrorBoundary>
+        )}
 
-      {/* 9. Admin Dashboard */}
-      <ErrorBoundary fallbackTitle="Unable to load Admin Dashboard">
-        <AdminDashboard
-          isOpen={isAdminOpen}
-          onClose={() => setIsAdminOpen(false)}
-          products={allProducts.length > 0 ? allProducts : products}
-          categories={categories}
-          orders={userOrders}
-          coupons={coupons}
-          onRefreshData={() => {
-            invalidateClientProductCache();
-            fetchData();
-            fetchAllProducts(true);
-            fetchFilteredProducts();
-          }}
-        />
-      </ErrorBoundary>
-
-      {/* Instagram Promotional Popup on Website Open */}
-      <InstagramPopup
-        isOpen={isInstagramPopupOpen}
-        onClose={() => setIsInstagramPopupOpen(false)}
-      />
+        {/* Instagram Promotional Popup on Website Open */}
+        {isInstagramPopupOpen && (
+          <InstagramPopup
+            isOpen={isInstagramPopupOpen}
+            onClose={() => setIsInstagramPopupOpen(false)}
+          />
+        )}
+      </Suspense>
 
       {/* Floating WhatsApp Quick Contact Button */}
       <WhatsAppFloatingButton />

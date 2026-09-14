@@ -7,14 +7,54 @@ import { CookieOptions } from 'express';
 // 1. JWT & SECRETS MANAGEMENT
 // ==========================================
 
+const KNOWN_INSECURE_SECRETS = new Set([
+  'super-secret-jwt-key-change-in-production',
+  'change_this_secret_in_production',
+  'change-this-secret-in-production',
+  'secret',
+  'changeme',
+  'jwt_secret',
+  '123456',
+  'default_secret',
+  'supersecret',
+  'your-secret-key',
+  'development-secret'
+]);
+
 const RAW_JWT_SECRET = process.env.JWT_SECRET;
-if (!RAW_JWT_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('[SECURITY CRITICAL] JWT_SECRET environment variable is missing in production!');
+
+export function validateJwtSecretInProduction(secret?: string): boolean {
+  const target = secret !== undefined ? secret : RAW_JWT_SECRET;
+  const lower = target ? target.trim().toLowerCase() : '';
+  const hasPlaceholder = lower.includes('change_in_production') || lower.includes('change-in-production') || lower.includes('changeme') || lower.includes('your-secret');
+  const isWeak = !target || target.trim().length < 32 || KNOWN_INSECURE_SECRETS.has(lower) || hasPlaceholder;
+  if (isWeak) {
+    const errorMsg = '[FATAL SECURITY ERROR] A cryptographically strong JWT_SECRET (minimum 32 characters, not using a known insecure default) must be configured in production.';
+    throw new Error(errorMsg);
+  }
+  return true;
 }
 
-// Generate an ephemeral cryptographic secret for local development if JWT_SECRET is unset
-const DEV_FALLBACK_SECRET = crypto.randomBytes(32).toString('hex');
-export const JWT_SECRET = RAW_JWT_SECRET || DEV_FALLBACK_SECRET;
+function resolveJwtSecret(): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isWeak = !RAW_JWT_SECRET || RAW_JWT_SECRET.trim().length < 32 || KNOWN_INSECURE_SECRETS.has(RAW_JWT_SECRET.trim().toLowerCase());
+
+  if (isProduction) {
+    validateJwtSecretInProduction(RAW_JWT_SECRET);
+    return RAW_JWT_SECRET!.trim();
+  }
+
+  // In development and test environments:
+  // If no secret or an insecure default is provided, generate a cryptographically strong ephemeral secret
+  // This guarantees that any token forged or signed with previous insecure defaults will fail validation.
+  if (isWeak) {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  return RAW_JWT_SECRET!.trim();
+}
+
+export const JWT_SECRET = resolveJwtSecret();
 export const ACCESS_TOKEN_EXPIRY = '24h'; // 24-hour expiration for active access tokens
 
 // In-memory token revocation blacklist (persists during process lifetime)
@@ -286,13 +326,63 @@ export const emailVerificationRateLimiter = new InMemoryRateLimiter({
 });
 
 /**
- * Helper to extract client IP safely
+ * Helper to extract client IP safely without blind header spoofing
  */
 export function getClientIp(req: any): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const ipList = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
-    if (ipList.length > 0) return ipList[0].trim();
+  if (req.ip) {
+    return req.ip.replace(/^::ffff:/, '');
   }
-  return req.ip || req.socket?.remoteAddress || '127.0.0.1';
+  const socketAddress = req.socket?.remoteAddress;
+  if (socketAddress) {
+    return socketAddress.replace(/^::ffff:/, '');
+  }
+  return '127.0.0.1';
+}
+
+/**
+ * Validates raster image buffer contents via magic bytes / file signatures
+ * Strictly rejects vector formats (SVG) or polyglot files containing script/xml tags
+ */
+export function validateRasterImageBuffer(buffer: Buffer): { valid: boolean; reason?: string } {
+  if (!buffer || buffer.length < 12) {
+    return { valid: false, reason: 'Uploaded file is empty or too small to be a valid image.' };
+  }
+
+  // Scan the beginning for SVG, XML, HTML, or JavaScript tags (XSS defense)
+  const headerSample = buffer.subarray(0, Math.min(buffer.length, 2048)).toString('utf-8').toLowerCase();
+  if (
+    headerSample.includes('<svg') ||
+    headerSample.includes('<?xml') ||
+    headerSample.includes('<html') ||
+    headerSample.includes('<script') ||
+    headerSample.includes('javascript:') ||
+    headerSample.includes('onload=') ||
+    headerSample.includes('onerror=')
+  ) {
+    return { valid: false, reason: 'Vector images (SVG) and active scripts are strictly forbidden.' };
+  }
+
+  // Magic bytes checks:
+  // JPEG: 0xFF, 0xD8, 0xFF
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  // PNG: 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+  const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+  // GIF: GIF87a or GIF89a
+  const isGif = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38;
+  // WEBP: "RIFF" .... "WEBP"
+  const isWebp =
+    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  // AVIF / HEIC / HEIF: starts with ftyp box at offset 4
+  const isIsoBmff =
+    buffer.subarray(4, 8).toString('ascii') === 'ftyp' &&
+    ['avif', 'mif1', 'msf1', 'heic', 'heix', 'heim', 'heis'].some((brand) =>
+      buffer.subarray(8, 12).toString('ascii').toLowerCase().includes(brand)
+    );
+
+  if (isJpeg || isPng || isGif || isWebp || isIsoBmff) {
+    return { valid: true };
+  }
+
+  return { valid: false, reason: 'File content signature does not match any allowed raster image format (JPEG, PNG, WEBP, GIF, AVIF).' };
 }

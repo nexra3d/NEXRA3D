@@ -10,9 +10,11 @@ import {
   ZoomIn,
   X,
   Layers,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { PublicCustomOrder, PublicCustomOrderReview } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface CustomOrdersShowcasePageProps {
   onRequestQuoteClick: () => void;
@@ -26,7 +28,10 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
   initialOrderId
 }) => {
   const [orders, setOrders] = useState<PublicCustomOrder[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -53,20 +58,30 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
   const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false);
   const [reviewMessage, setReviewMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const fetchPublicShowcase = async () => {
-    setIsLoading(true);
+  const fetchPublicShowcase = async (pageNum = 1, append = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     setError(null);
     try {
-      const res = await fetch('/api/custom-orders/public');
+      const res = await fetch(`/api/custom-orders/public?page=${pageNum}&limit=20`);
       if (!res.ok) {
         throw new Error('Failed to load custom creations');
       }
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setOrders(data);
+      const list: PublicCustomOrder[] = Array.isArray(data) ? data : (data?.gallery || data?.data || []);
+      setHasMore(Boolean(data?.pagination?.hasMore || data?.hasMore));
+      setPage(pageNum);
+
+      if (append) {
+        setOrders((prev) => [...prev, ...list]);
+      } else {
+        setOrders(list);
         setSelectedOrder((prev) => {
           if (!prev) return null;
-          return data.find((o: any) => o.id === prev.id) || prev;
+          return list.find((o: any) => o.id === prev.id) || prev;
         });
       }
     } catch (err: any) {
@@ -74,6 +89,7 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
       setError('Unable to load custom orders showcase right now. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -264,7 +280,7 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
           <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-rose-200 dark:border-rose-900/30 p-8 shadow-xs max-w-lg mx-auto">
             <p className="text-sm font-semibold text-rose-500 mb-4">{error}</p>
             <button
-              onClick={fetchPublicShowcase}
+              onClick={() => fetchPublicShowcase(1, false)}
               className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity"
             >
               Retry Loading
@@ -324,16 +340,14 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
                   {/* 1. Custom Order Picture/Image Container */}
                   <div className="relative aspect-4/3 w-full bg-slate-100 dark:bg-slate-850 overflow-hidden flex items-center justify-center">
                     {order.imageUrl ? (
-                      <img
+                      <OptimizedImage
                         src={order.imageUrl}
                         alt={order.customOrderName}
-                        referrerPolicy="no-referrer"
+                        priority={false}
+                        width={600}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                        onError={(e) => {
-                          // Hide broken image link gracefully without loading fake stock photos
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
+                        pictureClassName="w-full h-full block"
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-6 text-center">
@@ -427,6 +441,20 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
           </div>
         )}
 
+        {/* Load More Pagination */}
+        {hasMore && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={() => fetchPublicShowcase(page + 1, true)}
+              disabled={isLoadingMore}
+              className="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              {isLoadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isLoadingMore ? 'Loading More Creations...' : `Load More Creations (Page ${page + 1})`}</span>
+            </button>
+          </div>
+        )}
+
         {/* Bottom Callout: Custom 3D Printing Service */}
         <div className="mt-16 rounded-3xl bg-linear-to-r from-slate-900 via-slate-800 to-indigo-950 p-8 sm:p-12 text-white border border-slate-700/60 shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="max-w-2xl space-y-3 text-center md:text-left">
@@ -485,11 +513,13 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
             {/* High-res Image */}
             <div className="relative bg-black flex items-center justify-center max-h-[50vh] overflow-hidden">
               {selectedOrder.imageUrl ? (
-                <img
+                <OptimizedImage
                   src={selectedOrder.imageUrl}
                   alt={selectedOrder.customOrderName}
-                  referrerPolicy="no-referrer"
+                  priority={true}
+                  width={1000}
                   className="max-h-[50vh] w-auto object-contain"
+                  pictureClassName="max-h-[50vh] flex items-center justify-center"
                 />
               ) : (
                 <div className="py-20 text-slate-400 flex flex-col items-center">

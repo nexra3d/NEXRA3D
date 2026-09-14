@@ -207,7 +207,23 @@ export async function ensureDbSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "custom_orders_phone_idx" ON "custom_orders"("phone");`,
       `CREATE INDEX IF NOT EXISTS "custom_orders_paymentStatus_idx" ON "custom_orders"("paymentStatus");`,
       `CREATE INDEX IF NOT EXISTS "custom_orders_isPublic_idx" ON "custom_orders"("isPublic");`,
-      `CREATE INDEX IF NOT EXISTS "custom_order_reviews_order_idx" ON "custom_order_reviews"("customOrderId");`
+      `CREATE INDEX IF NOT EXISTS "custom_orders_razorpayOrderId_idx" ON "custom_orders"("razorpayOrderId");`,
+      `CREATE INDEX IF NOT EXISTS "custom_orders_razorpayQrId_idx" ON "custom_orders"("razorpayQrId");`,
+      `CREATE INDEX IF NOT EXISTS "custom_orders_createdAt_idx" ON "custom_orders"("createdAt" DESC);`,
+      `CREATE INDEX IF NOT EXISTS "custom_order_reviews_order_idx" ON "custom_order_reviews"("customOrderId");`,
+      `CREATE INDEX IF NOT EXISTS "custom_order_reviews_isApproved_createdAt_idx" ON "custom_order_reviews"("isApproved", "createdAt" DESC);`,
+      `CREATE INDEX IF NOT EXISTS "custom_order_reviews_status_idx" ON "custom_order_reviews"("status");`,
+      `CREATE INDEX IF NOT EXISTS "orders_razorpayOrderId_idx" ON "orders"("razorpayOrderId");`,
+      `CREATE INDEX IF NOT EXISTS "orders_awbNumber_idx" ON "orders"("awbNumber");`,
+      `CREATE INDEX IF NOT EXISTS "orders_trackingNumber_idx" ON "orders"("trackingNumber");`,
+      `CREATE INDEX IF NOT EXISTS "orders_shipmentId_idx" ON "orders"("shipmentId");`,
+      `CREATE INDEX IF NOT EXISTS "orders_paymentStatus_idx" ON "orders"("paymentStatus");`,
+      `CREATE INDEX IF NOT EXISTS "orders_userId_paymentStatus_idx" ON "orders"("userId", "paymentStatus");`,
+      `CREATE INDEX IF NOT EXISTS "orders_createdAt_idx" ON "orders"("createdAt" DESC);`,
+      `CREATE INDEX IF NOT EXISTS "order_items_variantId_idx" ON "order_items"("variantId");`,
+      `CREATE INDEX IF NOT EXISTS "addresses_userId_isDefault_idx" ON "addresses"("userId", "isDefault");`,
+      `CREATE INDEX IF NOT EXISTS "email_verification_otps_lookup_idx" ON "email_verification_otps"("email", "usedAt", "expiresAt");`,
+      `CREATE INDEX IF NOT EXISTS "users_phone_idx" ON "users"("phone");`
     ];
     for (const sql of indexList) {
       try {

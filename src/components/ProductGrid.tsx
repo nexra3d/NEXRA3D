@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { SlidersHorizontal, X, ArrowUpDown, Check, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { SlidersHorizontal, X, ArrowUpDown, Check, Filter, ChevronLeft, ChevronRight, PlusCircle, LayoutGrid, Layers } from 'lucide-react';
 import { Product, Category, ProductFilterState } from '../types';
 import { ProductCard } from './ProductCard';
 
@@ -27,10 +27,42 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   isLoading = false
 }) => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [visibleCount, setVisibleCount] = useState<number>(20);
+  const [paginationMode, setPaginationMode] = useState<'pages' | 'infinite'>('pages');
 
   const safeProducts = Array.isArray(products) ? products : [];
   const safeWishlistIds = Array.isArray(wishlistProductIds) ? wishlistProductIds : [];
   const displayCategories = Array.isArray(categories) ? categories : [];
+
+  // Reset pagination on filter changes or catalog updates
+  useEffect(() => {
+    setCurrentPage(1);
+    setVisibleCount(pageSize);
+  }, [filters, pageSize, safeProducts.length]);
+
+  const totalProducts = safeProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
+
+  // Determine which products to display based on mode
+  const displayedProducts = paginationMode === 'infinite'
+    ? safeProducts.slice(0, visibleCount)
+    : safeProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const startItem = totalProducts === 0 ? 0 : paginationMode === 'infinite' ? 1 : (currentPage - 1) * pageSize + 1;
+  const endItem = paginationMode === 'infinite' ? Math.min(visibleCount, totalProducts) : Math.min(currentPage * pageSize, totalProducts);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
+  };
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + pageSize, totalProducts));
+  };
 
   // Collect all unique brands from catalog
   const availableBrands = Array.from(new Set(safeProducts.map((p) => p.brand))) as string[];
@@ -296,17 +328,147 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               ))}
             </div>
           ) : safeProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {safeProducts.map((p, idx) => (
-                <ProductCard
-                  key={p.id ? `prod-${p.id}-${idx}` : `prod-${idx}`}
-                  product={p}
-                  isWishlisted={safeWishlistIds.includes(p.id)}
-                  onToggleWishlist={onToggleWishlist}
-                  onAddToCart={onAddToCart}
-                  onQuickView={onQuickView}
-                />
-              ))}
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {displayedProducts.map((p, idx) => (
+                  <ProductCard
+                    key={p.id ? `prod-${p.id}-${idx}` : `prod-${idx}`}
+                    product={p}
+                    isWishlisted={safeWishlistIds.includes(p.id)}
+                    onToggleWishlist={onToggleWishlist}
+                    onAddToCart={onAddToCart}
+                    onQuickView={onQuickView}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination Controls - Default 20 items per page with Load More & Next Page */}
+              {totalProducts > pageSize && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-600">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-slate-500">Showing</span>
+                      <span className="font-bold text-slate-900">{startItem}–{endItem}</span>
+                      <span className="text-slate-500">of</span>
+                      <span className="font-bold text-slate-900">{totalProducts}</span>
+                      <span className="text-slate-500">products</span>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <span className="text-slate-500 text-xs">Per Page:</span>
+                      <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/60">
+                        {[20, 40, 60].map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => {
+                              setPageSize(size);
+                              setCurrentPage(1);
+                              setVisibleCount(size);
+                            }}
+                            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                              pageSize === size
+                                ? 'bg-white text-indigo-600 shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/60 ml-2">
+                        <button
+                          onClick={() => setPaginationMode('pages')}
+                          title="Page Numbers View"
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            paginationMode === 'pages'
+                              ? 'bg-white text-indigo-600 shadow-xs'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <Layers className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setPaginationMode('infinite')}
+                          title="Load More View"
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            paginationMode === 'infinite'
+                              ? 'bg-white text-indigo-600 shadow-xs'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {paginationMode === 'infinite' ? (
+                    <div className="pt-2 text-center">
+                      {visibleCount < totalProducts ? (
+                        <button
+                          onClick={handleLoadMore}
+                          className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-6 py-3 rounded-xl transition-all border border-indigo-200/70 shadow-xs cursor-pointer text-xs"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          <span>Load More ({Math.min(pageSize, totalProducts - visibleCount)} remaining)</span>
+                        </button>
+                      ) : (
+                        <p className="text-xs text-slate-400 font-medium py-1">All {totalProducts} products loaded</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Previous</span>
+                      </button>
+
+                      <div className="hidden sm:flex items-center space-x-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter((pageNum) => {
+                            if (totalPages <= 7) return true;
+                            if (pageNum === 1 || pageNum === totalPages) return true;
+                            if (Math.abs(pageNum - currentPage) <= 1) return true;
+                            return false;
+                          })
+                          .map((pageNum, idx, arr) => {
+                            const prev = arr[idx - 1];
+                            const showEllipsis = prev && pageNum - prev > 1;
+                            return (
+                              <React.Fragment key={pageNum}>
+                                {showEllipsis && <span className="px-2 text-slate-400 text-xs">...</span>}
+                                <button
+                                  onClick={() => handlePageChange(pageNum)}
+                                  className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                    currentPage === pageNum
+                                      ? 'bg-indigo-600 text-white shadow-xs'
+                                      : 'text-slate-600 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {pageNum}
+                                </button>
+                              </React.Fragment>
+                            );
+                          })}
+                      </div>
+
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center space-y-4 shadow-2xs">

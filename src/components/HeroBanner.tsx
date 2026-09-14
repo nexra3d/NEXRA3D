@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Sparkles, Send } from 'lucide-react';
 import { Category } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface HeroBannerProps {
   categories: Category[];
@@ -75,17 +76,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {displayCategories.map((cat) => (
+          {displayCategories.map((cat, idx) => (
             <div
               key={cat.id}
               onClick={() => onSelectCategory(cat.id)}
               className="group relative overflow-hidden rounded-2xl bg-white border border-slate-200/90 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 cursor-pointer flex flex-col justify-between"
             >
               <div className="h-40 overflow-hidden relative">
-                <img
+                <OptimizedImage
                   src={cat.imageUrl}
                   alt={cat.name}
+                  priority={idx < 2}
+                  width={600}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
+                  pictureClassName="w-full h-full block"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent" />
                 <span className="absolute top-3 left-3 bg-cyan-500/95 backdrop-blur-md text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md shadow-xs tracking-wider">

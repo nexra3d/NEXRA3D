@@ -7,9 +7,14 @@ import {
   ArrowLeft,
   Check,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  PlusCircle,
+  Layers
 } from 'lucide-react';
 import { User, Product } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface WishlistItemData {
   id: string;
@@ -76,6 +81,11 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
   const [isClearing, setIsClearing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [visibleCount, setVisibleCount] = useState<number>(20);
+  const [paginationMode, setPaginationMode] = useState<'pages' | 'infinite'>('pages');
+
   if (!currentUser) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -108,7 +118,27 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
     );
   }
 
-  const items = wishlistData?.items || [];
+  const items = Array.isArray(wishlistData?.items) ? wishlistData.items : [];
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  const displayedItems = paginationMode === 'infinite'
+    ? items.slice(0, visibleCount)
+    : items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const startItem = totalItems === 0 ? 0 : paginationMode === 'infinite' ? 1 : (currentPage - 1) * pageSize + 1;
+  const endItem = paginationMode === 'infinite' ? Math.min(visibleCount, totalItems) : Math.min(currentPage * pageSize, totalItems);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + pageSize, totalItems));
+  };
 
   const handleMoveToCart = async (item: WishlistItemData) => {
     setErrorMsg(null);
@@ -234,8 +264,9 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {items.map((item) => {
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {displayedItems.map((item) => {
             const product = item.product;
             const isMoving = movingProductId === product.id;
             const hasVariants = product.hasVariants && Array.isArray(product.variants) && product.variants.length > 0;
@@ -258,10 +289,13 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                 <div>
                   {/* Image banner */}
                   <div className="aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center p-2">
-                    <img
-                      src={product.imageUrl || '/placeholder.jpg'}
+                    <OptimizedImage
+                      src={product.imageUrl || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=600'}
                       alt={product.name}
+                      priority={false}
+                      width={400}
                       className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                      pictureClassName="w-full h-full flex items-center justify-center"
                     />
                     {isOutOfStock && (
                       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center p-2 text-center">
@@ -346,7 +380,136 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
             );
           })}
         </div>
-      )}
+
+        {/* Pagination Controls - Default 20 items per page with Load More & Next Page */}
+        {totalItems > pageSize && (
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-600">
+              <div className="flex items-center space-x-2">
+                <span className="text-slate-500">Showing</span>
+                <span className="font-bold text-slate-900">{startItem}–{endItem}</span>
+                <span className="text-slate-500">of</span>
+                <span className="font-bold text-slate-900">{totalItems}</span>
+                <span className="text-slate-500">items</span>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <span className="text-slate-500 text-xs">Per Page:</span>
+                <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/60">
+                  {[20, 40, 60].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                        setVisibleCount(size);
+                      }}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        pageSize === size
+                          ? 'bg-white text-rose-600 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/60 ml-2">
+                  <button
+                    onClick={() => setPaginationMode('pages')}
+                    title="Page Numbers View"
+                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                      paginationMode === 'pages'
+                        ? 'bg-white text-rose-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setPaginationMode('infinite')}
+                    title="Load More View"
+                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                      paginationMode === 'infinite'
+                        ? 'bg-white text-rose-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {paginationMode === 'infinite' ? (
+              <div className="pt-2 text-center">
+                {visibleCount < totalItems ? (
+                  <button
+                    onClick={handleLoadMore}
+                    className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-6 py-3 rounded-xl transition-all border border-rose-200/70 shadow-xs cursor-pointer text-xs"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Load More ({Math.min(pageSize, totalItems - visibleCount)} remaining)</span>
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-400 font-medium py-1">All {totalItems} items loaded</p>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Previous</span>
+                </button>
+
+                <div className="hidden sm:flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((pageNum) => {
+                      if (totalPages <= 7) return true;
+                      if (pageNum === 1 || pageNum === totalPages) return true;
+                      if (Math.abs(pageNum - currentPage) <= 1) return true;
+                      return false;
+                    })
+                    .map((pageNum, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const showEllipsis = prev && pageNum - prev > 1;
+                      return (
+                        <React.Fragment key={pageNum}>
+                          {showEllipsis && <span className="px-2 text-slate-400 text-xs">...</span>}
+                          <button
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              currentPage === pageNum
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )}
     </div>
   );
 };

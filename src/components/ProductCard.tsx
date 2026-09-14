@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, Star, ShoppingBag, Eye, Sparkles, Flame, ShieldAlert } from 'lucide-react';
 import { Product } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
@@ -74,12 +75,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div>
         {/* Product Image Thumbnail */}
         <div className="relative aspect-[4/3] h-52 sm:h-56 w-full bg-slate-50 overflow-hidden cursor-pointer flex items-center justify-center p-2" onClick={() => onQuickView(product)}>
-          <img
+          <OptimizedImage
             src={primaryImg}
             alt={productName}
-            loading="lazy"
-            decoding="async"
+            priority={false}
+            width={600}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="w-full h-full object-contain group-hover:scale-108 transition-transform duration-500"
+            pictureClassName="w-full h-full flex items-center justify-center"
           />
 
           {/* Badges Overlay */}

@@ -76,14 +76,15 @@ describe('NEXRA 3D — Product Image Upload Flag & Schema Audit', () => {
       expect(res.body.error).toMatch(/does not support or require photo uploads/i);
     });
 
+    const validJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43]);
+
     it('Accepts 1 photo upload for Lithophane Lamp', async () => {
-      const buffer = Buffer.from('fake image 1');
       const res = await request(app)
         .post('/api/customization/upload')
         .set('Authorization', `Bearer ${customerToken}`)
         .field('productId', lithophaneLampId)
         .field('currentCount', '0')
-        .attach('images', buffer, 'photo1.jpg');
+        .attach('images', validJpeg, 'photo1.jpg');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -91,22 +92,16 @@ describe('NEXRA 3D — Product Image Upload Flag & Schema Audit', () => {
     });
 
     it('Accepts up to 5 photos for Lithophane Lamp', async () => {
-      const buffer1 = Buffer.from('fake image 1');
-      const buffer2 = Buffer.from('fake image 2');
-      const buffer3 = Buffer.from('fake image 3');
-      const buffer4 = Buffer.from('fake image 4');
-      const buffer5 = Buffer.from('fake image 5');
-
       const res = await request(app)
         .post('/api/customization/upload')
         .set('Authorization', `Bearer ${customerToken}`)
         .field('productId', lithophaneLampId)
         .field('currentCount', '0')
-        .attach('images', buffer1, 'p1.jpg')
-        .attach('images', buffer2, 'p2.jpg')
-        .attach('images', buffer3, 'p3.jpg')
-        .attach('images', buffer4, 'p4.jpg')
-        .attach('images', buffer5, 'p5.jpg');
+        .attach('images', validJpeg, 'p1.jpg')
+        .attach('images', validJpeg, 'p2.jpg')
+        .attach('images', validJpeg, 'p3.jpg')
+        .attach('images', validJpeg, 'p4.jpg')
+        .attach('images', validJpeg, 'p5.jpg');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -114,24 +109,17 @@ describe('NEXRA 3D — Product Image Upload Flag & Schema Audit', () => {
     });
 
     it('Rejects 6th photo upload exceeding maximum allowed photos (max 5)', async () => {
-      const buffer1 = Buffer.from('img1');
-      const buffer2 = Buffer.from('img2');
-      const buffer3 = Buffer.from('img3');
-      const buffer4 = Buffer.from('img4');
-      const buffer5 = Buffer.from('img5');
-      const buffer6 = Buffer.from('img6');
-
       const res = await request(app)
         .post('/api/customization/upload')
         .set('Authorization', `Bearer ${customerToken}`)
         .field('productId', lithophaneLampId)
         .field('currentCount', '0')
-        .attach('images', buffer1, 'p1.jpg')
-        .attach('images', buffer2, 'p2.jpg')
-        .attach('images', buffer3, 'p3.jpg')
-        .attach('images', buffer4, 'p4.jpg')
-        .attach('images', buffer5, 'p5.jpg')
-        .attach('images', buffer6, 'p6.jpg');
+        .attach('images', validJpeg, 'p1.jpg')
+        .attach('images', validJpeg, 'p2.jpg')
+        .attach('images', validJpeg, 'p3.jpg')
+        .attach('images', validJpeg, 'p4.jpg')
+        .attach('images', validJpeg, 'p5.jpg')
+        .attach('images', validJpeg, 'p6.jpg');
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);

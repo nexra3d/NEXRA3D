@@ -34,6 +34,7 @@ import {
   User
 } from 'lucide-react';
 import { CustomOrder, CustomOrderDeliveryType, CustomOrderPaymentStatus, AdminCustomOrderReview } from '../types';
+import { OptimizedImage } from './OptimizedImage';
 
 interface CustomOrdersPanelProps {
   getAuthHeaders: (extra?: Record<string, string>) => Record<string, string>;
@@ -123,10 +124,11 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
+        const items: CustomOrder[] = Array.isArray(data) ? data : (data?.customOrders || data?.orders || data?.data || []);
+        if (Array.isArray(items)) {
           setCustomOrders((prev) => {
             const now = Date.now();
-            return data.map((fetchedOrder: CustomOrder) => {
+            return items.map((fetchedOrder: CustomOrder) => {
               const saved = recentlySavedRef.current.get(fetchedOrder.id);
               if (saved && (now - saved.timestamp < 30000)) {
                 return { ...fetchedOrder, ...saved.order };
@@ -157,8 +159,9 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setReviewsList(data);
+        const items = Array.isArray(data) ? data : (data?.reviews || data?.data || []);
+        if (Array.isArray(items)) {
+          setReviewsList(items);
         }
       }
     } catch (err) {
@@ -1069,11 +1072,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                           {/* Image thumbnail */}
                           <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
                             {order.imageUrl ? (
-                              <img
+                              <OptimizedImage
                                 src={order.imageUrl}
                                 alt="Showcase"
-                                referrerPolicy="no-referrer"
+                                priority={false}
+                                width={80}
                                 className="w-full h-full object-cover"
+                                pictureClassName="w-full h-full block"
                               />
                             ) : (
                               <ImageIcon className="w-4 h-4 text-slate-600" />
@@ -1648,11 +1653,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   </div>
                   {createImageUrl && (
                     <div className="mt-2 flex items-center gap-2">
-                      <img
+                      <OptimizedImage
                         src={createImageUrl}
                         alt="Preview"
-                        referrerPolicy="no-referrer"
+                        priority={false}
+                        width={96}
                         className="w-12 h-12 object-cover rounded-md border border-slate-700"
+                        pictureClassName="w-12 h-12 shrink-0 block"
                       />
                       <span className="text-[10px] text-emerald-400 font-semibold">Image ready for showcase</span>
                     </div>
@@ -1779,6 +1786,8 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   <img
                     src={activeQrOrder.qrImageUrl}
                     alt="Razorpay Dynamic Payment QR"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-contain"
                   />
                 ) : (
@@ -2036,11 +2045,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     {/* Preview */}
                     {showcaseImageUrl ? (
                       <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950 aspect-video max-h-48 flex items-center justify-center group">
-                        <img
+                        <OptimizedImage
                           src={showcaseImageUrl}
                           alt="Showcase Preview"
-                          referrerPolicy="no-referrer"
+                          priority={false}
+                          width={600}
                           className="w-full h-full object-cover"
+                          pictureClassName="w-full h-full block"
                         />
                         <button
                           type="button"

@@ -33,7 +33,10 @@ import {
   ExternalLink,
   Building2,
   QrCode,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 import {
@@ -50,6 +53,7 @@ import {
 
 import { AdminPrivacyTab } from './AdminPrivacyTab';
 import { CustomOrdersPanel } from './CustomOrdersPanel';
+import { OptimizedImage } from './OptimizedImage';
 import { Shield } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -172,36 +176,108 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const [adminOrders, setAdminOrders] = useState<Order[]>([]);
+  const [ordersPage, setOrdersPage] = useState<number>(1);
+  const [ordersHasMore, setOrdersHasMore] = useState<boolean>(false);
+  const [ordersLoadingMore, setOrdersLoadingMore] = useState<boolean>(false);
 
-  const fetchAdminOrders = async () => {
+  const [shipmentsPage, setShipmentsPage] = useState<number>(1);
+  const [shipmentsHasMore, setShipmentsHasMore] = useState<boolean>(false);
+  const [shipmentsLoadingMore, setShipmentsLoadingMore] = useState<boolean>(false);
+
+  const [customersPage, setCustomersPage] = useState<number>(1);
+  const [customersHasMore, setCustomersHasMore] = useState<boolean>(false);
+  const [customersLoadingMore, setCustomersLoadingMore] = useState<boolean>(false);
+
+  // Products table pagination (default 20 items per page)
+  const [productPage, setProductPage] = useState<number>(1);
+  const [productPageSize, setProductPageSize] = useState<number>(20);
+  const [productVisibleCount, setProductVisibleCount] = useState<number>(20);
+  const [productPaginationMode, setProductPaginationMode] = useState<'pages' | 'infinite'>('pages');
+
+  // Categories table pagination (default 20 items per page)
+  const [categoryPage, setCategoryPage] = useState<number>(1);
+  const [categoryPageSize, setCategoryPageSize] = useState<number>(20);
+  const [categoryVisibleCount, setCategoryVisibleCount] = useState<number>(20);
+  const [categoryPaginationMode, setCategoryPaginationMode] = useState<'pages' | 'infinite'>('pages');
+
+  // Inventory table pagination (default 20 items per page)
+  const [inventoryPage, setInventoryPage] = useState<number>(1);
+  const [inventoryPageSize, setInventoryPageSize] = useState<number>(20);
+  const [inventoryVisibleCount, setInventoryVisibleCount] = useState<number>(20);
+  const [inventoryPaginationMode, setInventoryPaginationMode] = useState<'pages' | 'infinite'>('pages');
+
+  const fetchAdminOrders = async (page = 1, append = false) => {
     try {
-      const res = await fetch('/api/orders?admin=true', {
+      if (append) setOrdersLoadingMore(true);
+      const res = await fetch(`/api/orders?admin=true&page=${page}&limit=20`, {
         headers: getAuthHeaders(),
         credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setAdminOrders(data);
+        const items = Array.isArray(data) ? data : (data?.orders || data?.data || []);
+        setOrdersHasMore(Boolean(data?.pagination?.hasMore || data?.hasMore));
+        setOrdersPage(page);
+        if (append) {
+          setAdminOrders((prev) => [...prev, ...items]);
+        } else {
+          setAdminOrders(items);
         }
       }
     } catch (err) {
       console.error('Failed to fetch admin orders:', err);
+    } finally {
+      if (append) setOrdersLoadingMore(false);
     }
   };
 
-  const fetchShipments = async () => {
+  const fetchShipments = async (page = 1, append = false) => {
     try {
-      const res = await fetch('/api/admin/shipments', {
+      if (append) setShipmentsLoadingMore(true);
+      const res = await fetch(`/api/admin/shipments?page=${page}&limit=20`, {
         headers: getAuthHeaders(),
         credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
-        setShipmentsList(data);
+        const items = Array.isArray(data) ? data : (data?.shipments || data?.data || []);
+        setShipmentsHasMore(Boolean(data?.pagination?.hasMore || data?.hasMore));
+        setShipmentsPage(page);
+        if (append) {
+          setShipmentsList((prev) => [...prev, ...items]);
+        } else {
+          setShipmentsList(items);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch shipments:', err);
+    } finally {
+      if (append) setShipmentsLoadingMore(false);
+    }
+  };
+
+  const fetchCustomers = async (page = 1, append = false) => {
+    try {
+      if (append) setCustomersLoadingMore(true);
+      const res = await fetch(`/api/admin/customers?page=${page}&limit=20`, {
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data?.customers || data?.data || []);
+        setCustomersHasMore(Boolean(data?.pagination?.hasMore || data?.hasMore));
+        setCustomersPage(page);
+        if (append) {
+          setCustomersList((prev) => [...prev, ...items]);
+        } else {
+          setCustomersList(items);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch customers:', err);
+    } finally {
+      if (append) setCustomersLoadingMore(false);
     }
   };
 
@@ -401,15 +477,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchAdminOrders();
     fetchShipments();
     fetchAnalytics();
-
-    fetch('/api/admin/customers', { headers: getAuthHeaders(), credentials: 'include' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setCustomersList(data);
-        }
-      })
-      .catch((err) => console.error(err));
+    fetchCustomers();
 
     fetch('/api/integrations/status', { headers: getAuthHeaders(), credentials: 'include' })
       .then((res) => res.json())
@@ -2174,7 +2242,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           key={img.id}
                           className="relative aspect-[4/3] min-h-[120px] w-full bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group shadow-xs"
                         >
-                          <img src={img.url} alt={img.altText || 'Product'} className="w-full h-full object-cover" />
+                          <OptimizedImage
+                            src={img.url}
+                            alt={img.altText || 'Product'}
+                            priority={false}
+                            width={200}
+                            className="w-full h-full object-cover"
+                            pictureClassName="w-full h-full block"
+                          />
 
                           {img.isPrimary && (
                             <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow-xs">
@@ -2232,7 +2307,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             key={idx}
                             className="relative aspect-[4/3] min-h-[120px] w-full bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group shadow-xs"
                           >
-                            <img src={item.url} alt={`Pending ${idx}`} className="w-full h-full object-cover" />
+                            <OptimizedImage
+                              src={item.url}
+                              alt={`Pending ${idx}`}
+                              priority={false}
+                              width={200}
+                              className="w-full h-full object-cover"
+                              pictureClassName="w-full h-full block"
+                            />
                             {item.isPrimary && (
                               <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow-xs">
                                 PRIMARY
@@ -2604,8 +2686,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </ErrorBoundary>
           )}
 
-              {/* Product List Table */}
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-x-auto text-xs">
+              {/* Product List Table with Pagination */}
+              {(() => {
+                const safeProds = Array.isArray(products) ? products : [];
+                const totalProds = safeProds.length;
+                const totalProdPages = Math.max(1, Math.ceil(totalProds / productPageSize));
+                const displayedProds = productPaginationMode === 'infinite'
+                  ? safeProds.slice(0, productVisibleCount)
+                  : safeProds.slice((productPage - 1) * productPageSize, productPage * productPageSize);
+                const startProd = totalProds === 0 ? 0 : productPaginationMode === 'infinite' ? 1 : (productPage - 1) * productPageSize + 1;
+                const endProd = productPaginationMode === 'infinite' ? Math.min(productVisibleCount, totalProds) : Math.min(productPage * productPageSize, totalProds);
+
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-x-auto text-xs">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-950 text-slate-400 border-b border-slate-700 font-bold uppercase">
@@ -2618,16 +2712,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {(Array.isArray(products) ? products : []).map((p) => (
+                    {displayedProds.map((p) => (
                       <tr key={p.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
                         <td className="p-3 flex items-center space-x-3">
-                          <img
+                          <OptimizedImage
                             src={
                               p.imageUrl ||
                               (typeof p.images?.[0] === 'string' ? p.images[0] : (p.images?.[0]?.url || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=800'))
                             }
                             alt={p.name || p.title}
+                            priority={false}
+                            width={80}
                             className="w-10 h-10 object-cover rounded-lg bg-slate-900 border border-slate-700"
+                            pictureClassName="w-10 h-10 shrink-0 block"
                           />
                           <div>
                             <span className="font-bold text-slate-100 block">{p.name || p.title}</span>
@@ -2729,6 +2826,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Bar - Default 20 per page with Load More and Next Page */}
+              {totalProds > productPageSize && (
+                <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                  <div className="flex items-center space-x-2">
+                    <span>Showing</span>
+                    <span className="font-bold text-white">{startProd}–{endProd}</span>
+                    <span>of</span>
+                    <span className="font-bold text-white">{totalProds}</span>
+                    <span>products</span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] text-slate-400">Per Page:</span>
+                    <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+                      {[20, 50, 100].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => {
+                            setProductPageSize(size);
+                            setProductPage(1);
+                            setProductVisibleCount(size);
+                          }}
+                          className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all cursor-pointer ${
+                            productPageSize === size
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700 ml-1">
+                      <button
+                        onClick={() => setProductPaginationMode('pages')}
+                        title="Pages View"
+                        className={`p-1 rounded cursor-pointer ${
+                          productPaginationMode === 'pages' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setProductPaginationMode('infinite')}
+                        title="Load More View"
+                        className={`p-1 rounded cursor-pointer ${
+                          productPaginationMode === 'infinite' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {productPaginationMode === 'infinite' ? (
+                    <div>
+                      {productVisibleCount < totalProds ? (
+                        <button
+                          onClick={() => setProductVisibleCount((prev) => Math.min(prev + productPageSize, totalProds))}
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Load More ({Math.min(productPageSize, totalProds - productVisibleCount)} remaining)</span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">All {totalProds} loaded</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => setProductPage((p) => Math.max(1, p - 1))}
+                        disabled={productPage === 1}
+                        className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="px-2 text-slate-300 font-bold text-[11px]">
+                        Page {productPage} of {totalProdPages}
+                      </span>
+                      <button
+                        onClick={() => setProductPage((p) => Math.min(totalProdPages, p + 1))}
+                        disabled={productPage === totalProdPages}
+                        className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
             </div>
           )}
 
@@ -2869,25 +3062,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </form>
               )}
 
-              {/* Category Table */}
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-x-auto text-xs">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-950 text-slate-400 border-b border-slate-700 font-bold uppercase">
-                      <th className="p-3">Category</th>
-                      <th className="p-3">Slug</th>
-                      <th className="p-3">Parent</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {categories.map((c) => {
+              {/* Category Table with Pagination (Default 20 per page) */}
+              {(() => {
+                const safeCats = Array.isArray(categories) ? categories : [];
+                const totalCats = safeCats.length;
+                const totalCatPages = Math.max(1, Math.ceil(totalCats / categoryPageSize));
+                const displayedCats = categoryPaginationMode === 'infinite'
+                  ? safeCats.slice(0, categoryVisibleCount)
+                  : safeCats.slice((categoryPage - 1) * categoryPageSize, categoryPage * categoryPageSize);
+                const startCat = totalCats === 0 ? 0 : categoryPaginationMode === 'infinite' ? 1 : (categoryPage - 1) * categoryPageSize + 1;
+                const endCat = categoryPaginationMode === 'infinite' ? Math.min(categoryVisibleCount, totalCats) : Math.min(categoryPage * categoryPageSize, totalCats);
+
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-x-auto text-xs">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-950 text-slate-400 border-b border-slate-700 font-bold uppercase">
+                            <th className="p-3">Category</th>
+                            <th className="p-3">Slug</th>
+                            <th className="p-3">Parent</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayedCats.map((c) => {
                       const parent = categories.find((p) => p.id === c.parentId);
                       return (
                         <tr key={c.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
                           <td className="p-3 flex items-center space-x-3">
-                            <img src={c.imageUrl || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=600'} alt={c.name} className="w-9 h-9 object-cover rounded-lg bg-slate-900 border border-slate-700" />
+                            <OptimizedImage
+                              src={c.imageUrl || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=600'}
+                              alt={c.name}
+                              priority={false}
+                              width={72}
+                              className="w-9 h-9 object-cover rounded-lg bg-slate-900 border border-slate-700"
+                              pictureClassName="w-9 h-9 shrink-0 block"
+                            />
                             <div>
                               <span className="font-bold text-slate-100 block">{c.name}</span>
                               <span className="text-[10px] text-slate-400">{c.description || 'No description'}</span>
@@ -2930,6 +3142,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Bar - Default 20 per page with Load More and Next Page */}
+              {totalCats > categoryPageSize && (
+                <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                  <div className="flex items-center space-x-2">
+                    <span>Showing</span>
+                    <span className="font-bold text-white">{startCat}–{endCat}</span>
+                    <span>of</span>
+                    <span className="font-bold text-white">{totalCats}</span>
+                    <span>categories</span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] text-slate-400">Per Page:</span>
+                    <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+                      {[20, 50, 100].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => {
+                            setCategoryPageSize(size);
+                            setCategoryPage(1);
+                            setCategoryVisibleCount(size);
+                          }}
+                          className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all cursor-pointer ${
+                            categoryPageSize === size
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700 ml-1">
+                      <button
+                        onClick={() => setCategoryPaginationMode('pages')}
+                        title="Pages View"
+                        className={`p-1 rounded cursor-pointer ${
+                          categoryPaginationMode === 'pages' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setCategoryPaginationMode('infinite')}
+                        title="Load More View"
+                        className={`p-1 rounded cursor-pointer ${
+                          categoryPaginationMode === 'infinite' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {categoryPaginationMode === 'infinite' ? (
+                    <div>
+                      {categoryVisibleCount < totalCats ? (
+                        <button
+                          onClick={() => setCategoryVisibleCount((prev) => Math.min(prev + categoryPageSize, totalCats))}
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Load More ({Math.min(categoryPageSize, totalCats - categoryVisibleCount)} remaining)</span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">All {totalCats} loaded</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
+                        disabled={categoryPage === 1}
+                        className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="px-2 text-slate-300 font-bold text-[11px]">
+                        Page {categoryPage} of {totalCatPages}
+                      </span>
+                      <button
+                        onClick={() => setCategoryPage((p) => Math.min(totalCatPages, p + 1))}
+                        disabled={categoryPage === totalCatPages}
+                        className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
             </div>
           )}
 
@@ -2938,36 +3246,145 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="space-y-4 text-xs">
               <h3 className="text-sm font-bold text-slate-200">Stock Inventory Audit</h3>
 
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-slate-950 text-slate-400 font-bold uppercase border-b border-slate-700">
-                      <th className="p-3">Item Name</th>
-                      <th className="p-3">Current Stock</th>
-                      <th className="p-3">Status Alert</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map((p) => (
-                      <tr key={p.id} className="border-b border-slate-700/50">
-                        <td className="p-3 font-bold text-slate-200">{p.title}</td>
-                        <td className="p-3 font-bold text-slate-300">{p.stock} units</td>
-                        <td className="p-3">
-                          {p.stock < 15 ? (
-                            <span className="bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit">
-                              <AlertTriangle className="w-3 h-3" /> Low Stock
+              {/* Inventory Table with Pagination (Default 20 per page) */}
+              {(() => {
+                const safeProds = Array.isArray(products) ? products : [];
+                const totalInv = safeProds.length;
+                const totalInvPages = Math.max(1, Math.ceil(totalInv / inventoryPageSize));
+                const displayedInv = inventoryPaginationMode === 'infinite'
+                  ? safeProds.slice(0, inventoryVisibleCount)
+                  : safeProds.slice((inventoryPage - 1) * inventoryPageSize, inventoryPage * inventoryPageSize);
+                const startInv = totalInv === 0 ? 0 : inventoryPaginationMode === 'infinite' ? 1 : (inventoryPage - 1) * inventoryPageSize + 1;
+                const endInv = inventoryPaginationMode === 'infinite' ? Math.min(inventoryVisibleCount, totalInv) : Math.min(inventoryPage * inventoryPageSize, totalInv);
+
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-slate-950 text-slate-400 font-bold uppercase border-b border-slate-700">
+                            <th className="p-3">Item Name</th>
+                            <th className="p-3">Current Stock</th>
+                            <th className="p-3">Status Alert</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayedInv.map((p) => (
+                            <tr key={p.id} className="border-b border-slate-700/50">
+                              <td className="p-3 font-bold text-slate-200">{p.title || p.name}</td>
+                              <td className="p-3 font-bold text-slate-300">{p.stock ?? p.stockQuantity ?? 0} units</td>
+                              <td className="p-3">
+                                {(p.stock ?? p.stockQuantity ?? 0) < 15 ? (
+                                  <span className="bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit">
+                                    <AlertTriangle className="w-3 h-3" /> Low Stock
+                                  </span>
+                                ) : (
+                                  <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                    Healthy
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination Bar - Default 20 per page with Load More and Next Page */}
+                    {totalInv > inventoryPageSize && (
+                      <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                        <div className="flex items-center space-x-2">
+                          <span>Showing</span>
+                          <span className="font-bold text-white">{startInv}–{endInv}</span>
+                          <span>of</span>
+                          <span className="font-bold text-white">{totalInv}</span>
+                          <span>items</span>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[11px] text-slate-400">Per Page:</span>
+                          <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+                            {[20, 50, 100].map((size) => (
+                              <button
+                                key={size}
+                                onClick={() => {
+                                  setInventoryPageSize(size);
+                                  setInventoryPage(1);
+                                  setInventoryVisibleCount(size);
+                                }}
+                                className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all cursor-pointer ${
+                                  inventoryPageSize === size
+                                    ? 'bg-indigo-600 text-white shadow-xs'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700 ml-1">
+                            <button
+                              onClick={() => setInventoryPaginationMode('pages')}
+                              title="Pages View"
+                              className={`p-1 rounded cursor-pointer ${
+                                inventoryPaginationMode === 'pages' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <Layers className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setInventoryPaginationMode('infinite')}
+                              title="Load More View"
+                              className={`p-1 rounded cursor-pointer ${
+                                inventoryPaginationMode === 'infinite' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {inventoryPaginationMode === 'infinite' ? (
+                          <div>
+                            {inventoryVisibleCount < totalInv ? (
+                              <button
+                                onClick={() => setInventoryVisibleCount((prev) => Math.min(prev + inventoryPageSize, totalInv))}
+                                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Load More ({Math.min(inventoryPageSize, totalInv - inventoryVisibleCount)} remaining)</span>
+                              </button>
+                            ) : (
+                              <span className="text-slate-500 text-[11px]">All {totalInv} loaded</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-1">
+                            <button
+                              onClick={() => setInventoryPage((p) => Math.max(1, p - 1))}
+                              disabled={inventoryPage === 1}
+                              className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="px-2 text-slate-300 font-bold text-[11px]">
+                              Page {inventoryPage} of {totalInvPages}
                             </span>
-                          ) : (
-                            <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-bold">
-                              Healthy
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <button
+                              onClick={() => setInventoryPage((p) => Math.min(totalInvPages, p + 1))}
+                              disabled={inventoryPage === totalInvPages}
+                              className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -3324,10 +3741,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 rel="noopener noreferrer"
                                                 className="block overflow-hidden rounded border border-slate-700 hover:border-indigo-400 transition-all group"
                                               >
-                                                <img
+                                                <OptimizedImage
                                                   src={imgUrl}
                                                   alt={`Customer Photo ${cIdx + 1}`}
+                                                  priority={false}
+                                                  width={128}
                                                   className="w-16 h-16 object-cover rounded group-hover:scale-105 transition-transform"
+                                                  pictureClassName="w-16 h-16 block"
                                                 />
                                               </a>
                                               <div className="flex items-center justify-between w-full mt-1.5 px-0.5">
@@ -3363,6 +3783,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   })
                 )}
               </div>
+
+              {ordersHasMore && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => fetchAdminOrders(ordersPage + 1, true)}
+                    disabled={ordersLoadingMore}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-2 transition cursor-pointer text-xs shadow-md"
+                  >
+                    {ordersLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{ordersLoadingMore ? 'Loading More Orders...' : `Load More Orders (Page ${ordersPage + 1})`}</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -3607,6 +4040,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tbody>
                 </table>
               </div>
+
+              {shipmentsHasMore && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => fetchShipments(shipmentsPage + 1, true)}
+                    disabled={shipmentsLoadingMore}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-2 transition cursor-pointer text-xs shadow-md"
+                  >
+                    {shipmentsLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{shipmentsLoadingMore ? 'Loading More Shipments...' : `Load More Shipments (Page ${shipmentsPage + 1})`}</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -3946,6 +4392,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tbody>
                 </table>
               </div>
+
+              {customersHasMore && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => fetchCustomers(customersPage + 1, true)}
+                    disabled={customersLoadingMore}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-2 transition cursor-pointer text-xs shadow-md"
+                  >
+                    {customersLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{customersLoadingMore ? 'Loading More Customers...' : `Load More Customers (Page ${customersPage + 1})`}</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

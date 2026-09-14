@@ -31,6 +31,7 @@ import {
 import { Product, ProductReview, ProductVariant } from '../types';
 import { useSEO } from '../hooks/useSEO';
 import { isNameKeychainProduct, isLithophaneProduct } from '../lib/personalization';
+import { OptimizedImage } from './OptimizedImage';
 
 interface LampOptionItem {
   id: string;
@@ -586,10 +587,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             {/* Left Column: Image Gallery with Controls & Zoom */}
             <div className="space-y-4">
               <div className="relative aspect-[4/3] min-h-[260px] w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200/80 group flex items-center justify-center p-2">
-                <img
+                <OptimizedImage
                   src={imagesList[selectedImageIndex] || imagesList[0]}
                   alt={productName}
+                  priority={true}
+                  width={800}
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  pictureClassName="w-full h-full flex items-center justify-center"
                 />
 
                 {/* Discount Badge */}
@@ -638,7 +643,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                         selectedImageIndex === idx ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-200 opacity-60 hover:opacity-100'
                       }`}
                     >
-                      <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-contain p-1" />
+                      <OptimizedImage
+                        src={imgUrl}
+                        alt={`Thumbnail ${idx + 1}`}
+                        priority={false}
+                        width={128}
+                        className="w-full h-full object-contain p-1"
+                        pictureClassName="w-full h-full flex items-center justify-center"
+                      />
                     </button>
                   ))}
                 </div>
@@ -961,10 +973,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                       <div className="grid grid-cols-4 gap-2">
                         {customizationImages.map((img, imgIdx) => (
                           <div key={img.id || imgIdx} className="relative group rounded-xl overflow-hidden border border-cyan-300 bg-white shadow-xs aspect-square">
-                            <img
+                            <OptimizedImage
                               src={img.url}
                               alt={`Uploaded photo ${imgIdx + 1}`}
+                              priority={false}
+                              width={120}
                               className="w-full h-full object-cover"
+                              pictureClassName="w-full h-full block"
                             />
                             <div className="absolute top-1 left-1 bg-slate-900/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                               #{imgIdx + 1}
@@ -1406,10 +1421,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                       className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 space-y-2 hover:border-indigo-300 transition-all cursor-pointer group"
                     >
                       <div className="aspect-[4/3] min-h-[100px] w-full bg-white rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center p-1">
-                        <img
+                        <OptimizedImage
                           src={relImg}
                           alt={relProd.name || relProd.title}
+                          priority={false}
+                          width={240}
                           className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                          pictureClassName="w-full h-full flex items-center justify-center"
                         />
                       </div>
                       <div>
@@ -1440,10 +1458,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           >
             <X className="w-6 h-6" />
           </button>
-          <img
+          <OptimizedImage
             src={imagesList[selectedImageIndex] || imagesList[0]}
             alt={productName}
+            priority={true}
+            width={1200}
             className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+            pictureClassName="max-h-[85vh] flex items-center justify-center"
           />
         </div>
       )}

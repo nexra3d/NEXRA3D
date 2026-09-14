@@ -294,6 +294,7 @@ export const accountCreationRateLimiter = new AdvancedRateLimiter({
   lockoutDurationMs: 30 * 60 * 1000,
   message: 'Account creation rate limit reached. Please wait before registering another account.'
 });
+export const registrationRateLimiter = accountCreationRateLimiter;
 
 // 3. Password Reset Request Limiter: Max 3 password reset emails per 15 minutes per IP/Email
 export const passwordResetRateLimiter = new AdvancedRateLimiter({
@@ -348,6 +349,43 @@ export const quoteSubmissionRateLimiter = new AdvancedRateLimiter({
   maxAttempts: 10,
   lockoutDurationMs: 15 * 60 * 1000,
   message: 'Quote request submission limit reached. Please wait before submitting another request.'
+});
+
+// 8. Checkout Order Placement Limiter: Max 25 orders per 10 minutes per IP/User
+export const checkoutRateLimiter = new AdvancedRateLimiter({
+  name: 'checkout_orders',
+  windowMs: 10 * 60 * 1000,
+  maxAttempts: 25,
+  lockoutDurationMs: 5 * 60 * 1000,
+  keyGenerator: (req) => {
+    const userId = (req as any).user?.id || (req as any).user?.email;
+    const ip = getClientIp(req);
+    return userId ? `checkout:${userId}` : `checkout_ip:${ip}`;
+  },
+  message: 'Checkout request limit exceeded. Please wait a few minutes before submitting additional orders.'
+});
+
+// 9. Payment Initiation Limiter: Max 30 payment initiation attempts per 10 minutes per IP/User
+export const paymentInitiationRateLimiter = new AdvancedRateLimiter({
+  name: 'payment_initiation',
+  windowMs: 10 * 60 * 1000,
+  maxAttempts: 30,
+  lockoutDurationMs: 5 * 60 * 1000,
+  keyGenerator: (req) => {
+    const userId = (req as any).user?.id || (req as any).user?.email;
+    const ip = getClientIp(req);
+    return userId ? `pay_init:${userId}` : `pay_init_ip:${ip}`;
+  },
+  message: 'Payment initiation rate limit exceeded. Please wait a few minutes before retrying.'
+});
+
+// 10. Upload Rate Limiter: Max 30 upload requests per 10 minutes per IP
+export const uploadRateLimiter = new AdvancedRateLimiter({
+  name: 'file_uploads',
+  windowMs: 10 * 60 * 1000,
+  maxAttempts: 30,
+  lockoutDurationMs: 5 * 60 * 1000,
+  message: 'Upload frequency limit exceeded. Please wait before uploading more files.'
 });
 
 // =========================================================================
@@ -433,8 +471,8 @@ export function botProtectionMiddleware(req: Request, res: Response, next: NextF
 
   // 3. Detect Scraper / Crawler Signatures on data API endpoints
   if (rawPath.startsWith('/api/')) {
-    // In admin bypass or admin user, allow always
-    if (req.headers['x-admin-bypass'] === 'true' || (req.headers['x-user-email'] as string)?.includes('admin')) {
+    // Authenticated admin user, allow always
+    if ((req as any).user?.role === 'ADMIN') {
       return next();
     }
 
