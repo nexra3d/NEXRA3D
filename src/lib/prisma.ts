@@ -1136,6 +1136,27 @@ function createModelProxy(modelName: string | symbol) {
               }
             }
 
+            // Check if database server is unreachable, connection refused, or timed out
+            const isDbConnectionFailure =
+              err?.name === 'PrismaClientInitializationError' ||
+              err?.name === 'PrismaClientRustPanicError' ||
+              (typeof err?.code === 'string' && (err.code.startsWith('P1') || err.code === 'P2021')) ||
+              errorMessage.toLowerCase().includes("can't reach database server") ||
+              errorMessage.toLowerCase().includes('connection refused') ||
+              errorMessage.toLowerCase().includes('connection terminated') ||
+              errorMessage.toLowerCase().includes('connection timeout') ||
+              errorMessage.toLowerCase().includes('timed out') ||
+              errorMessage.toLowerCase().includes('database does not exist') ||
+              errorMessage.toLowerCase().includes('authentication failed');
+
+            if (isDbConnectionFailure) {
+              console.warn(`[${timestamp}] Database connection failure in ${queryName}: ${errorMessage}. Serving from high-resilience memory store.`);
+              const fn = (memoryHandler as any)[prop];
+              if (typeof fn === 'function') {
+                return fn(...args);
+              }
+            }
+
             // Do not retry on deterministic request / validation / constraint errors
             const isNonRetryable =
               err?.name === 'PrismaClientKnownRequestError' ||
@@ -1159,6 +1180,13 @@ function createModelProxy(modelName: string | symbol) {
               );
             }
           }
+        }
+
+        // Final fallback: If remote database query failed completely, serve from memory store
+        const fallbackFn = (memoryHandler as any)[prop];
+        if (typeof fallbackFn === 'function') {
+          console.warn(`[${new Date().toISOString()}] Failover triggered for ${modelName}.${prop}. Serving from in-memory fallback store.`);
+          return fallbackFn(...args);
         }
 
         throw lastError;

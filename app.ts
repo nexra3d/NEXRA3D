@@ -1457,12 +1457,19 @@ const DEFAULT_ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
   'https://nexra3d.com',
-  'https://www.nexra3d.com'
+  'https://www.nexra3d.com',
+  'https://nexra3d.in',
+  'https://www.nexra3d.in'
 ]);
 
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true; // Direct same-origin or server-to-server calls
   const lower = origin.trim().toLowerCase();
+  if (DEFAULT_ALLOWED_ORIGINS.has(lower)) return true;
+  if (process.env.FRONTEND_URL && lower === process.env.FRONTEND_URL.trim().toLowerCase()) return true;
+  if (process.env.APP_URL && lower === process.env.APP_URL.trim().toLowerCase()) return true;
+  if (process.env.VERCEL_URL && lower === `https://${process.env.VERCEL_URL.trim().toLowerCase()}`) return true;
+  if (lower.endsWith('.vercel.app') || lower.endsWith('.run.app') || lower.endsWith('.nexra3d.in') || lower.endsWith('.nexra3d.com')) return true;
 
   const envOrigins = (process.env.ALLOWED_ORIGINS || '')
     .split(',')
