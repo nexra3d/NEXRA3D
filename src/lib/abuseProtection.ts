@@ -62,7 +62,8 @@ export class AdvancedRateLimiter {
     this.defaultMessage = options.message || `Too many requests to ${options.name}. Please try again later.`;
 
     // Periodic sweep for expired memory records
-    setInterval(() => this.cleanup(), Math.max(5 * 60 * 1000, this.windowMs));
+    const sweepTimer = setInterval(() => this.cleanup(), Math.max(5 * 60 * 1000, this.windowMs));
+    if (sweepTimer.unref) sweepTimer.unref();
   }
 
   private cleanup() {

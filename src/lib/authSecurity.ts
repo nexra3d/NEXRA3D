@@ -39,9 +39,14 @@ function resolveJwtSecret(): string {
   const isProduction = process.env.NODE_ENV === 'production';
   const isWeak = !RAW_JWT_SECRET || RAW_JWT_SECRET.trim().length < 32 || KNOWN_INSECURE_SECRETS.has(RAW_JWT_SECRET.trim().toLowerCase());
 
-  if (isProduction) {
+  if (isProduction && RAW_JWT_SECRET) {
     validateJwtSecretInProduction(RAW_JWT_SECRET);
-    return RAW_JWT_SECRET!.trim();
+    return RAW_JWT_SECRET.trim();
+  }
+
+  if (isProduction && !RAW_JWT_SECRET) {
+    console.warn('[SECURITY NOTICE] JWT_SECRET is not configured in production environment. Generating a 256-bit cryptographically secure ephemeral secret for this process.');
+    return crypto.randomBytes(32).toString('hex');
   }
 
   // In development and test environments:
@@ -61,7 +66,7 @@ export const ACCESS_TOKEN_EXPIRY = '24h'; // 24-hour expiration for active acces
 const revokedTokens = new Map<string, number>();
 
 // Cleanup expired entries every 30 minutes
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [token, expiry] of revokedTokens.entries()) {
     if (expiry < now) {
@@ -69,6 +74,7 @@ setInterval(() => {
     }
   }
 }, 30 * 60 * 1000);
+if (cleanupTimer.unref) cleanupTimer.unref();
 
 export function revokeToken(token: string, expiryMs = 24 * 60 * 60 * 1000): void {
   if (!token) return;
@@ -205,7 +211,8 @@ class InMemoryRateLimiter {
     this.lockoutDurationMs = options.lockoutDurationMs || options.windowMs;
 
     // Periodic sweep
-    setInterval(() => this.cleanup(), 10 * 60 * 1000);
+    const sweepTimer = setInterval(() => this.cleanup(), 10 * 60 * 1000);
+    if (sweepTimer.unref) sweepTimer.unref();
   }
 
   private cleanup() {

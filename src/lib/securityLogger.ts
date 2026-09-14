@@ -59,7 +59,7 @@ interface IpTrafficProfile {
 const ipProfiles = new Map<string, IpTrafficProfile>();
 
 // Cleanup stale IP profiles every 15 minutes
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, profile] of ipProfiles.entries()) {
     if (now - profile.lastWindowReset > 15 * 60 * 1000) {
@@ -67,6 +67,7 @@ setInterval(() => {
     }
   }
 }, 15 * 60 * 1000);
+if (cleanupTimer.unref) cleanupTimer.unref();
 
 /**
  * Mask sensitive secrets, tokens, passwords, and keys from logs

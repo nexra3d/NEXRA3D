@@ -1435,19 +1435,19 @@ export default function App() {
 
       {currentView === 'admin' && (
         user?.role === 'ADMIN' ? (
-          <div className="min-h-[75vh] bg-slate-950 flex flex-col items-center justify-center p-8 text-center text-white font-sans">
-            <div className="max-w-md space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto shadow-lg shadow-indigo-900/20">
+          <div className="min-h-[75vh] bg-slate-50 flex flex-col items-center justify-center p-8 text-center text-slate-900 font-sans">
+            <div className="max-w-md space-y-4 bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center mx-auto shadow-md shadow-indigo-100">
                 <ShieldCheck className="w-10 h-10" />
               </div>
-              <h2 className="text-2xl font-black tracking-tight">NEXRA Admin Portal</h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                You are currently logged in as Administrator (<span className="text-emerald-400 font-mono font-bold">{user.email}</span>).
+              <h2 className="text-2xl font-black tracking-tight text-slate-900">NEXRA Admin Portal</h2>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                You are currently logged in as Administrator (<span className="text-emerald-600 font-mono font-bold">{user.email}</span>).
               </p>
               <div className="flex flex-wrap gap-3 justify-center pt-3">
                 <button
                   onClick={() => setIsAdminOpen(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs px-5 py-3 rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-900/30 flex items-center gap-2"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-3 rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-200 flex items-center gap-2"
                 >
                   <ShieldCheck className="w-4 h-4" />
                   <span>Launch Admin Dashboard</span>
@@ -1459,7 +1459,7 @@ export default function App() {
                       window.history.pushState(null, '', '/');
                     }
                   }}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-5 py-3 rounded-xl transition-all cursor-pointer border border-slate-700"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-5 py-3 rounded-xl transition-all cursor-pointer border border-slate-200"
                 >
                   Back to Main Store
                 </button>

@@ -71,19 +71,19 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   };
 
   return (
-    <div className="min-h-[85vh] bg-slate-950 flex items-center justify-center px-4 py-12 text-slate-100 font-sans">
-      <div className="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative">
+    <div className="min-h-[85vh] bg-slate-50 flex items-center justify-center px-4 py-12 text-slate-900 font-sans">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative">
         {/* Top Header Accent */}
-        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-900 p-8 border-b border-slate-800 relative">
+        <div className="bg-gradient-to-r from-slate-50 via-indigo-50/60 to-slate-50 p-8 border-b border-slate-200 relative">
           <div className="flex items-center justify-between mb-4">
-            <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Admin Gateway</span>
             </span>
 
             <button
               onClick={onNavigateHome}
-              className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1 font-bold cursor-pointer"
+              className="text-xs text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1 font-bold cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Store</span>
@@ -91,12 +91,12 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-indigo-600/30">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-100">
               <ShieldCheck className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-white tracking-tight">NEXRA Admin Portal</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Secure Management System Log In</p>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">NEXRA Admin Portal</h1>
+              <p className="text-xs text-slate-500 mt-0.5">Secure Management System Log In</p>
             </div>
           </div>
         </div>
@@ -104,8 +104,8 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
         <div className="p-8 space-y-6">
           {/* Error Alert */}
           {errorMsg && (
-            <div className="bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-semibold p-4 rounded-2xl flex items-start space-x-2.5 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold p-4 rounded-2xl flex items-start space-x-2.5 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -113,40 +113,40 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
           {/* Form */}
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-extrabold text-slate-300 mb-1.5">
+              <label className="block text-xs font-extrabold text-slate-700 mb-1.5">
                 Admin Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@store.com"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-3 text-xs text-white font-medium transition-all focus:outline-hidden"
+                  className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-3 text-xs text-slate-900 font-medium transition-all focus:outline-hidden"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-extrabold text-slate-300 mb-1.5">
+              <label className="block text-xs font-extrabold text-slate-700 mb-1.5">
                 Admin Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl pl-10 pr-10 py-3 text-xs text-white font-medium transition-all focus:outline-hidden"
+                  className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 focus:border-indigo-500 rounded-xl pl-10 pr-10 py-3 text-xs text-slate-900 font-medium transition-all focus:outline-hidden"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1 cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -156,7 +156,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm py-3.5 rounded-2xl transition-all cursor-pointer shadow-lg shadow-indigo-900/30 flex items-center justify-center space-x-2 disabled:opacity-60"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm py-3.5 rounded-2xl transition-all cursor-pointer shadow-md shadow-indigo-100 flex items-center justify-center space-x-2 disabled:opacity-60"
             >
               {loading ? (
                 <span>Verifying Privileges...</span>

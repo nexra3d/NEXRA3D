@@ -79,20 +79,20 @@ export const AdminPrivacyTab: React.FC = () => {
     <div className="space-y-6 text-slate-800">
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white text-slate-900 rounded-2xl p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-emerald-400" />
-            <h2 className="text-xl font-extrabold tracking-tight">Privacy & Security Management</h2>
+            <Shield className="w-6 h-6 text-emerald-600" />
+            <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Privacy & Security Management</h2>
           </div>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-500">
             Monitor privacy requests, consent audit logs, security events, and data protection KPIs.
           </p>
         </div>
         <button
           onClick={loadData}
           disabled={isLoading}
-          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-colors flex items-center gap-1.5 shrink-0"
+          className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Data
         </button>
@@ -314,7 +314,7 @@ export const AdminPrivacyTab: React.FC = () => {
 
       {/* Review Request Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Review & Resolve Privacy Grievance</h3>

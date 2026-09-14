@@ -743,15 +743,15 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
   const totalSettled = paidOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
 
   return (
-    <div className="space-y-6 text-xs text-slate-200">
+    <div className="space-y-6 text-xs text-slate-800">
       {/* Action Feedback Banner */}
       {actionFeedback && (
-        <div className="bg-indigo-950/80 border border-indigo-500/50 text-indigo-200 p-3 rounded-xl flex items-center justify-between animate-fade-in shadow-lg">
+        <div className="bg-indigo-50 border border-indigo-200 text-indigo-900 p-3 rounded-xl flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{actionFeedback}</span>
           </div>
-          <button onClick={() => setActionFeedback(null)} className="text-slate-400 hover:text-white cursor-pointer">
+          <button onClick={() => setActionFeedback(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -759,17 +759,17 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
       {/* Fetch Error Banner */}
       {fetchError && (
-        <div className="bg-rose-950/80 border border-rose-500/50 text-rose-200 p-3.5 rounded-xl flex items-center justify-between shadow-lg">
+        <div className="bg-rose-50 border border-rose-200 text-rose-900 p-3.5 rounded-xl flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <div>
-              <p className="font-bold text-xs text-rose-200">Unable to load orders from database</p>
-              <p className="text-[11px] text-rose-300/80">{fetchError}</p>
+              <p className="font-bold text-xs text-rose-900">Unable to load orders from database</p>
+              <p className="text-[11px] text-rose-700">{fetchError}</p>
             </div>
           </div>
           <button
             onClick={() => fetchCustomOrders()}
-            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1"
+            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
           >
             <RefreshCw className="w-3 h-3 animate-spin" />
             <span>Retry</span>
@@ -781,17 +781,17 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
+            <div className="p-2 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-xl">
               <QrCode className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>Custom Orders & Razorpay QR Payments</span>
-                <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-indigo-900/60 text-indigo-300 border border-indigo-700/50">
+                <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Razorpay Direct Settlement
                 </span>
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Generate one-off orders, create dynamic UPI payment QR codes, and receive direct account settlements.
               </p>
             </div>
@@ -805,7 +805,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
               else fetchReviews();
             }}
             disabled={isLoading || isLoadingReviews}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5"
+            className="p-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
             title="Refresh list"
           >
             <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingReviews) ? 'animate-spin' : ''}`} />
@@ -815,7 +815,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
           {activeTab === 'ORDERS' && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/25 active:scale-95"
+              className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>New Custom Order</span>
@@ -825,13 +825,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('ORDERS')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
             activeTab === 'ORDERS'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200'
           }`}
         >
           <QrCode className="w-3.5 h-3.5" />
@@ -846,13 +846,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
             activeTab === 'REVIEWS'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200'
           }`}
         >
-          <Star className="w-3.5 h-3.5 text-amber-400" />
+          <Star className="w-3.5 h-3.5 text-amber-500" />
           <span>Showcase Reviews Moderation</span>
           {reviewsList.filter((r) => r.status === 'PENDING').length > 0 && (
-            <span className="px-1.5 py-0.5 text-[9px] bg-amber-500 text-slate-950 font-black rounded-full animate-pulse">
+            <span className="px-1.5 py-0.5 text-[9px] bg-amber-500 text-white font-black rounded-full animate-pulse">
               {reviewsList.filter((r) => r.status === 'PENDING').length} Pending
             </span>
           )}
@@ -863,36 +863,36 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
         <>
           {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Custom Orders</span>
-              <div className="text-xl font-extrabold text-slate-100">{totalOrders}</div>
+            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Custom Orders</span>
+              <div className="text-xl font-extrabold text-slate-900">{totalOrders}</div>
               <span className="text-[10px] text-slate-500">Bespoke 3D jobs & parts</span>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Awaiting Payment</span>
-              <div className="text-xl font-extrabold text-amber-400 flex items-center gap-1.5">
+            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+              <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Awaiting Payment</span>
+              <div className="text-xl font-extrabold text-amber-600 flex items-center gap-1.5">
                 <span>{awaitingCount}</span>
-                {awaitingCount > 0 && <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />}
+                {awaitingCount > 0 && <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />}
               </div>
               <span className="text-[10px] text-slate-500">Live QR active</span>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Paid & Settled</span>
-              <div className="text-xl font-extrabold text-emerald-400">{paidCount}</div>
+            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Paid & Settled</span>
+              <div className="text-xl font-extrabold text-emerald-600">{paidCount}</div>
               <span className="text-[10px] text-slate-500">Credited into bank</span>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Total Settled Revenue</span>
-              <div className="text-xl font-extrabold text-indigo-400">₹{totalSettled.toLocaleString('en-IN')}</div>
+            <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Total Settled Revenue</span>
+              <div className="text-xl font-extrabold text-indigo-600">₹{totalSettled.toLocaleString('en-IN')}</div>
               <span className="text-[10px] text-slate-500">Direct Razorpay account</span>
             </div>
           </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-800/60 border border-slate-700/80 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white border border-slate-200 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
@@ -900,7 +900,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
             placeholder="Search by customer, phone, or order ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500"
           />
         </div>
 
@@ -914,8 +914,8 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 onClick={() => setStatusFilter(status)}
                 className={`px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200'
                 }`}
               >
                 {status === 'ALL' && `All (${customOrders.length})`}
@@ -929,11 +929,11 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       </div>
 
       {/* Custom Orders Table / Cards */}
-      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-950/90 text-slate-400 border-b border-slate-700 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px]">
                 <th className="p-3.5">Order ID & Date</th>
                 <th className="p-3.5">Customer Details</th>
                 <th className="p-3.5">Description</th>
@@ -944,13 +944,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/60">
+            <tbody className="divide-y divide-slate-200">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center space-y-2">
-                      <QrCode className="w-8 h-8 text-slate-500" />
-                      <p className="font-semibold text-slate-300">No custom orders found.</p>
+                      <QrCode className="w-8 h-8 text-slate-400" />
+                      <p className="font-semibold text-slate-700">No custom orders found.</p>
                       <p className="text-[11px] text-slate-500">
                         {searchQuery ? 'Try adjusting your search query or filters.' : 'Click "+ New Custom Order" above to create one and generate a payment QR.'}
                       </p>
@@ -967,28 +967,28 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   const canBeDeleted = isCancelled || isExpired;
 
                   return (
-                    <tr key={order.id} className="hover:bg-slate-750/40 transition-colors">
+                    <tr key={order.id} className="hover:bg-slate-50 transition-colors">
                       {/* ID & Date */}
                       <td className="p-3.5">
-                        <div className="font-mono font-bold text-amber-400 text-xs">
+                        <div className="font-mono font-bold text-amber-600 text-xs">
                           {order.id}
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3 h-3 text-slate-500" />
+                        <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3 text-slate-400" />
                           <span>{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </td>
 
                       {/* Customer */}
                       <td className="p-3.5">
-                        <div className="font-bold text-slate-100">{order.customerName}</div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                          <Phone className="w-3 h-3 text-indigo-400" />
+                        <div className="font-bold text-slate-900">{order.customerName}</div>
+                        <div className="text-[10px] text-slate-600 flex items-center gap-1.5 mt-0.5">
+                          <Phone className="w-3 h-3 text-indigo-600" />
                           <span className="font-mono">{order.phone}</span>
                         </div>
                         {order.email && (
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
-                            <Mail className="w-3 h-3 text-slate-500" />
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1.5">
+                            <Mail className="w-3 h-3 text-slate-400" />
                             <span>{order.email}</span>
                           </div>
                         )}
@@ -996,11 +996,11 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                       {/* Description */}
                       <td className="p-3.5 max-w-xs">
-                        <p className="text-slate-300 line-clamp-2" title={order.description || 'Custom 3D Printing'}>
+                        <p className="text-slate-700 line-clamp-2" title={order.description || 'Custom 3D Printing'}>
                           {order.description || 'Custom 3D Printing / Prototype Order'}
                         </p>
                         {order.notes && (
-                          <span className="text-[10px] text-slate-400 italic block mt-0.5">
+                          <span className="text-[10px] text-slate-500 italic block mt-0.5">
                             Note: {order.notes}
                           </span>
                         )}
@@ -1008,7 +1008,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                       {/* Amount */}
                       <td className="p-3.5">
-                        <span className="text-sm font-extrabold text-slate-100">
+                        <span className="text-sm font-extrabold text-slate-900">
                           ₹{Number(order.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </td>
@@ -1016,12 +1016,12 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                       {/* Delivery */}
                       <td className="p-3.5">
                         {order.deliveryType === 'STORE_PICKUP' ? (
-                          <span className="inline-flex items-center gap-1 bg-indigo-950/80 text-indigo-300 border border-indigo-700/50 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
                             <Building className="w-3 h-3" />
                             <span>Store Pickup</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 bg-slate-900 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
                             <Truck className="w-3 h-3" />
                             <span>Home Delivery</span>
                           </span>
@@ -1031,20 +1031,20 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                       {/* Status Badge */}
                       <td className="p-3.5">
                         {isPaid && (
-                          <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Paid ✅</span>
                           </span>
                         )}
 
                         {isAwaiting && (
                           <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">
-                              <Clock className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
                               <span>Awaiting Payment</span>
                             </span>
                             {order.expiresAt && (
-                              <span className="block text-[9px] text-amber-400/80 font-mono">
+                              <span className="block text-[9px] text-amber-600 font-mono">
                                 1h expiry: {new Date(order.expiresAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             )}
@@ -1052,15 +1052,15 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                         )}
 
                         {isExpired && (
-                          <span className="inline-flex items-center gap-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full text-[10px] font-semibold">
-                            <Clock className="w-3.5 h-3.5 text-rose-400" />
+                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full text-[10px] font-semibold">
+                            <Clock className="w-3.5 h-3.5 text-rose-600" />
                             <span>Expired</span>
                           </span>
                         )}
 
                         {isCancelled && !isExpired && (
-                          <span className="inline-flex items-center gap-1 bg-slate-700/40 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-full text-[10px] font-semibold">
-                            <Ban className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-full text-[10px] font-semibold">
+                            <Ban className="w-3.5 h-3.5 text-slate-500" />
                             <span>Cancelled</span>
                           </span>
                         )}
@@ -1070,7 +1070,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                       <td className="p-3.5">
                         <div className="flex items-center gap-2">
                           {/* Image thumbnail */}
-                          <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
                             {order.imageUrl ? (
                               <OptimizedImage
                                 src={order.imageUrl}
@@ -1081,13 +1081,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                                 pictureClassName="w-full h-full block"
                               />
                             ) : (
-                              <ImageIcon className="w-4 h-4 text-slate-600" />
+                              <ImageIcon className="w-4 h-4 text-slate-400" />
                             )}
                           </div>
 
                           <div className="space-y-1">
-                            <div className="text-xs font-bold text-slate-200 line-clamp-1 max-w-[120px]" title={order.customOrderName || 'Untitled'}>
-                              {order.customOrderName || <span className="text-slate-500 italic text-[11px]">Untitled</span>}
+                            <div className="text-xs font-bold text-slate-800 line-clamp-1 max-w-[120px]" title={order.customOrderName || 'Untitled'}>
+                              {order.customOrderName || <span className="text-slate-400 italic text-[11px]">Untitled</span>}
                             </div>
 
                             <div className="flex items-center gap-1.5">
@@ -1095,19 +1095,19 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                                 onClick={() => handleTogglePublic(order)}
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer transition-colors ${
                                   order.isPublic
-                                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
-                                    : 'bg-slate-900 text-slate-400 border border-slate-700 hover:text-slate-300'
+                                    ? 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900'
                                 }`}
                                 title={order.isPublic ? 'Click to hide from /custom-orders' : 'Click to publish on /custom-orders'}
                               >
                                 {order.isPublic ? (
                                   <>
-                                    <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
+                                    <Sparkles className="w-2.5 h-2.5 text-cyan-600" />
                                     <span>Public</span>
                                   </>
                                 ) : (
                                   <>
-                                    <EyeOff className="w-2.5 h-2.5 text-slate-500" />
+                                    <EyeOff className="w-2.5 h-2.5 text-slate-400" />
                                     <span>Hidden</span>
                                   </>
                                 )}
@@ -1123,17 +1123,17 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                           {/* Edit Custom Order & Showcase button */}
                           <button
                             onClick={() => handleOpenShowcaseModal(order)}
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
                             title="Edit Order Details & Public Showcase"
                           >
-                            <Pencil className="w-3.5 h-3.5 text-cyan-400" />
+                            <Pencil className="w-3.5 h-3.5 text-cyan-600" />
                             <span>Edit</span>
                           </button>
 
                           {/* View QR Code button */}
                           <button
                             onClick={() => setActiveQrOrder(order)}
-                            className="p-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                            className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
                             title="View Payment QR and Link"
                           >
                             <QrCode className="w-3.5 h-3.5" />
@@ -1145,7 +1145,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                             <button
                               onClick={() => handleVerifyStatus(order.id)}
                               disabled={isVerifying}
-                              className="p-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition-colors cursor-pointer"
                               title="Check payment status with Razorpay"
                             >
                               <RefreshCw className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
@@ -1156,7 +1156,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                           {isAwaiting && (
                             <button
                               onClick={() => handleMarkAsPaid(order.id)}
-                              className="p-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer text-[10px] font-bold"
+                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg transition-colors cursor-pointer text-[10px] font-bold"
                               title="Mark as Paid (Counter cash / direct settlement override)"
                             >
                               <Check className="w-3.5 h-3.5" />
@@ -1167,7 +1167,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                           {isAwaiting && (
                             <button
                               onClick={() => handleCancelOrder(order.id)}
-                              className="p-1.5 bg-rose-600/10 hover:bg-rose-600/30 text-rose-400 border border-rose-500/20 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg transition-colors cursor-pointer"
                               title="Deactivate / Expire QR code"
                             >
                               <Ban className="w-3.5 h-3.5" />
@@ -1179,7 +1179,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                             <button
                               onClick={() => handleDeleteOrder(order.id)}
                               disabled={isDeletingId === order.id}
-                              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
                               title="Delete expired/cancelled custom order & release order number for reuse"
                             >
                               <Trash2 className={`w-3.5 h-3.5 ${isDeletingId === order.id ? 'animate-spin' : ''}`} />
@@ -1204,34 +1204,34 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
     <div className="space-y-4">
       {/* Review Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Reviews</span>
-          <div className="text-xl font-extrabold text-slate-100">{reviewsList.length}</div>
+        <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Reviews</span>
+          <div className="text-xl font-extrabold text-slate-900">{reviewsList.length}</div>
           <span className="text-[10px] text-slate-500">Submitted by website visitors</span>
         </div>
 
-        <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Pending Moderation</span>
-          <div className="text-xl font-extrabold text-amber-400 flex items-center gap-1.5">
+        <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Pending Moderation</span>
+          <div className="text-xl font-extrabold text-amber-600 flex items-center gap-1.5">
             <span>{reviewsList.filter((r) => r.status === 'PENDING').length}</span>
             {reviewsList.filter((r) => r.status === 'PENDING').length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
             )}
           </div>
           <span className="text-[10px] text-slate-500">Requires review before going live</span>
         </div>
 
-        <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Approved & Live</span>
-          <div className="text-xl font-extrabold text-emerald-400">
+        <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Approved & Live</span>
+          <div className="text-xl font-extrabold text-emerald-600">
             {reviewsList.filter((r) => r.status === 'APPROVED').length}
           </div>
           <span className="text-[10px] text-slate-500">Visible on /custom-orders</span>
         </div>
 
-        <div className="bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hidden Reviews</span>
-          <div className="text-xl font-extrabold text-slate-300">
+        <div className="bg-white border border-slate-200 p-3.5 rounded-2xl space-y-1 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Hidden Reviews</span>
+          <div className="text-xl font-extrabold text-slate-700">
             {reviewsList.filter((r) => r.status === 'HIDDEN').length}
           </div>
           <span className="text-[10px] text-slate-500">Unpublished from public</span>
@@ -1239,7 +1239,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       </div>
 
       {/* Review Filter and Search Bar */}
-      <div className="bg-slate-800/60 border border-slate-700/80 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white border border-slate-200 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
@@ -1247,7 +1247,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
             placeholder="Search reviews by name or text..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500"
           />
         </div>
 
@@ -1266,8 +1266,8 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 onClick={() => setReviewsFilter(filter)}
                 className={`px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200'
                 }`}
               >
                 {filter} ({count})
@@ -1278,11 +1278,11 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       </div>
 
       {/* Reviews Table */}
-      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-950/90 text-slate-400 border-b border-slate-700 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold uppercase tracking-wider text-[10px]">
                 <th className="p-3.5">Creation / Order</th>
                 <th className="p-3.5">Reviewer Name</th>
                 <th className="p-3.5">Rating</th>
@@ -1292,7 +1292,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 <th className="p-3.5 text-right">Moderation Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/60">
+            <tbody className="divide-y divide-slate-200">
               {reviewsList
                 .filter((r) => {
                   if (reviewsFilter !== 'ALL' && r.status !== reviewsFilter) return false;
@@ -1306,10 +1306,10 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 })
                 .length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center space-y-2">
-                      <Star className="w-8 h-8 text-slate-500" />
-                      <p className="font-semibold text-slate-300">No reviews found in this category.</p>
+                      <Star className="w-8 h-8 text-slate-400" />
+                      <p className="font-semibold text-slate-700">No reviews found in this category.</p>
                       <p className="text-[11px] text-slate-500">
                         Public reviews submitted on /custom-orders will appear here for admin moderation.
                       </p>
@@ -1332,14 +1332,14 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     const isActionLoading = reviewActionLoadingId === review.id;
 
                     return (
-                      <tr key={review.id} className="hover:bg-slate-750/50 transition-colors">
+                      <tr key={review.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-3.5">
-                          <div className="font-bold text-slate-100">{review.customOrderName || 'Custom Order'}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{review.customOrderId}</div>
+                          <div className="font-bold text-slate-900">{review.customOrderName || 'Custom Order'}</div>
+                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">{review.customOrderId}</div>
                         </td>
 
                         <td className="p-3.5">
-                          <div className="font-bold text-slate-200">{review.reviewerName || 'Visitor'}</div>
+                          <div className="font-bold text-slate-800">{review.reviewerName || 'Visitor'}</div>
                         </td>
 
                         <td className="p-3.5">
@@ -1348,19 +1348,19 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                               <Star
                                 key={idx}
                                 className={`w-3.5 h-3.5 ${
-                                  idx < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'
+                                  idx < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
                                 }`}
                               />
                             ))}
-                            <span className="text-xs font-bold text-slate-300 ml-1">{review.rating}/5</span>
+                            <span className="text-xs font-bold text-slate-700 ml-1">{review.rating}/5</span>
                           </div>
                         </td>
 
                         <td className="p-3.5 max-w-xs">
-                          <p className="text-slate-300 line-clamp-2 text-xs">{review.comment}</p>
+                          <p className="text-slate-700 line-clamp-2 text-xs">{review.comment}</p>
                         </td>
 
-                        <td className="p-3.5 text-[11px] text-slate-400 whitespace-nowrap">
+                        <td className="p-3.5 text-[11px] text-slate-500 whitespace-nowrap">
                           {new Date(review.createdAt).toLocaleDateString('en-IN', {
                             month: 'short',
                             day: 'numeric',
@@ -1370,15 +1370,15 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                         <td className="p-3.5 whitespace-nowrap">
                           {review.status === 'APPROVED' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               <Check className="w-3 h-3" /> Live (Approved)
                             </span>
                           ) : review.status === 'HIDDEN' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-700/60 text-slate-300 border border-slate-600">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
                               <EyeOff className="w-3 h-3" /> Hidden
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                               <Clock className="w-3 h-3" /> Pending Approval
                             </span>
                           )}
@@ -1390,7 +1390,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                               <button
                                 onClick={() => handleUpdateReviewStatus(review.id, 'APPROVED')}
                                 disabled={isActionLoading}
-                                className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
                                 title="Approve and make visible on /custom-orders"
                               >
                                 <Check className="w-3.5 h-3.5" />
@@ -1402,7 +1402,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                               <button
                                 onClick={() => handleUpdateReviewStatus(review.id, 'HIDDEN')}
                                 disabled={isActionLoading}
-                                className="px-2.5 py-1.5 bg-slate-700/60 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
                                 title="Hide from public showcase"
                               >
                                 <EyeOff className="w-3.5 h-3.5" />
@@ -1413,7 +1413,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                             <button
                               onClick={() => handleDeleteReview(review.id)}
                               disabled={isActionLoading}
-                              className="p-1.5 bg-rose-600/20 hover:bg-rose-600/35 text-rose-300 border border-rose-500/40 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg transition-colors cursor-pointer"
                               title="Permanently delete review"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1435,17 +1435,17 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       {/* MODAL 1: CREATE NEW CUSTOM ORDER & GENERATE QR */}
       {/* ========================================================================= */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
+                <div className="p-2 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-xl">
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100">Create New Custom Order</h3>
-                  <p className="text-[11px] text-slate-400">Generate a custom Razorpay UPI Payment QR</p>
+                  <h3 className="text-sm font-bold text-slate-900">Create New Custom Order</h3>
+                  <p className="text-[11px] text-slate-500">Generate a custom Razorpay UPI Payment QR</p>
                 </div>
               </div>
               <button
@@ -1453,7 +1453,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   setShowCreateModal(false);
                   setFormError(null);
                 }}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1462,23 +1462,23 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
             {/* Modal Body / Form */}
             <form onSubmit={handleCreateCustomOrder} className="p-5 overflow-y-auto space-y-4 flex-1">
               {formError && (
-                <div className="bg-rose-500/20 border border-rose-500/40 text-rose-300 p-3 rounded-xl flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
                   <span className="text-xs">{formError}</span>
                 </div>
               )}
 
               {/* Customer Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Customer Name <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Customer Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. Ramesh Varma"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500"
                   required
                 />
               </div>
@@ -1486,17 +1486,17 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
               {/* Phone & Email Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Phone Number <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Phone Number <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-mono font-bold">+91</span>
+                    <span className="absolute left-3 top-2.5 text-slate-400 text-xs font-mono font-bold">+91</span>
                     <input
                       type="tel"
                       placeholder="9876543210"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-11 pr-3 py-2.5 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-11 pr-3 py-2.5 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -1504,26 +1504,26 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Customer Email <span className="text-slate-500">(Optional)</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Customer Email <span className="text-slate-400">(Optional)</span>
                   </label>
                   <input
                     type="email"
                     placeholder="customer@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               {/* Amount in INR */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Custom Amount in ₹ <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Custom Amount in ₹ <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                   <input
                     type="number"
                     step="0.01"
@@ -1531,19 +1531,19 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     placeholder="e.g. 2500"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-white font-extrabold text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-2.5 text-slate-900 font-extrabold text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-500"
                     required
                   />
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 block">
+                <span className="text-[10px] text-slate-500 mt-1 block">
                   Amount in INR (min ₹1.00). Settles directly into your linked Razorpay bank account.
                 </span>
               </div>
 
               {/* Delivery Type */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Fulfillment / Delivery Type <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Fulfillment / Delivery Type <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -1551,14 +1551,14 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     onClick={() => setDeliveryType('STORE_PICKUP')}
                     className={`p-3 rounded-xl border flex items-center gap-2 text-left cursor-pointer transition-all ${
                       deliveryType === 'STORE_PICKUP'
-                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm'
-                        : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-600'
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
-                    <Building className={`w-4 h-4 ${deliveryType === 'STORE_PICKUP' ? 'text-indigo-400' : 'text-slate-500'}`} />
+                    <Building className={`w-4 h-4 ${deliveryType === 'STORE_PICKUP' ? 'text-indigo-600' : 'text-slate-400'}`} />
                     <div>
                       <div className="font-bold text-xs">Store Pickup</div>
-                      <div className="text-[10px] text-slate-400">Gachibowli Center</div>
+                      <div className="text-[10px] text-slate-500">Gachibowli Center</div>
                     </div>
                   </button>
 
@@ -1567,14 +1567,14 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     onClick={() => setDeliveryType('HOME_DELIVERY')}
                     className={`p-3 rounded-xl border flex items-center gap-2 text-left cursor-pointer transition-all ${
                       deliveryType === 'HOME_DELIVERY'
-                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm'
-                        : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-600'
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
-                    <Truck className={`w-4 h-4 ${deliveryType === 'HOME_DELIVERY' ? 'text-indigo-400' : 'text-slate-500'}`} />
+                    <Truck className={`w-4 h-4 ${deliveryType === 'HOME_DELIVERY' ? 'text-indigo-600' : 'text-slate-400'}`} />
                     <div>
                       <div className="font-bold text-xs">Home Delivery</div>
-                      <div className="text-[10px] text-slate-400">Courier Shipping</div>
+                      <div className="text-[10px] text-slate-500">Courier Shipping</div>
                     </div>
                   </button>
                 </div>
@@ -1582,7 +1582,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Order Description / Item Details
                 </label>
                 <textarea
@@ -1590,15 +1590,15 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   placeholder="e.g. 4x Carbon-Fiber PLA Propeller Hubs (0.12mm high-precision infill)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               {/* Optional Public Showcase Settings */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-3">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
                     <span>Public Showcase Listing (Optional)</span>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -1606,14 +1606,14 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                       type="checkbox"
                       checked={createIsPublic}
                       onChange={(e) => setCreateIsPublic(e.target.checked)}
-                      className="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 focus:ring-cyan-500 cursor-pointer"
+                      className="w-4 h-4 rounded text-cyan-600 bg-white border-slate-300 focus:ring-cyan-500 cursor-pointer"
                     />
-                    <span className="text-[11px] font-semibold text-slate-300">Publish to /custom-orders</span>
+                    <span className="text-[11px] font-semibold text-slate-700">Publish to /custom-orders</span>
                   </label>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
                     Showcase Title / Model Name
                   </label>
                   <input
@@ -1621,12 +1621,12 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     placeholder="e.g. Lithophane Moon Lamp - 15cm Custom Sphere"
                     value={createCustomOrderName}
                     onChange={(e) => setCreateCustomOrderName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
                     Product / Sample Photo
                   </label>
                   <div className="flex items-center gap-2">
@@ -1635,10 +1635,10 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                       placeholder="Image URL or upload a file"
                       value={createImageUrl}
                       onChange={(e) => setCreateImageUrl(e.target.value)}
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                      className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                     />
-                    <label className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer border border-slate-600 flex items-center gap-1 shrink-0 transition-colors">
-                      <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                    <label className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer border border-slate-300 flex items-center gap-1 shrink-0 transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-cyan-600" />
                       <span>{isUploadingImage ? 'Uploading...' : 'Upload'}</span>
                       <input
                         type="file"
@@ -1658,10 +1658,10 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                         alt="Preview"
                         priority={false}
                         width={96}
-                        className="w-12 h-12 object-cover rounded-md border border-slate-700"
+                        className="w-12 h-12 object-cover rounded-md border border-slate-200"
                         pictureClassName="w-12 h-12 shrink-0 block"
                       />
-                      <span className="text-[10px] text-emerald-400 font-semibold">Image ready for showcase</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold">Image ready for showcase</span>
                     </div>
                   )}
                 </div>
@@ -1669,24 +1669,24 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Internal Admin Notes <span className="text-slate-500">(Optional)</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Internal Admin Notes <span className="text-slate-400">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. Walk-in customer, collecting Saturday morning"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-2 flex items-center gap-3 border-t border-slate-800">
+              <div className="pt-2 flex items-center gap-3 border-t border-slate-200">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
@@ -1704,7 +1704,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-3 rounded-xl transition-colors cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-3 rounded-xl transition-colors cursor-pointer border border-slate-200"
                 >
                   Cancel
                 </button>
@@ -1718,21 +1718,21 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
       {/* MODAL 2: DYNAMIC RAZORPAY PAYMENT QR PRESENTATION CARD */}
       {/* ========================================================================= */}
       {activeQrOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-600/20 text-indigo-400 rounded-lg">
+                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-200">
                   <QrCode className="w-4 h-4" />
                 </div>
-                <span className="font-bold text-slate-200 text-xs">
+                <span className="font-bold text-slate-900 text-xs">
                   Razorpay UPI Payment QR Code
                 </span>
               </div>
               <button
                 onClick={() => setActiveQrOrder(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1743,26 +1743,26 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
               {/* Payment Status Pill */}
               <div className="flex justify-center">
                 {activeQrOrder.paymentStatus === 'PAID' ? (
-                  <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-extrabold animate-bounce">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-extrabold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span>Payment Received & Settled ✅</span>
                   </div>
                 ) : activeQrOrder.paymentStatus === 'EXPIRED' || (activeQrOrder.paymentStatus === 'AWAITING_PAYMENT' && activeQrOrder.expiresAt && new Date(activeQrOrder.expiresAt).getTime() <= Date.now()) ? (
-                  <div className="inline-flex items-center gap-1.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-semibold">
-                    <Clock className="w-4 h-4" />
+                  <div className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full text-xs font-semibold">
+                    <Clock className="w-4 h-4 text-rose-600" />
                     <span>QR Code Expired (1-Hour Limit)</span>
                   </div>
                 ) : activeQrOrder.paymentStatus === 'CANCELLED' ? (
-                  <div className="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-400 border border-slate-700 px-3 py-1 rounded-full text-xs font-semibold">
-                    <Ban className="w-4 h-4" />
+                  <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1 rounded-full text-xs font-semibold">
+                    <Ban className="w-4 h-4 text-slate-500" />
                     <span>QR Code Deactivated</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                    <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                  <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-bold">
+                    <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
                     <span>Awaiting UPI Payment Scan</span>
                     {activeQrOrder.expiresAt && (
-                      <span className="text-[11px] font-normal text-amber-300/80 ml-1 font-mono">
+                      <span className="text-[11px] font-normal text-amber-600 ml-1 font-mono">
                         (Expires {new Date(activeQrOrder.expiresAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })})
                       </span>
                     )}
@@ -1772,16 +1772,16 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
               {/* Amount Display */}
               <div>
-                <span className="text-3xl font-black text-white tracking-tight">
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
                   ₹{Number(activeQrOrder.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
-                <span className="text-[11px] text-slate-400 block mt-0.5">
-                  Order <strong className="text-amber-400 font-mono">{activeQrOrder.id}</strong> • {activeQrOrder.customerName}
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  Order <strong className="text-amber-600 font-mono">{activeQrOrder.id}</strong> • {activeQrOrder.customerName}
                 </span>
               </div>
 
               {/* QR Code Container */}
-              <div className="bg-white p-4 rounded-2xl mx-auto w-64 h-64 shadow-2xl flex items-center justify-center border-4 border-indigo-500/30 relative group">
+              <div className="bg-white p-4 rounded-2xl mx-auto w-64 h-64 shadow-md flex items-center justify-center border-4 border-indigo-100 relative group">
                 {activeQrOrder.qrImageUrl ? (
                   <img
                     src={activeQrOrder.qrImageUrl}
@@ -1795,17 +1795,17 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 )}
 
                 {activeQrOrder.paymentStatus === 'PAID' && (
-                  <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-xs rounded-xl flex flex-col items-center justify-center text-emerald-300 p-4">
-                    <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-1" />
+                  <div className="absolute inset-0 bg-emerald-900/80 backdrop-blur-xs rounded-xl flex flex-col items-center justify-center text-white p-4">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-300 mb-1" />
                     <span className="font-extrabold text-sm text-white">PAID IN FULL</span>
-                    <span className="text-[10px] text-emerald-300/80">Credited to Razorpay Account</span>
+                    <span className="text-[10px] text-emerald-200">Credited to Razorpay Account</span>
                   </div>
                 )}
               </div>
 
               {/* UPI & App Notice */}
-              <p className="text-[11px] text-slate-400 max-w-xs mx-auto leading-relaxed">
-                Scan with any UPI App: <strong className="text-slate-200">GPay, PhonePe, Paytm, CRED, or BHIM</strong>.
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
+                Scan with any UPI App: <strong className="text-slate-800">GPay, PhonePe, Paytm, CRED, or BHIM</strong>.
                 Amount is locked to exact order value.
               </p>
 
@@ -1814,16 +1814,16 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleCopyLink()}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl border border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer text-xs"
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer text-xs"
                   >
                     {copiedLink ? (
                       <>
-                        <Check className="w-4 h-4 text-emerald-400" />
-                        <span className="text-emerald-400">Payment Link Copied!</span>
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        <span className="text-emerald-600">Payment Link Copied!</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-4 h-4 text-slate-400" />
+                        <Copy className="w-4 h-4 text-slate-500" />
                         <span>Copy Payment Link</span>
                       </>
                     )}
@@ -1831,7 +1831,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                   <button
                     onClick={handleDownloadQr}
-                    className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition-colors cursor-pointer"
                     title="Download QR code image for customer printing"
                   >
                     <Download className="w-4 h-4" />
@@ -1843,7 +1843,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                     href={activeQrOrder.paymentLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-semibold py-2 rounded-xl border border-indigo-500/30 transition-colors flex items-center justify-center gap-1.5 text-xs block"
+                    className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-2 rounded-xl border border-indigo-200 transition-colors flex items-center justify-center gap-1.5 text-xs block"
                   >
                     <span>Open in UPI Mobile App</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1852,14 +1852,14 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
               </div>
 
               {/* Live Status Checks & Footer Buttons */}
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                 {activeQrOrder.paymentStatus === 'AWAITING_PAYMENT' &&
                  !(activeQrOrder.expiresAt && new Date(activeQrOrder.expiresAt).getTime() <= Date.now()) ? (
                   <>
                     <button
                       onClick={() => handleVerifyStatus(activeQrOrder.id)}
                       disabled={isVerifying}
-                      className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1.5 font-semibold cursor-pointer"
+                      className="text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1.5 font-semibold cursor-pointer"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
                       <span>{isVerifying ? 'Checking...' : 'Check Payment Status'}</span>
@@ -1867,24 +1867,24 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                     <button
                       onClick={() => handleMarkAsPaid(activeQrOrder.id)}
-                      className="text-[11px] text-emerald-400 hover:underline font-semibold cursor-pointer"
+                      className="text-[11px] text-emerald-600 hover:underline font-semibold cursor-pointer"
                     >
                       Mark as Paid (Cash/Direct)
                     </button>
                   </>
                 ) : activeQrOrder.paymentStatus === 'PAID' ? (
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-500">
                     Settlement recorded on {new Date(activeQrOrder.paidAt || Date.now()).toLocaleDateString('en-IN')}
                   </span>
                 ) : (
                   <div className="w-full flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-500">
                       {activeQrOrder.paymentStatus === 'CANCELLED' ? 'Order cancelled' : 'Payment window expired (60 mins)'}
                     </span>
                     <button
                       onClick={() => handleDeleteOrder(activeQrOrder.id)}
                       disabled={isDeletingId === activeQrOrder.id}
-                      className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Trash2 className={`w-3 h-3 ${isDeletingId === activeQrOrder.id ? 'animate-spin' : ''}`} />
                       <span>Delete Order</span>
@@ -1899,49 +1899,49 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
       {/* Edit Custom Order & Showcase Modal */}
       {showcaseModalOrder && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400">
+                <div className="p-2.5 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-700">
                   <Pencil className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white">Edit Custom Order</h3>
+                    <h3 className="text-base font-bold text-slate-900">Edit Custom Order</h3>
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                       editPaymentStatus === 'PAID'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : editPaymentStatus === 'AWAITING_PAYMENT'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'bg-slate-700/50 text-slate-300 border border-slate-600'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}>
                       {editPaymentStatus === 'PAID' ? 'Paid' : editPaymentStatus === 'AWAITING_PAYMENT' ? 'Awaiting Payment' : editPaymentStatus}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Order <span className="font-mono text-amber-400 font-bold">{showcaseModalOrder.id}</span> • {showcaseModalOrder.customerName || 'Customer'}
+                  <p className="text-xs text-slate-500">
+                    Order <span className="font-mono text-amber-600 font-bold">{showcaseModalOrder.id}</span> • {showcaseModalOrder.customerName || 'Customer'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowcaseModalOrder(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-slate-800 bg-slate-950/40 px-5 pt-3 gap-2">
+            <div className="flex border-b border-slate-200 bg-slate-50/50 px-5 pt-3 gap-2">
               <button
                 type="button"
                 onClick={() => setEditModalTab('showcase')}
                 className={`pb-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
                   editModalTab === 'showcase'
-                    ? 'border-cyan-400 text-cyan-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'border-cyan-600 text-cyan-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -1953,8 +1953,8 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                 onClick={() => setEditModalTab('details')}
                 className={`pb-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
                   editModalTab === 'details'
-                    ? 'border-cyan-400 text-cyan-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'border-cyan-600 text-cyan-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
@@ -1966,7 +1966,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
             <form onSubmit={handleSaveShowcaseSettings} className="p-5 space-y-4 overflow-y-auto flex-1">
               {uploadFeedback && (
                 <div className={`p-3 rounded-xl text-xs font-semibold ${
-                  uploadFeedback.includes('failed') ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                  uploadFeedback.includes('failed') ? 'bg-rose-50 border border-rose-200 text-rose-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                 }`}>
                   {uploadFeedback}
                 </div>
@@ -1975,14 +1975,14 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
               {editModalTab === 'showcase' && (
                 <div className="space-y-4">
                   {/* Public Visibility Toggle */}
-                  <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Eye className="w-4 h-4 text-cyan-400" />
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Eye className="w-4 h-4 text-cyan-600" />
                         <span>Display on Public Showcase Gallery</span>
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        Visible to all visitors at <span className="font-mono text-cyan-300">/custom-orders</span>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        Visible to all visitors at <span className="font-mono text-cyan-700">/custom-orders</span>
                       </div>
                     </div>
 
@@ -1993,21 +1993,21 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                         onChange={(e) => setShowcaseIsPublic(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                     </label>
                   </div>
 
                   {/* Showcase Title */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Custom Order Name / Title <span className="text-cyan-400">*</span>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Custom Order Name / Title <span className="text-cyan-600">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. Lithophane Moon Lamp with Wooden Base"
                       value={showcaseName}
                       onChange={(e) => setShowcaseName(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                     />
                     <span className="text-[10px] text-slate-500 mt-1 block">
                       Public title displayed on the showcase gallery card.
@@ -2016,7 +2016,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                   {/* Finished Product Photo */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Showcase Photo
                     </label>
                     <div className="flex items-center gap-2">
@@ -2025,10 +2025,10 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                         placeholder="Image URL or upload a file"
                         value={showcaseImageUrl}
                         onChange={(e) => setShowcaseImageUrl(e.target.value)}
-                        className="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                        className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                       />
-                      <label className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl cursor-pointer border border-slate-600 flex items-center gap-1.5 shrink-0 transition-colors">
-                        <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                      <label className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl cursor-pointer border border-slate-300 flex items-center gap-1.5 shrink-0 transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-cyan-600" />
                         <span>{isUploadingImage ? 'Uploading...' : 'Upload File'}</span>
                         <input
                           type="file"
@@ -2044,7 +2044,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                     {/* Preview */}
                     {showcaseImageUrl ? (
-                      <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950 aspect-video max-h-48 flex items-center justify-center group">
+                      <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 aspect-video max-h-48 flex items-center justify-center group">
                         <OptimizedImage
                           src={showcaseImageUrl}
                           alt="Showcase Preview"
@@ -2063,10 +2063,10 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                         </button>
                       </div>
                     ) : (
-                      <div className="mt-3 border border-dashed border-slate-700 rounded-xl p-6 text-center text-slate-500">
-                        <ImageIcon className="w-8 h-8 mx-auto mb-1 text-slate-600" />
-                        <p className="text-xs">No image uploaded yet</p>
-                        <p className="text-[10px] text-slate-600">Upload high-res photo of the finished 3D print or paste URL</p>
+                      <div className="mt-3 border border-dashed border-slate-300 rounded-xl p-6 text-center text-slate-400">
+                        <ImageIcon className="w-8 h-8 mx-auto mb-1 text-slate-400" />
+                        <p className="text-xs text-slate-600">No image uploaded yet</p>
+                        <p className="text-[10px] text-slate-400">Upload high-res photo of the finished 3D print or paste URL</p>
                       </div>
                     )}
                   </div>
@@ -2078,38 +2078,38 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   {/* Customer Info */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Customer Name
                       </label>
                       <input
                         type="text"
                         value={editCustomerName}
                         onChange={(e) => setEditCustomerName(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                         placeholder="Customer Name"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Phone Number
                       </label>
                       <input
                         type="text"
                         value={editPhone}
                         onChange={(e) => setEditPhone(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                         placeholder="+91 98765 43210"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Email Address
                       </label>
                       <input
                         type="email"
                         value={editEmail}
                         onChange={(e) => setEditEmail(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                         placeholder="client@example.com"
                       />
                     </div>
@@ -2118,7 +2118,7 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                   {/* Amount, Payment Status & Delivery Type */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Amount (₹)
                       </label>
                       <input
@@ -2126,25 +2126,25 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                         step="0.01"
                         value={editAmount}
                         onChange={(e) => setEditAmount(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 font-mono font-bold"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500 font-mono font-bold"
                         placeholder="e.g. 1500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Payment Status
                       </label>
                       <select
                         value={editPaymentStatus}
                         onChange={(e) => setEditPaymentStatus(e.target.value as CustomOrderPaymentStatus)}
-                        className={`w-full bg-slate-950 border rounded-xl p-2.5 text-xs font-bold focus:outline-none cursor-pointer ${
+                        className={`w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none cursor-pointer ${
                           editPaymentStatus === 'PAID'
-                            ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/20'
+                            ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
                             : editPaymentStatus === 'AWAITING_PAYMENT'
-                            ? 'border-amber-500/50 text-amber-400 bg-amber-950/20'
+                            ? 'border-amber-300 text-amber-700 bg-amber-50'
                             : editPaymentStatus === 'CANCELLED'
-                            ? 'border-rose-500/50 text-rose-400 bg-rose-950/20'
-                            : 'border-slate-700 text-slate-300'
+                            ? 'border-rose-300 text-rose-700 bg-rose-50'
+                            : 'border-slate-300 text-slate-700'
                         }`}
                       >
                         <option value="PAID">✅ Paid (Settled)</option>
@@ -2154,13 +2154,13 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Fulfillment / Delivery
                       </label>
                       <select
                         value={editDeliveryType}
                         onChange={(e) => setEditDeliveryType(e.target.value as CustomOrderDeliveryType)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-cyan-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs focus:outline-none focus:border-cyan-500"
                       >
                         <option value="STORE_PICKUP">Store Pickup (In-person)</option>
                         <option value="HOME_DELIVERY">Home Delivery / Shipping</option>
@@ -2170,28 +2170,28 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
 
                   {/* Description */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Order Description / Specifications
                     </label>
                     <textarea
                       rows={3}
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                       placeholder="e.g. 3D printed mechanical enclosure in PETG Black, 0.2mm layer height"
                     />
                   </div>
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Internal Notes / Print Settings
                     </label>
                     <textarea
                       rows={2}
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-cyan-500"
                       placeholder="Special instructions, slicer profile, or client notes..."
                     />
                   </div>
@@ -2199,18 +2199,18 @@ export const CustomOrdersPanel: React.FC<CustomOrdersPanelProps> = ({
               )}
 
               {/* Modal Actions */}
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowcaseModalOrder(null)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer border border-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingShowcase}
-                  className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-600/20 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   {isSavingShowcase ? (
                     <>
