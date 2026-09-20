@@ -89,6 +89,7 @@ export interface ProductVariant {
   price: number;
   mrp: number;
   stockQuantity: number;
+  size?: string | null;
   colour?: string | null;
   wattage?: string | null;
   attributes?: Record<string, any> | null;
@@ -141,6 +142,10 @@ export interface Product {
   requiresImageUpload?: boolean;
   minimumImageUploads?: number;
   maximumImageUploads?: number;
+  hasSizes?: boolean;
+  hasColours?: boolean;
+  sizes?: any[];
+  colours?: any[];
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
@@ -163,8 +168,9 @@ export interface CartItem {
   variantId?: string | null;
   variant?: ProductVariant | null;
   selectedVariant?: string;
-  selectedColour?: string;
-  selectedWattage?: string;
+  selectedSize?: string | null;
+  selectedColour?: string | null;
+  selectedWattage?: string | null;
   taxPercentage?: number;
   customizationText?: string;
   customizationImages?: CustomizationImage[];
@@ -202,6 +208,7 @@ export interface OrderItem {
   productId: string;
   variantId?: string;
   skuSnapshot?: string;
+  selectedSize?: string | null;
   selectedColour?: string;
   selectedWattage?: string;
   productTitle: string;

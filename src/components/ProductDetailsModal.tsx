@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Sparkles,
   Zap,
+  Maximize2,
   MessageSquarePlus,
   ChevronLeft,
   ChevronRight,
@@ -46,8 +47,8 @@ interface ProductDetailsModalProps {
   onClose: () => void;
   isWishlisted: boolean;
   onToggleWishlist: (p: Product) => void;
-  onAddToCart: (p: Product, variantId?: string, quantity?: number, customizationText?: string, selectedColour?: string, selectedWattage?: string, customizationImages?: any[]) => void;
-  onBuyNow: (p: Product, customizationText?: string, selectedColour?: string, selectedWattage?: string, variantId?: string, customizationImages?: any[]) => void;
+  onAddToCart: (p: Product, variantId?: string, quantity?: number, customizationText?: string, selectedColour?: string, selectedWattage?: string, customizationImages?: any[], selectedSize?: string) => void;
+  onBuyNow: (p: Product, customizationText?: string, selectedColour?: string, selectedWattage?: string, variantId?: string, customizationImages?: any[], selectedSize?: string) => void;
   onSelectRelatedProduct?: (p: Product) => void;
 }
 
@@ -277,17 +278,21 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     (product?.name || '').toLowerCase().includes('lamp') ||
     variantsList.some((v) => v.colour || v.wattage || (v.attributes as any)?.colour || (v.attributes as any)?.wattage);
 
+  const [dbSizes, setDbSizes] = useState<LampOptionItem[]>([]);
   const [dbColours, setDbColours] = useState<LampOptionItem[]>([]);
   const [dbWattages, setDbWattages] = useState<LampOptionItem[]>([]);
   const [hasLoadedDbOptions, setHasLoadedDbOptions] = useState<boolean>(false);
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColour, setSelectedColour] = useState<string>('');
   const [selectedWattage, setSelectedWattage] = useState<string>('');
 
   useEffect(() => {
     if (!product?.id) {
+      setDbSizes([]);
       setDbColours([]);
       setDbWattages([]);
       setHasLoadedDbOptions(true);
+      setSelectedSize('');
       setSelectedColour('');
       setSelectedWattage('');
       return;
@@ -296,9 +301,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     const controller = new AbortController();
 
     // CLEAR OLD OPTIONS IMMEDIATELY when product changes to prevent retaining previous product's options
+    setDbSizes([]);
     setDbColours([]);
     setDbWattages([]);
     setHasLoadedDbOptions(false);
+    setSelectedSize('');
     setSelectedColour('');
     setSelectedWattage('');
 
@@ -307,12 +314,20 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && (Array.isArray(data.colours) || Array.isArray(data.wattages))) {
+        if (data && (Array.isArray(data.sizes) || Array.isArray(data.colours) || Array.isArray(data.wattages))) {
+          const fetchedSizes: LampOptionItem[] = Array.isArray(data.sizes) ? data.sizes : [];
           const fetchedColours: LampOptionItem[] = Array.isArray(data.colours) ? data.colours : [];
           const fetchedWattages: LampOptionItem[] = Array.isArray(data.wattages) ? data.wattages : [];
+          setDbSizes(fetchedSizes);
           setDbColours(fetchedColours);
           setDbWattages(fetchedWattages);
           setHasLoadedDbOptions(true);
+
+          if (fetchedSizes.length > 0) {
+            setSelectedSize(fetchedSizes[0].value);
+          } else {
+            setSelectedSize('');
+          }
 
           if (fetchedColours.length > 0) {
             setSelectedColour(fetchedColours[0].value);
@@ -326,19 +341,23 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             setSelectedWattage('');
           }
         } else {
+          setDbSizes([]);
           setDbColours([]);
           setDbWattages([]);
           setHasLoadedDbOptions(true);
+          setSelectedSize('');
           setSelectedColour('');
           setSelectedWattage('');
         }
       })
       .catch((err) => {
         if ((err as Error).name !== 'AbortError') {
-          console.warn('[LAMP OPTIONS] Error loading lamp options:', err);
+          console.warn('[PRODUCT OPTIONS] Error loading options:', err);
+          setDbSizes([]);
           setDbColours([]);
           setDbWattages([]);
           setHasLoadedDbOptions(true);
+          setSelectedSize('');
           setSelectedColour('');
           setSelectedWattage('');
         }
@@ -350,6 +369,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   }, [product?.id]);
 
   // Extract options strictly belonging to variants of THIS product if DB options aren't present
+  const availableSizesFromVariants = Array.from(
+    new Set(
+      variantsList
+        .map((v) => v.size || (v.attributes as any)?.size)
+        .filter(Boolean) as string[]
+    )
+  );
+
   const availableColoursFromVariants = Array.from(
     new Set(
       variantsList
@@ -365,6 +392,16 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         .filter(Boolean) as string[]
     )
   );
+
+  const sizeOptionsList: LampOptionItem[] = (hasLoadedDbOptions && dbSizes.length > 0)
+    ? dbSizes
+    : availableSizesFromVariants.map((s, idx) => ({
+        id: `sz-${idx}`,
+        value: s,
+        priceDelta: 0,
+        sortOrder: idx + 1,
+        isActive: true
+      }));
 
   const colourOptionsList: LampOptionItem[] = (hasLoadedDbOptions && dbColours.length > 0)
     ? dbColours
@@ -397,6 +434,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       });
 
   useEffect(() => {
+    if (sizeOptionsList.length > 0 && (!selectedSize || !sizeOptionsList.some((s) => s.value === selectedSize))) {
+      setSelectedSize(sizeOptionsList[0].value);
+    }
+  }, [sizeOptionsList]);
+
+  useEffect(() => {
     if (colourOptionsList.length > 0 && (!selectedColour || !colourOptionsList.some((c) => c.value === selectedColour))) {
       setSelectedColour(colourOptionsList[0].value);
     }
@@ -411,30 +454,34 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   // Debug log variants when product is loaded
   useEffect(() => {
     if (product && variantsList.length > 0) {
-      console.log('[LAMP VARIANTS]', variantsList);
+      console.log('[PRODUCT VARIANTS]', variantsList);
     }
   }, [product?.id, variantsList]);
 
-  // Sync selected variant when colour or wattage changes
+  // Sync selected variant when size, colour or wattage changes
   useEffect(() => {
     if (variantsList.length > 0) {
+      const normSize = (selectedSize || '').trim().toLowerCase();
       const normCol = (selectedColour || '').trim().toLowerCase();
       const normWat = (selectedWattage || '').trim().toLowerCase();
 
       const match = variantsList.find((v) => {
         if (v.isActive === false) return false;
+        const vSize = (v.size || (v.attributes as any)?.size || '').trim().toLowerCase();
         const vCol = (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase();
         const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase();
 
+        const sizeMatches = !normSize || vSize === normSize;
         const colMatches = !normCol || vCol === normCol;
         const watMatches = !normWat || vWat === normWat;
 
-        return colMatches && watMatches;
+        return sizeMatches && colMatches && watMatches;
       });
 
       setSelectedVariant(match || null);
 
-      console.log('[SELECTED LAMP VARIANT]', {
+      console.log('[SELECTED VARIANT]', {
+        selectedSize,
         selectedColour,
         selectedWattage,
         selectedVariant: match
@@ -442,12 +489,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     } else {
       setSelectedVariant(null);
     }
-  }, [selectedColour, selectedWattage, variantsList]);
+  }, [selectedSize, selectedColour, selectedWattage, variantsList]);
 
   if (!product) return null;
 
   const isVariantProduct = variantsList.length > 0;
-  const isCombinationUnavailable = isVariantProduct && Boolean(selectedColour || selectedWattage) && !selectedVariant;
+  const isCombinationUnavailable = isVariantProduct && Boolean(selectedSize || selectedColour || selectedWattage) && !selectedVariant;
 
   const calculatedBasePrice = Number(product.price || 0);
   const calculatedBaseMrp = Number(product.mrp || product.price || 0);
@@ -492,7 +539,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       return;
     }
     setCustomizationError(null);
-    onAddToCart(product, selectedVariant?.id, quantity, customizationText.trim(), selectedColour, selectedWattage, customizationImages);
+    onAddToCart(product, selectedVariant?.id, quantity, customizationText.trim(), selectedColour, selectedWattage, customizationImages, selectedSize);
   };
 
   const handleAddReview = async (e: React.FormEvent) => {
@@ -691,12 +738,75 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     <div className="text-xs text-slate-500 font-medium animate-pulse py-2 px-1">
                       Loading product options...
                     </div>
-                  ) : colourOptionsList.length === 0 && wattageOptionsList.length === 0 ? (
+                  ) : sizeOptionsList.length === 0 && colourOptionsList.length === 0 && wattageOptionsList.length === 0 ? (
                     <div className="text-xs text-slate-500 font-medium italic py-1 px-1">
                       No customizable lamp options configured for this product.
                     </div>
                   ) : (
                     <>
+                      {/* Size Selector */}
+                      {sizeOptionsList.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                              <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Size Option:</span>
+                            </span>
+                            <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                              {selectedSize || 'Default'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {sizeOptionsList.map((szObj) => {
+                              const sz = szObj.value;
+                              const isSel = selectedSize === sz;
+
+                              const matchingVar = variantsList.find(
+                                (v) =>
+                                  v.isActive !== false &&
+                                  (v.size || (v.attributes as any)?.size || '').trim().toLowerCase() === sz.trim().toLowerCase() &&
+                                  (!selectedColour || (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase() === selectedColour.trim().toLowerCase()) &&
+                                  (!selectedWattage || (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase() === selectedWattage.trim().toLowerCase())
+                              );
+
+                              const displayPrice = matchingVar ? Number(matchingVar.price) : null;
+                              const isAvailable = variantsList.length === 0 || !!matchingVar;
+
+                              return (
+                                <button
+                                  key={szObj.id || sz}
+                                  type="button"
+                                  onClick={() => setSelectedSize(sz)}
+                                  className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                                    isSel
+                                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-300'
+                                      : isAvailable
+                                      ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+                                      : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                                  }`}
+                                >
+                                  <span className="truncate">{sz}</span>
+                                  {displayPrice !== null ? (
+                                    <span className={`text-[10px] shrink-0 font-bold px-1.5 py-0.5 rounded ${isSel ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-700'}`}>
+                                      {formatINR(displayPrice)}
+                                    </span>
+                                  ) : isVariantProduct ? (
+                                    <span className="text-[10px] shrink-0 font-medium text-rose-500">
+                                      N/A
+                                    </span>
+                                  ) : (szObj.priceDelta > 0 ? (
+                                    <span className="text-[10px] shrink-0 font-semibold text-slate-600">
+                                      +{formatINR(szObj.priceDelta)}
+                                    </span>
+                                  ) : null)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Lamp Colour Selector */}
                       {colourOptionsList.length > 0 && (
                         <div className="space-y-1.5">
@@ -722,6 +832,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                               const matchingVar = variantsList.find(
                                 (v) =>
                                   v.isActive !== false &&
+                                  (!selectedSize || (v.size || (v.attributes as any)?.size || '').trim().toLowerCase() === selectedSize.trim().toLowerCase()) &&
                                   (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase() === col.trim().toLowerCase() &&
                                   (!selectedWattage || (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase() === selectedWattage.trim().toLowerCase())
                               );
@@ -783,6 +894,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                               const matchingVar = variantsList.find(
                                 (v) =>
                                   v.isActive !== false &&
+                                  (!selectedSize || (v.size || (v.attributes as any)?.size || '').trim().toLowerCase() === selectedSize.trim().toLowerCase()) &&
                                   (!selectedColour || (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase() === selectedColour.trim().toLowerCase()) &&
                                   (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase() === watt.trim().toLowerCase()
                               );
@@ -1067,7 +1179,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                         return;
                       }
                       setCustomizationError(null);
-                      onBuyNow(product, customizationText.trim(), selectedColour, selectedWattage, selectedVariant?.id, customizationImages);
+                      onBuyNow(product, customizationText.trim(), selectedColour, selectedWattage, selectedVariant?.id, customizationImages, selectedSize);
                       onClose();
                     }}
                     disabled={isCombinationUnavailable || stockQty <= 0}

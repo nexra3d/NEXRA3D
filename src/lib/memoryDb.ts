@@ -193,6 +193,8 @@ class MemoryStore {
         requiresImageUpload: Boolean(p.requiresImageUpload),
         minimumImageUploads: p.minimumImageUploads !== undefined && p.minimumImageUploads !== null ? Number(p.minimumImageUploads) : 1,
         maximumImageUploads: p.maximumImageUploads !== undefined && p.maximumImageUploads !== null ? Number(p.maximumImageUploads) : 5,
+        hasSizes: p.hasSizes !== undefined ? Boolean(p.hasSizes) : (p.id === 'prod-spiral-ambient-lamp' || p.id === 'prod-lithophane-moon-lamp'),
+        hasColours: p.hasColours !== undefined ? Boolean(p.hasColours) : (p.id === 'prod-spiral-ambient-lamp' || p.id === 'prod-lithophane-moon-lamp'),
         weight: p.weight ?? (p.specifications?.weight ? Number(p.specifications.weight) : 0.25),
         length: p.length ?? (p.specifications?.length ? Number(p.specifications.length) : 10),
         width: p.width ?? (p.specifications?.width ? Number(p.specifications.width) : 10),
@@ -242,6 +244,39 @@ class MemoryStore {
 
     this.collections.productLampOption = [
       // Lamp A: Parametric Spiral LED Table Lamp
+      {
+        id: 'opt-spiral-siz-1',
+        productId: 'prod-spiral-ambient-lamp',
+        optionType: 'SIZE',
+        optionValue: '15 cm Height',
+        priceDelta: 0,
+        sortOrder: 1,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'opt-spiral-siz-2',
+        productId: 'prod-spiral-ambient-lamp',
+        optionType: 'SIZE',
+        optionValue: '25 cm Height',
+        priceDelta: 400,
+        sortOrder: 2,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'opt-spiral-siz-3',
+        productId: 'prod-spiral-ambient-lamp',
+        optionType: 'SIZE',
+        optionValue: '35 cm Height',
+        priceDelta: 800,
+        sortOrder: 3,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
       {
         id: 'opt-spiral-col-1',
         productId: 'prod-spiral-ambient-lamp',
@@ -310,6 +345,39 @@ class MemoryStore {
       },
 
       // Lamp B: Personalized 3D Printed Photo Lithophane Moon Lamp
+      {
+        id: 'opt-moon-siz-1',
+        productId: 'prod-lithophane-moon-lamp',
+        optionType: 'SIZE',
+        optionValue: '10 cm Height',
+        priceDelta: 0,
+        sortOrder: 1,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'opt-moon-siz-2',
+        productId: 'prod-lithophane-moon-lamp',
+        optionType: 'SIZE',
+        optionValue: '15 cm Height',
+        priceDelta: 350,
+        sortOrder: 2,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'opt-moon-siz-3',
+        productId: 'prod-lithophane-moon-lamp',
+        optionType: 'SIZE',
+        optionValue: '20 cm Height',
+        priceDelta: 700,
+        sortOrder: 3,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
       {
         id: 'opt-moon-col-1',
         productId: 'prod-lithophane-moon-lamp',

@@ -191,6 +191,8 @@ function formatPrismaProductResponse(p: any) {
       name: p.category.name,
       slug: p.category.slug
     } : null,
+    hasSizes: Boolean(p.hasSizes),
+    hasColours: Boolean(p.hasColours),
     variants: (p.variants || []).map((v: any) => ({
       id: v.id,
       sku: v.sku,
@@ -198,6 +200,7 @@ function formatPrismaProductResponse(p: any) {
       price: Number(v.price),
       mrp: Number(v.mrp),
       stockQuantity: v.stockQuantity,
+      size: v.size || (v.attributes as any)?.size || null,
       colour: v.colour || (v.attributes as any)?.colour || null,
       wattage: v.wattage || (v.attributes as any)?.wattage || null,
       attributes: v.attributes || {},
@@ -692,6 +695,7 @@ async function formatUserResponse(user: any) {
 export interface LampOptionPriceInput {
   productId: string;
   basePrice: number;
+  selectedSize?: string | null;
   selectedColour?: string | null;
   selectedWattage?: string | null;
   variantId?: string | null;
@@ -699,12 +703,17 @@ export interface LampOptionPriceInput {
 
 export interface LampOptionPriceResult {
   unitPrice: number;
+  sizeDelta: number;
   colourDelta: number;
   wattageDelta: number;
+  selectedSize?: string;
   selectedColour?: string;
   selectedWattage?: string;
   variantId?: string;
 }
+
+export type ProductOptionPriceInput = LampOptionPriceInput;
+export type ProductOptionPriceResult = LampOptionPriceResult;
 
 async function batchCalculateLampOptionPrices(
   items: LampOptionPriceInput[]
@@ -752,7 +761,8 @@ async function batchCalculateLampOptionPrices(
   });
 
   for (const item of items) {
-    const { productId, basePrice, selectedColour, selectedWattage, variantId } = item;
+    const { productId, basePrice, selectedSize, selectedColour, selectedWattage, variantId } = item;
+    const normSize = selectedSize ? String(selectedSize).trim() : null;
     const normColour = selectedColour ? String(selectedColour).trim() : null;
     const normWattage = selectedWattage ? String(selectedWattage).trim() : null;
 
@@ -764,14 +774,16 @@ async function batchCalculateLampOptionPrices(
       }
     }
 
-    if (!matchingVariant && (normColour || normWattage)) {
+    if (!matchingVariant && (normSize || normColour || normWattage)) {
       const prodVariants = variantsByProdId.get(productId) || [];
       matchingVariant = prodVariants.find((v: any) => {
+        const vSize = (v.size || (v.attributes as any)?.size || '').trim();
         const vCol = (v.colour || (v.attributes as any)?.colour || '').trim();
         const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim();
+        const sizeMatch = !normSize || vSize.toLowerCase() === normSize.toLowerCase();
         const colMatch = !normColour || vCol.toLowerCase() === normColour.toLowerCase();
         const watMatch = !normWattage || vWat.toLowerCase() === normWattage.toLowerCase();
-        return colMatch && watMatch;
+        return sizeMatch && colMatch && watMatch;
       });
     }
 
@@ -779,8 +791,10 @@ async function batchCalculateLampOptionPrices(
       const vPrice = Number(matchingVariant.price);
       resultMap.set(item, {
         unitPrice: vPrice,
+        sizeDelta: 0,
         colourDelta: 0,
         wattageDelta: 0,
+        selectedSize: matchingVariant.size || normSize || undefined,
         selectedColour: matchingVariant.colour || normColour || undefined,
         selectedWattage: matchingVariant.wattage || normWattage || undefined,
         variantId: matchingVariant.id
@@ -788,9 +802,10 @@ async function batchCalculateLampOptionPrices(
       continue;
     }
 
-    if (!normColour && !normWattage) {
+    if (!normSize && !normColour && !normWattage) {
       resultMap.set(item, {
         unitPrice: basePrice,
+        sizeDelta: 0,
         colourDelta: 0,
         wattageDelta: 0,
         variantId: variantId || undefined
@@ -799,14 +814,27 @@ async function batchCalculateLampOptionPrices(
     }
 
     const options = lampOptionsByProdId.get(productId) || [];
+    let sizeDelta = 0;
     let colourDelta = 0;
     let wattageDelta = 0;
+    let verifiedSize = normSize || undefined;
     let verifiedColour = normColour || undefined;
     let verifiedWattage = normWattage || undefined;
 
+    if (normSize) {
+      const sMatch = options.find((o: any) =>
+        String(o.optionType).toUpperCase().includes('SIZ') &&
+        String(o.optionValue).trim().toLowerCase() === normSize.toLowerCase()
+      );
+      if (sMatch) {
+        sizeDelta = Number(sMatch.priceDelta || 0);
+        verifiedSize = sMatch.optionValue;
+      }
+    }
+
     if (normColour) {
       const cMatch = options.find((o: any) =>
-        String(o.optionType).toUpperCase().includes('COL') &&
+        (String(o.optionType).toUpperCase().includes('COL') || String(o.optionType).toUpperCase().includes('LIGHT')) &&
         String(o.optionValue).trim().toLowerCase() === normColour.toLowerCase()
       );
       if (cMatch) {
@@ -826,11 +854,13 @@ async function batchCalculateLampOptionPrices(
       }
     }
 
-    const unitPrice = basePrice + colourDelta + wattageDelta;
+    const unitPrice = basePrice + sizeDelta + colourDelta + wattageDelta;
     resultMap.set(item, {
       unitPrice,
+      sizeDelta,
       colourDelta,
       wattageDelta,
+      selectedSize: verifiedSize,
       selectedColour: verifiedColour,
       selectedWattage: verifiedWattage,
       variantId: variantId || undefined
@@ -845,9 +875,10 @@ async function calculateLampOptionPrice(
   basePrice: number,
   selectedColour?: string | null,
   selectedWattage?: string | null,
-  variantId?: string | null
-): Promise<{ unitPrice: number; colourDelta: number; wattageDelta: number; selectedColour?: string; selectedWattage?: string; variantId?: string }> {
-  const item: LampOptionPriceInput = { productId, basePrice, selectedColour, selectedWattage, variantId };
+  variantId?: string | null,
+  selectedSize?: string | null
+): Promise<{ unitPrice: number; sizeDelta: number; colourDelta: number; wattageDelta: number; selectedSize?: string; selectedColour?: string; selectedWattage?: string; variantId?: string }> {
+  const item: LampOptionPriceInput = { productId, basePrice, selectedSize, selectedColour, selectedWattage, variantId };
   const resMap = await batchCalculateLampOptionPrices([item]);
   return resMap.get(item)!;
 }
@@ -919,11 +950,13 @@ async function getFormattedCart(userId: string) {
     const p = ci.product;
     const v = ci.variant;
     const basePrice = v ? Number(v.price) : (p ? Number(p.price) : 0);
+    const effectiveSize = ci.selectedSize || v?.size || (v?.attributes as any)?.size || null;
     const effectiveColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
     const effectiveWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
     return {
       productId: ci.productId,
       basePrice,
+      selectedSize: effectiveSize,
       selectedColour: effectiveColour,
       selectedWattage: effectiveWattage,
       variantId: ci.variantId || undefined
@@ -937,14 +970,16 @@ async function getFormattedCart(userId: string) {
     const basePrice = v ? Number(v.price) : (p ? Number(p.price) : 0);
     const baseMrp = v ? Number(v.mrp) : (p ? Number(p.mrp) : basePrice);
 
+    let effectiveSize = ci.selectedSize || v?.size || (v?.attributes as any)?.size || null;
     let effectiveColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
     let effectiveWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
 
     let itemPrice = basePrice;
-    if (effectiveColour || effectiveWattage) {
+    if (effectiveSize || effectiveColour || effectiveWattage) {
       const priceCalc = calculatedPricesMap.get(lampPriceInputs[idx]);
       if (priceCalc) {
         itemPrice = priceCalc.unitPrice;
+        if (priceCalc.selectedSize) effectiveSize = priceCalc.selectedSize;
         if (priceCalc.selectedColour) effectiveColour = priceCalc.selectedColour;
         if (priceCalc.selectedWattage) effectiveWattage = priceCalc.selectedWattage;
       }
@@ -1007,6 +1042,7 @@ async function getFormattedCart(userId: string) {
           images: [img],
           taxPercentage: itemTaxPercentage
         },
+        selectedSize: effectiveSize,
         selectedColour: effectiveColour,
         selectedWattage: effectiveWattage,
         customizationText: ci.customizationText || null,
@@ -1023,6 +1059,7 @@ async function getFormattedCart(userId: string) {
           sku: v.sku,
           price: Number(v.price),
           mrp: Number(v.mrp),
+          size: v.size || (v.attributes as any)?.size || null,
           colour: v.colour || (v.attributes as any)?.colour || null,
           wattage: v.wattage || (v.attributes as any)?.wattage || null,
           attributes: v.attributes || {},
@@ -2558,6 +2595,7 @@ app.get('/api/privacy/export', requireAuthMiddleware, async (req: AuthenticatedR
             price: Number(i.price),
             quantity: i.quantity,
             customizationText: i.customizationText,
+            selectedSize: i.selectedSize,
             selectedColour: i.selectedColour,
             selectedWattage: i.selectedWattage,
             customizationImages: combinedImages
@@ -3448,7 +3486,7 @@ app.post('/api/products', requireAdminMiddleware, async (req: Request, res: Resp
     name, slug, sku, shortDescription, description, price, mrp,
     discountPercentage, taxPercentage, stockQuantity, lowStockThreshold, categoryId,
     imageUrl, isActive, isFeatured, isBestSeller, isNewArrival, requiresCustomization, requiresImageUpload, minimumImageUploads, maximumImageUploads, specifications, weight,
-    length, width, height, seoTitle, seoDescription, metaDescription
+    length, width, height, seoTitle, seoDescription, metaDescription, hasSizes, hasColours
   } = parseResult.data;
 
   try {
@@ -3498,6 +3536,8 @@ app.post('/api/products', requireAdminMiddleware, async (req: Request, res: Resp
         requiresImageUpload: Boolean(requiresImageUpload),
         minimumImageUploads: minimumImageUploads !== undefined ? Number(minimumImageUploads) : 1,
         maximumImageUploads: maximumImageUploads !== undefined ? Number(maximumImageUploads) : 5,
+        hasSizes: Boolean(hasSizes),
+        hasColours: Boolean(hasColours),
         seoTitle: seoTitle || null,
         seoDescription: seoDescription || null,
         metaDescription: metaDescription || null
@@ -3544,7 +3584,7 @@ app.put('/api/products/:id', requireAdminMiddleware, async (req: Request, res: R
     name, slug, sku, shortDescription, description, price, mrp,
     discountPercentage, taxPercentage, stockQuantity, lowStockThreshold, categoryId,
     imageUrl, specifications, isFeatured, isBestSeller, isNewArrival, requiresCustomization, requiresImageUpload, minimumImageUploads, maximumImageUploads, isActive, weight,
-    length, width, height, seoTitle, seoDescription, metaDescription
+    length, width, height, seoTitle, seoDescription, metaDescription, hasSizes, hasColours
   } = parseResult.data;
 
   try {
@@ -3592,6 +3632,8 @@ app.put('/api/products/:id', requireAdminMiddleware, async (req: Request, res: R
       requiresImageUpload: requiresImageUpload !== undefined ? Boolean(requiresImageUpload) : (existing as any).requiresImageUpload,
       minimumImageUploads: minimumImageUploads !== undefined ? Number(minimumImageUploads) : (existing as any).minimumImageUploads,
       maximumImageUploads: maximumImageUploads !== undefined ? Number(maximumImageUploads) : (existing as any).maximumImageUploads,
+      hasSizes: hasSizes !== undefined ? Boolean(hasSizes) : (existing as any).hasSizes,
+      hasColours: hasColours !== undefined ? Boolean(hasColours) : (existing as any).hasColours,
       isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
       seoTitle: seoTitle !== undefined ? seoTitle : (existing as any).seoTitle,
       seoDescription: seoDescription !== undefined ? seoDescription : (existing as any).seoDescription,
@@ -3930,7 +3972,7 @@ app.get('/api/products/:id/variants', async (req: Request, res: Response) => {
 
 app.post('/api/products/:id/variants', requireAdminMiddleware, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { sku, name, price, mrp, stockQuantity, colour, wattage, attributes, isActive } = req.body;
+  const { sku, name, price, mrp, stockQuantity, size, colour, wattage, attributes, isActive } = req.body;
 
   if (!sku || !name || price === undefined) {
     return res.status(400).json({ error: 'SKU, name, and price are required for a variant' });
@@ -3950,9 +3992,10 @@ app.post('/api/products/:id/variants', requireAdminMiddleware, async (req: Reque
         price: Number(price),
         mrp: mrp !== undefined ? Number(mrp) : Number(price),
         stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : 10,
+        size: size || attributes?.size || null,
         colour: colour || attributes?.colour || null,
         wattage: wattage || attributes?.wattage || null,
-        attributes: attributes || (colour || wattage ? { colour, wattage } : null),
+        attributes: attributes || (size || colour || wattage ? { size, colour, wattage } : null),
         isActive: isActive !== undefined ? Boolean(isActive) : true
       }
     });
@@ -3982,8 +4025,8 @@ app.post('/api/products/:id/variants/matrix', requireAdminMiddleware, async (req
 
     const savedVariants: any[] = [];
     for (const v of variants) {
-      const vSku = v.sku || `${product.sku}-${v.colour || ''}-${v.wattage || ''}`.replace(/[^a-zA-Z0-9-]/g, '-').toUpperCase();
-      const vName = v.name || `${v.colour || ''} ${v.wattage || ''}`.trim() || 'Variant';
+      const vSku = v.sku || `${product.sku}-${v.size ? String(v.size).replace(/\s+/g, '') : ''}-${v.colour || ''}-${v.wattage || ''}`.replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toUpperCase();
+      const vName = v.name || `${v.size || ''} ${v.colour || ''} ${v.wattage || ''}`.trim() || 'Variant';
 
       if (v.id) {
         const updated = await prisma.productVariant.update({
@@ -3994,9 +4037,10 @@ app.post('/api/products/:id/variants/matrix', requireAdminMiddleware, async (req
             price: Number(v.price),
             mrp: v.mrp !== undefined ? Number(v.mrp) : Number(v.price),
             stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : 10,
+            size: v.size || v.attributes?.size || null,
             colour: v.colour || v.attributes?.colour || null,
             wattage: v.wattage || v.attributes?.wattage || null,
-            attributes: v.attributes || (v.colour || v.wattage ? { colour: v.colour, wattage: v.wattage } : null),
+            attributes: v.attributes || (v.size || v.colour || v.wattage ? { size: v.size, colour: v.colour, wattage: v.wattage } : null),
             isActive: v.isActive !== undefined ? Boolean(v.isActive) : true
           }
         });
@@ -4010,9 +4054,10 @@ app.post('/api/products/:id/variants/matrix', requireAdminMiddleware, async (req
             price: Number(v.price),
             mrp: v.mrp !== undefined ? Number(v.mrp) : Number(v.price),
             stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : 10,
+            size: v.size || v.attributes?.size || null,
             colour: v.colour || v.attributes?.colour || null,
             wattage: v.wattage || v.attributes?.wattage || null,
-            attributes: v.attributes || (v.colour || v.wattage ? { colour: v.colour, wattage: v.wattage } : null),
+            attributes: v.attributes || (v.size || v.colour || v.wattage ? { size: v.size, colour: v.colour, wattage: v.wattage } : null),
             isActive: v.isActive !== undefined ? Boolean(v.isActive) : true
           }
         });
@@ -4030,7 +4075,7 @@ app.post('/api/products/:id/variants/matrix', requireAdminMiddleware, async (req
 
 app.put('/api/products/:id/variants/:variantId', requireAdminMiddleware, async (req: Request, res: Response) => {
   const { variantId } = req.params;
-  const { sku, name, price, mrp, stockQuantity, colour, wattage, attributes, isActive } = req.body;
+  const { sku, name, price, mrp, stockQuantity, size, colour, wattage, attributes, isActive } = req.body;
 
   try {
     const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
@@ -4046,6 +4091,7 @@ app.put('/api/products/:id/variants/:variantId', requireAdminMiddleware, async (
         price: price !== undefined ? Number(price) : existing.price,
         mrp: mrp !== undefined ? Number(mrp) : existing.mrp,
         stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : existing.stockQuantity,
+        size: size !== undefined ? size : (existing as any).size,
         colour: colour !== undefined ? colour : existing.colour,
         wattage: wattage !== undefined ? wattage : existing.wattage,
         attributes: attributes !== undefined ? attributes : existing.attributes,
@@ -4072,14 +4118,19 @@ app.delete('/api/products/:id/variants/:variantId', requireAdminMiddleware, asyn
 });
 
 // ==================================================
-// LAMP OPTIONS ENDPOINTS
+// PRODUCT OPTIONS ENDPOINTS (SIZES, COLOURS, WATTAGES)
 // ==================================================
 
-app.get('/api/products/:id/lamp-options', async (req: Request, res: Response) => {
+const getProductOptionsHandler = async (req: Request, res: Response) => {
   const { id } = req.params;
   const includeInactive = req.query.includeInactive === 'true';
 
   try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, hasSizes: true, hasColours: true }
+    });
+
     let whereClause: any = { productId: id };
     if (!includeInactive) {
       whereClause.isActive = true;
@@ -4093,10 +4144,23 @@ app.get('/api/products/:id/lamp-options', async (req: Request, res: Response) =>
       ]
     });
 
+    const sizes = rawOptions
+      .filter((o) => {
+        const type = String(o.optionType || '').toUpperCase();
+        return type.includes('SIZ');
+      })
+      .map((o) => ({
+        id: o.id,
+        value: o.optionValue,
+        priceDelta: Number(o.priceDelta),
+        sortOrder: o.sortOrder,
+        isActive: o.isActive
+      }));
+
     const colours = rawOptions
       .filter((o) => {
         const type = String(o.optionType || '').toUpperCase();
-        return type.includes('COL') || type.includes('COLOR') || type.includes('COLOUR') || type.includes('LIGHT');
+        return !type.includes('SIZ') && (type.includes('COL') || type.includes('COLOR') || type.includes('COLOUR') || type.includes('LIGHT'));
       })
       .map((o) => ({
         id: o.id,
@@ -4109,7 +4173,7 @@ app.get('/api/products/:id/lamp-options', async (req: Request, res: Response) =>
     const wattages = rawOptions
       .filter((o) => {
         const type = String(o.optionType || '').toUpperCase();
-        return type.includes('WAT') || type.includes('WATT') || type.includes('POWER') || type.includes('BULB') || (!type.includes('COL') && !type.includes('LIGHT'));
+        return !type.includes('SIZ') && !type.includes('COL') && !type.includes('LIGHT') && (type.includes('WAT') || type.includes('WATT') || type.includes('POWER') || type.includes('BULB') || type === 'WATTAGE');
       })
       .map((o) => ({
         id: o.id,
@@ -4119,16 +4183,26 @@ app.get('/api/products/:id/lamp-options', async (req: Request, res: Response) =>
         isActive: o.isActive
       }));
 
-    return res.json({ colours, wattages, all: rawOptions });
+    return res.json({
+      hasSizes: Boolean(product?.hasSizes),
+      hasColours: Boolean(product?.hasColours),
+      sizes,
+      colours,
+      wattages,
+      all: rawOptions
+    });
   } catch (err: any) {
-    console.error('Error fetching lamp options:', err);
-    return res.status(500).json({ error: 'Failed to fetch product lamp options' });
+    console.error('Error fetching product options:', err);
+    return res.status(500).json({ error: 'Failed to fetch product options' });
   }
-});
+};
 
-app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, async (req: Request, res: Response) => {
+app.get('/api/products/:id/lamp-options', getProductOptionsHandler);
+app.get('/api/products/:id/options', getProductOptionsHandler);
+
+const syncProductOptionsHandler = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { colours = [], wattages = [] } = req.body;
+  const { sizes = [], colours = [], wattages = [], hasSizes, hasColours } = req.body;
 
   try {
     const product = await prisma.product.findUnique({ where: { id } });
@@ -4136,14 +4210,24 @@ app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, async (r
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Delete existing lamp options ONLY for this product ID
+    if (hasSizes !== undefined || hasColours !== undefined) {
+      await prisma.product.update({
+        where: { id },
+        data: {
+          ...(hasSizes !== undefined ? { hasSizes: Boolean(hasSizes) } : {}),
+          ...(hasColours !== undefined ? { hasColours: Boolean(hasColours) } : {})
+        }
+      });
+    }
+
+    // Delete existing options ONLY for this product ID
     await prisma.productLampOption.deleteMany({
       where: { productId: id }
     });
 
-    const parseOptionInput = (input: any, defaultType: 'COLOUR' | 'WATTAGE') => {
+    const parseOptionInput = (input: any, defaultType: 'COLOUR' | 'WATTAGE' | 'SIZE') => {
       if (typeof input === 'object' && input !== null) {
-        const val = String(input.value || input.colour || input.wattage || input.optionValue || '').trim();
+        const val = String(input.value || input.size || input.colour || input.wattage || input.optionValue || '').trim();
         const delta = Number(input.priceDelta ?? input.price_delta ?? 0);
         return { value: val, priceDelta: delta };
       }
@@ -4151,7 +4235,7 @@ app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, async (r
       const str = String(input || '').trim();
       if (!str) return { value: '', priceDelta: 0 };
 
-      // Check if price delta is written inside string e.g. "4W (+30)" or "4W (+₹30)" or "4W = 30"
+      // Check if price delta is written inside string e.g. "10 cm Height (+50)" or "4W (+30)" or "= 30"
       const match = str.match(/(\(\+?₹?\s*(-?\d+(\.\d+)?)\)|=\s*₹?\s*(-?\d+(\.\d+)?))/);
       if (match) {
         const numbers = str.match(/(-?\d+(\.\d+)?)/g);
@@ -4168,7 +4252,7 @@ app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, async (r
         if (str.toUpperCase().includes('RGB') || str.toUpperCase().includes('MULTI')) {
           delta = 200;
         }
-      } else {
+      } else if (defaultType === 'WATTAGE') {
         const u = str.toUpperCase();
         if (u === '7W') delta = 100;
         else if (u === '9W' || u.includes('9W')) delta = 150;
@@ -4186,6 +4270,23 @@ app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, async (r
     const newRecords: any[] = [];
     let order = 1;
 
+    for (const sz of sizes) {
+      if (!sz) continue;
+      const parsed = parseOptionInput(sz, 'SIZE');
+      if (!parsed.value) continue;
+
+      newRecords.push({
+        id: `opt-sz-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        productId: id,
+        optionType: 'SIZE',
+        optionValue: parsed.value,
+        priceDelta: parsed.priceDelta,
+        sortOrder: order++,
+        isActive: true
+      });
+    }
+
+    order = 1;
     for (const col of colours) {
       if (!col) continue;
       const parsed = parseOptionInput(col, 'COLOUR');
@@ -4228,10 +4329,13 @@ app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, async (r
     invalidateProductListCache();
     return res.json({ success: true, count: newRecords.length, records: newRecords });
   } catch (err: any) {
-    console.error('Error syncing lamp options:', err);
-    return res.status(500).json({ error: err.message || 'Failed to sync lamp options' });
+    console.error('Error syncing product options:', err);
+    return res.status(500).json({ error: err.message || 'Failed to sync product options' });
   }
-});
+};
+
+app.post('/api/products/:id/lamp-options/sync', requireAdminMiddleware, syncProductOptionsHandler);
+app.post('/api/products/:id/options/sync', requireAdminMiddleware, syncProductOptionsHandler);
 
 app.post('/api/products/:id/lamp-options', requireAdminMiddleware, async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -4556,7 +4660,7 @@ app.get('/api/cart', requireAuthMiddleware, async (req: AuthenticatedRequest, re
 
 app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user.id;
-  const { productId, variantId, quantity = 1, selectedColour, selectedWattage, customizationText, customizationImages } = req.body;
+  const { productId, variantId, quantity = 1, selectedSize, selectedColour, selectedWattage, customizationText, customizationImages } = req.body;
 
   if (!productId) {
     return res.status(400).json({ error: 'productId is required' });
@@ -4605,24 +4709,88 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
       }
     }
 
-    // Validate lamp option selections & calculate price
+    // Fetch product options configured in database
+    const configuredOptions = await prisma.productLampOption.findMany({
+      where: { productId, isActive: true },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const configuredSizes = configuredOptions
+      .filter((o: any) => String(o.optionType || '').toUpperCase().includes('SIZ'))
+      .map((o: any) => o.optionValue);
+
+    const configuredColours = configuredOptions
+      .filter((o: any) => {
+        const t = String(o.optionType || '').toUpperCase();
+        return !t.includes('SIZ') && (t.includes('COL') || t.includes('COLOR') || t.includes('COLOUR') || t.includes('LIGHT'));
+      })
+      .map((o: any) => o.optionValue);
+
+    const configuredWattages = configuredOptions
+      .filter((o: any) => {
+        const t = String(o.optionType || '').toUpperCase();
+        return !t.includes('SIZ') && !t.includes('COL') && !t.includes('LIGHT') && (t.includes('WAT') || t.includes('WATT') || t.includes('POWER') || t.includes('BULB') || t === 'WATTAGE');
+      })
+      .map((o: any) => o.optionValue);
+
+    const hasSizesEnabled = Boolean((product as any).hasSizes) || configuredSizes.length > 0;
+    let verifiedSize: string | null = null;
+    if (hasSizesEnabled) {
+      if (!selectedSize || !String(selectedSize).trim()) {
+        return res.status(400).json({ error: 'Please select a size before adding to cart.' });
+      }
+      const sMatch = configuredSizes.find((s: string) => s.trim().toLowerCase() === String(selectedSize).trim().toLowerCase());
+      if (!sMatch && !isTestMode && configuredSizes.length > 0) {
+        return res.status(400).json({ error: `Selected size '${selectedSize}' is not valid for this product.` });
+      }
+      verifiedSize = sMatch || String(selectedSize).trim();
+    } else if (selectedSize && !isTestMode && configuredSizes.length === 0) {
+      return res.status(400).json({ error: 'Size option is not available for this product.' });
+    }
+
+    const hasColoursEnabled = Boolean((product as any).hasColours) || configuredColours.length > 0;
+    let verifiedColour: string | null = null;
+    if (hasColoursEnabled) {
+      if (!selectedColour || !String(selectedColour).trim()) {
+        return res.status(400).json({ error: 'Please select a colour before adding to cart.' });
+      }
+      const cMatch = configuredColours.find((c: string) => c.trim().toLowerCase() === String(selectedColour).trim().toLowerCase());
+      if (!cMatch && !isTestMode && configuredColours.length > 0) {
+        return res.status(400).json({ error: `Selected colour '${selectedColour}' is not valid for this product.` });
+      }
+      verifiedColour = cMatch || String(selectedColour).trim();
+    } else if (selectedColour && !isTestMode && configuredColours.length === 0) {
+      return res.status(400).json({ error: 'Colour option is not available for this product.' });
+    }
+
+    let verifiedWattage: string | null = null;
+    if (configuredWattages.length > 0) {
+      if (selectedWattage) {
+        const wMatch = configuredWattages.find((w: string) => w.trim().toLowerCase() === String(selectedWattage).trim().toLowerCase());
+        verifiedWattage = wMatch || configuredWattages[0];
+      } else {
+        verifiedWattage = configuredWattages[0];
+      }
+    }
+
+    // Validate option selections & calculate price
     const basePrice = Number(product.price);
-    let verifiedColour = selectedColour || null;
-    let verifiedWattage = selectedWattage || null;
     let effectiveVariantId = variantId || null;
     try {
       const priceCalc = await calculateLampOptionPrice(
         productId,
         basePrice,
-        selectedColour,
-        selectedWattage,
-        variantId
+        verifiedColour,
+        verifiedWattage,
+        variantId,
+        verifiedSize
       );
+      if (priceCalc.selectedSize) verifiedSize = priceCalc.selectedSize;
       if (priceCalc.selectedColour) verifiedColour = priceCalc.selectedColour;
       if (priceCalc.selectedWattage) verifiedWattage = priceCalc.selectedWattage;
       if (priceCalc.variantId) effectiveVariantId = priceCalc.variantId;
     } catch (valErr: any) {
-      return res.status(valErr.statusCode || 400).json({ error: valErr.message || 'Invalid lamp option selected' });
+      return res.status(valErr.statusCode || 400).json({ error: valErr.message || 'Invalid product option selected' });
     }
 
     // 4. Get or create cart in Prisma atomically
@@ -4640,7 +4808,7 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
       }
     }
 
-    // 5. Add or update cart item in Prisma matching product, variant, colour, wattage, customizationText, and customizationImages
+    // 5. Add or update cart item in Prisma matching product, variant, size, colour, wattage, customizationText, and customizationImages
     // Separate items if customization images are uploaded or required
     let existingItem: any = null;
 
@@ -4650,6 +4818,7 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
           cartId: cart.id,
           productId,
           variantId: effectiveVariantId,
+          selectedSize: verifiedSize,
           selectedColour: verifiedColour,
           selectedWattage: verifiedWattage,
           customizationText: sanitizedCustomization
@@ -4668,6 +4837,7 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
           cartId: cart.id,
           productId,
           variantId: effectiveVariantId,
+          selectedSize: verifiedSize,
           selectedColour: verifiedColour,
           selectedWattage: verifiedWattage,
           customizationText: sanitizedCustomization,
@@ -5098,11 +5268,13 @@ app.post('/api/checkout', requireAuthMiddleware, checkoutRateLimiter.middleware(
       const p = ci.product;
       const v = ci.variant;
       const basePrice = v ? Number(v.price) : Number(p?.price || 0);
+      const selectedSize = ci.selectedSize || v?.size || (v?.attributes as any)?.size || null;
       const selectedColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
       const selectedWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
       return {
         productId: p?.id || ci.productId,
         basePrice,
+        selectedSize,
         selectedColour,
         selectedWattage,
         variantId: ci.variantId || undefined
@@ -5117,6 +5289,7 @@ app.post('/api/checkout', requireAuthMiddleware, checkoutRateLimiter.middleware(
       if (!p) continue;
 
       const basePrice = v ? Number(v.price) : Number(p.price);
+      let selectedSize = ci.selectedSize || v?.size || (v?.attributes as any)?.size || null;
       let selectedColour = ci.selectedColour || v?.colour || (v?.attributes as any)?.colour || null;
       let selectedWattage = ci.selectedWattage || v?.wattage || (v?.attributes as any)?.wattage || null;
 
@@ -5124,6 +5297,7 @@ app.post('/api/checkout', requireAuthMiddleware, checkoutRateLimiter.middleware(
       const priceCalc = checkoutPriceMap.get(checkoutPriceInputs[ciIdx]);
       if (priceCalc) {
         unitPrice = priceCalc.unitPrice;
+        if (priceCalc.selectedSize) selectedSize = priceCalc.selectedSize;
         if (priceCalc.selectedColour) selectedColour = priceCalc.selectedColour;
         if (priceCalc.selectedWattage) selectedWattage = priceCalc.selectedWattage;
       }
@@ -5140,6 +5314,7 @@ app.post('/api/checkout', requireAuthMiddleware, checkoutRateLimiter.middleware(
         productId: p.id,
         variantId: ci.variantId || null,
         skuSnapshot,
+        selectedSize,
         selectedColour,
         selectedWattage,
         productTitle: displayName,

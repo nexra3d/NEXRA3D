@@ -649,6 +649,16 @@
       "updatedAt": "2026-09-14T16:09:17.706Z"
     },
     {
+      "id": "user-1789402196566-aiks6f",
+      "name": "Test User",
+      "email": "testuser@example.com",
+      "password": "$2b$10$glUDREyb7JMbrIDZ3z0e9eaTSoGNLqSsJoF6BhbtCakpXHh6mvydS",
+      "role": "CUSTOMER",
+      "emailVerified": false,
+      "createdAt": "2026-09-14T16:09:56.566Z",
+      "updatedAt": "2026-09-14T16:09:56.566Z"
+    },
+    {
       "id": "usr-admin",
       "name": "Admin User",
       "email": "admin@3dprints.com",
@@ -675,16 +685,6 @@
       "avatar": "",
       "createdAt": "2026-09-11T08:17:29.122Z",
       "updatedAt": "2026-09-11T08:17:29.122Z"
-    },
-    {
-      "id": "user-1789402196566-aiks6f",
-      "name": "Test User",
-      "email": "testuser@example.com",
-      "password": "$2b$10$glUDREyb7JMbrIDZ3z0e9eaTSoGNLqSsJoF6BhbtCakpXHh6mvydS",
-      "role": "CUSTOMER",
-      "emailVerified": false,
-      "createdAt": "2026-09-14T16:09:56.566Z",
-      "updatedAt": "2026-09-14T16:09:56.566Z"
     }
   ],
   "emailVerificationOTP": [
@@ -1034,6 +1034,8 @@
       "requiresImageUpload": true,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": true,
+      "hasColours": true,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1073,7 +1075,9 @@
       "price": 1899,
       "mrp": 2499,
       "discountPercentage": 24,
-      "stockQuantity": 30,
+      "stockQuantity": {
+        "decrement": 1
+      },
       "lowStockThreshold": 5,
       "imageUrl": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800",
       "isActive": true,
@@ -1085,6 +1089,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": true,
+      "hasColours": true,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1099,10 +1105,12 @@
         "height": 12
       },
       "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-14T16:09:15.946Z",
+      "updatedAt": "2026-09-20T08:51:54.915Z",
       "short_description": "Modern geometric table lamp 3D printed with silk dual-color polymer. Emits soft ambient diffused LED",
       "discount_percentage": 24,
-      "stock_quantity": 30,
+      "stock_quantity": {
+        "decrement": 1
+      },
       "low_stock_threshold": 5,
       "image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800",
       "is_featured": true,
@@ -1112,7 +1120,9 @@
       "requires_image_upload": false,
       "minimum_image_uploads": 1,
       "maximum_image_uploads": 5,
-      "is_active": true
+      "is_active": true,
+      "has_sizes": true,
+      "has_colours": true
     },
     {
       "id": "prod-custom-name-keychain",
@@ -1124,7 +1134,9 @@
       "price": 299,
       "mrp": 499,
       "discountPercentage": 40,
-      "stockQuantity": 120,
+      "stockQuantity": {
+        "decrement": 1
+      },
       "lowStockThreshold": 5,
       "imageUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800",
       "isActive": true,
@@ -1136,6 +1148,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1149,7 +1163,10 @@
         "height": 12
       },
       "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "updatedAt": "2026-09-20T08:51:54.886Z",
+      "stock_quantity": {
+        "decrement": 1
+      }
     },
     {
       "id": "prod-ganesha-idol-3d",
@@ -1173,6 +1190,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.35,
       "length": 12,
       "width": 12,
@@ -1210,6 +1229,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1247,6 +1268,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1284,6 +1307,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1321,6 +1346,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1358,6 +1385,8 @@
       "requiresImageUpload": false,
       "minimumImageUploads": 1,
       "maximumImageUploads": 5,
+      "hasSizes": false,
+      "hasColours": false,
       "weight": 0.25,
       "length": 10,
       "width": 10,
@@ -1375,8 +1404,105 @@
     }
   ],
   "productImage": [],
-  "productVariant": [],
+  "productVariant": [
+    {
+      "id": "productvariant-1789894314647-d0uhot",
+      "productId": "prod-spiral-ambient-lamp",
+      "sku": "NX-LMP-SPRL-10CM-WW-5W",
+      "name": "10 cm Height - Warm White - 5W",
+      "price": 1899,
+      "mrp": 2499,
+      "stockQuantity": {
+        "decrement": 2
+      },
+      "size": "10 cm Height",
+      "colour": "Warm White",
+      "wattage": "5W",
+      "attributes": {
+        "size": "10 cm Height",
+        "colour": "Warm White",
+        "wattage": "5W"
+      },
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.647Z",
+      "updatedAt": "2026-09-20T08:51:54.893Z",
+      "stock_quantity": {
+        "decrement": 2
+      }
+    },
+    {
+      "id": "productvariant-1789894314656-n3ff88",
+      "productId": "prod-spiral-ambient-lamp",
+      "sku": "NX-LMP-SPRL-1015CM-WW-5W",
+      "name": "10 × 15 cm - Warm White - 5W",
+      "price": 1899,
+      "mrp": 2499,
+      "stockQuantity": 20,
+      "size": "10 × 15 cm",
+      "colour": "Warm White",
+      "wattage": "5W",
+      "attributes": {
+        "size": "10 × 15 cm",
+        "colour": "Warm White",
+        "wattage": "5W"
+      },
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.656Z",
+      "updatedAt": "2026-09-20T08:51:54.656Z"
+    },
+    {
+      "id": "productvariant-1789894314670-bgrzi0",
+      "productId": "prod-spiral-ambient-lamp",
+      "sku": "NX-LMP-SPRL-100MM-WW-5W",
+      "name": "100 mm - Warm White - 5W",
+      "price": 1899,
+      "mrp": 2499,
+      "stockQuantity": 15,
+      "size": "100 mm",
+      "colour": "Warm White",
+      "wattage": "5W",
+      "attributes": {
+        "size": "100 mm",
+        "colour": "Warm White",
+        "wattage": "5W"
+      },
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.671Z",
+      "updatedAt": "2026-09-20T08:51:54.671Z"
+    },
+    {
+      "id": "productvariant-1789894314681-7m00gt",
+      "productId": "prod-spiral-ambient-lamp",
+      "sku": "NX-LMP-SPRL-2030CM-WW-12W",
+      "name": "20 × 30 cm - Warm White - 12W",
+      "price": 2499,
+      "mrp": 3099,
+      "stockQuantity": {
+        "decrement": 1
+      },
+      "size": "20 × 30 cm",
+      "colour": "Warm White",
+      "wattage": "12W",
+      "attributes": {
+        "size": "20 × 30 cm",
+        "colour": "Warm White",
+        "wattage": "12W"
+      },
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.681Z",
+      "updatedAt": "2026-09-20T08:51:54.908Z",
+      "stock_quantity": {
+        "decrement": 1
+      }
+    }
+  ],
   "cart": [
+    {
+      "id": "cart-1789894314703-8xmz0l",
+      "userId": "usr-demo",
+      "createdAt": "2026-09-20T08:51:54.703Z",
+      "updatedAt": "2026-09-20T08:51:54.860Z"
+    },
     {
       "id": "cart-1789402157761-7jqox6",
       "userId": "user-1789402157706-6yo1zg",
@@ -1687,39 +1813,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.719Z",
-      "updatedAt": "2026-09-14T16:09:10.133Z",
+      "updatedAt": "2026-09-20T08:51:16.649Z",
       "awbNumber": "DLHV178932271172145",
       "trackingNumber": "DLHV178932271172145",
       "shipmentId": "SHIP-N3D-0001 13092026",
       "shippingCharge": 125,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271172145",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271172145",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271172145",
-      "lastTrackingUpdate": "2026-09-14T16:09:09.978Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.649Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.649Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.649Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.649Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.649Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -1730,34 +1856,34 @@
       "tracking_number": "DLHV178932271172145",
       "shipment_id": "SHIP-N3D-0001 13092026",
       "shipping_charge": 125,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271172145",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271172145",
       "manifest_url": "/api/shipping/manifest/DLHV178932271172145",
-      "last_tracking_update": "2026-09-14T16:09:09.978Z",
+      "last_tracking_update": "2026-09-20T08:51:16.649Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.649Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.649Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.649Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.649Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -1790,7 +1916,7 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.775Z",
-      "updatedAt": "2026-09-14T16:09:09.983Z",
+      "updatedAt": "2026-09-20T08:51:16.661Z",
       "razorpayOrderId": "rzp_test_order_12345",
       "razorpayPaymentId": "pay_test_payment_67890",
       "razorpaySignature": "sig_test_1234567890",
@@ -1802,34 +1928,34 @@
       "trackingNumber": "DLHV178932271179253",
       "shipmentId": "SHIP-N3D-0002 13092026",
       "shippingCharge": 105,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271179253",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271179253",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271179253",
-      "lastTrackingUpdate": "2026-09-14T16:09:09.983Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.661Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.661Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.661Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.661Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.661Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -1840,34 +1966,34 @@
       "tracking_number": "DLHV178932271179253",
       "shipment_id": "SHIP-N3D-0002 13092026",
       "shipping_charge": 105,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271179253",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271179253",
       "manifest_url": "/api/shipping/manifest/DLHV178932271179253",
-      "last_tracking_update": "2026-09-14T16:09:09.983Z",
+      "last_tracking_update": "2026-09-20T08:51:16.661Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.661Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.661Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.661Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.661Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -1900,39 +2026,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.812Z",
-      "updatedAt": "2026-09-14T16:09:09.988Z",
+      "updatedAt": "2026-09-20T08:51:16.673Z",
       "awbNumber": "DLHV17893227118148",
       "trackingNumber": "DLHV17893227118148",
       "shipmentId": "SHIP-N3D-0003 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV17893227118148",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV17893227118148",
       "manifestUrl": "/api/shipping/manifest/DLHV17893227118148",
-      "lastTrackingUpdate": "2026-09-14T16:09:09.988Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.673Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.673Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.673Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.673Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.673Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -1943,34 +2069,34 @@
       "tracking_number": "DLHV17893227118148",
       "shipment_id": "SHIP-N3D-0003 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV17893227118148",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV17893227118148",
       "manifest_url": "/api/shipping/manifest/DLHV17893227118148",
-      "last_tracking_update": "2026-09-14T16:09:09.988Z",
+      "last_tracking_update": "2026-09-20T08:51:16.673Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.673Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.673Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.673Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.673Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2003,39 +2129,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.834Z",
-      "updatedAt": "2026-09-14T16:09:09.993Z",
+      "updatedAt": "2026-09-20T08:51:16.685Z",
       "awbNumber": "DLHV178932271183640",
       "trackingNumber": "DLHV178932271183640",
       "shipmentId": "SHIP-N3D-0004 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271183640",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271183640",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271183640",
-      "lastTrackingUpdate": "2026-09-14T16:09:09.993Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.685Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.685Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.685Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.685Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.685Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2046,34 +2172,34 @@
       "tracking_number": "DLHV178932271183640",
       "shipment_id": "SHIP-N3D-0004 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271183640",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271183640",
       "manifest_url": "/api/shipping/manifest/DLHV178932271183640",
-      "last_tracking_update": "2026-09-14T16:09:09.993Z",
+      "last_tracking_update": "2026-09-20T08:51:16.685Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.685Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.685Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.685Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.685Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2106,39 +2232,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.853Z",
-      "updatedAt": "2026-09-14T16:09:09.998Z",
+      "updatedAt": "2026-09-20T08:51:16.697Z",
       "awbNumber": "DLHV178932271185562",
       "trackingNumber": "DLHV178932271185562",
       "shipmentId": "SHIP-N3D-0005 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271185562",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271185562",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271185562",
-      "lastTrackingUpdate": "2026-09-14T16:09:09.998Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.697Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.697Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.697Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.697Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.697Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2149,34 +2275,34 @@
       "tracking_number": "DLHV178932271185562",
       "shipment_id": "SHIP-N3D-0005 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271185562",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271185562",
       "manifest_url": "/api/shipping/manifest/DLHV178932271185562",
-      "last_tracking_update": "2026-09-14T16:09:09.998Z",
+      "last_tracking_update": "2026-09-20T08:51:16.697Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:09:09.977Z",
+          "date": "2026-09-18T08:51:16.697Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:09:09.977Z",
+          "date": "2026-09-18T20:51:16.697Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:09:09.977Z",
+          "date": "2026-09-19T08:51:16.697Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:09:09.977Z",
+          "date": "2026-09-20T04:51:16.697Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2209,39 +2335,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.872Z",
-      "updatedAt": "2026-09-14T16:06:37.965Z",
+      "updatedAt": "2026-09-20T08:51:16.709Z",
       "awbNumber": "DLHV178932271187560",
       "trackingNumber": "DLHV178932271187560",
       "shipmentId": "SHIP-N3D-0006 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271187560",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271187560",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271187560",
-      "lastTrackingUpdate": "2026-09-14T16:06:37.965Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.709Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:37.965Z",
+          "date": "2026-09-18T08:51:16.709Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.965Z",
+          "date": "2026-09-18T20:51:16.709Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.965Z",
+          "date": "2026-09-19T08:51:16.709Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.965Z",
+          "date": "2026-09-20T04:51:16.709Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2252,34 +2378,34 @@
       "tracking_number": "DLHV178932271187560",
       "shipment_id": "SHIP-N3D-0006 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271187560",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271187560",
       "manifest_url": "/api/shipping/manifest/DLHV178932271187560",
-      "last_tracking_update": "2026-09-14T16:06:37.965Z",
+      "last_tracking_update": "2026-09-20T08:51:16.709Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:37.965Z",
+          "date": "2026-09-18T08:51:16.709Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.965Z",
+          "date": "2026-09-18T20:51:16.709Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.965Z",
+          "date": "2026-09-19T08:51:16.709Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.965Z",
+          "date": "2026-09-20T04:51:16.709Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2312,39 +2438,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.896Z",
-      "updatedAt": "2026-09-14T16:06:37.976Z",
+      "updatedAt": "2026-09-20T08:51:16.722Z",
       "awbNumber": "DLHV178932271189962",
       "trackingNumber": "DLHV178932271189962",
       "shipmentId": "SHIP-N3D-0007 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271189962",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271189962",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271189962",
-      "lastTrackingUpdate": "2026-09-14T16:06:37.976Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.722Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:37.976Z",
+          "date": "2026-09-18T08:51:16.722Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.976Z",
+          "date": "2026-09-18T20:51:16.722Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.976Z",
+          "date": "2026-09-19T08:51:16.722Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.976Z",
+          "date": "2026-09-20T04:51:16.722Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2355,34 +2481,34 @@
       "tracking_number": "DLHV178932271189962",
       "shipment_id": "SHIP-N3D-0007 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271189962",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271189962",
       "manifest_url": "/api/shipping/manifest/DLHV178932271189962",
-      "last_tracking_update": "2026-09-14T16:06:37.976Z",
+      "last_tracking_update": "2026-09-20T08:51:16.722Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:37.976Z",
+          "date": "2026-09-18T08:51:16.722Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.976Z",
+          "date": "2026-09-18T20:51:16.722Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.976Z",
+          "date": "2026-09-19T08:51:16.722Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.976Z",
+          "date": "2026-09-20T04:51:16.722Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2415,39 +2541,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.918Z",
-      "updatedAt": "2026-09-14T16:06:37.987Z",
+      "updatedAt": "2026-09-20T08:51:16.735Z",
       "awbNumber": "DLHV178932271192033",
       "trackingNumber": "DLHV178932271192033",
       "shipmentId": "SHIP-N3D-0008 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271192033",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271192033",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271192033",
-      "lastTrackingUpdate": "2026-09-14T16:06:37.987Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.735Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:37.987Z",
+          "date": "2026-09-18T08:51:16.735Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.987Z",
+          "date": "2026-09-18T20:51:16.735Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.987Z",
+          "date": "2026-09-19T08:51:16.735Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.987Z",
+          "date": "2026-09-20T04:51:16.735Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2458,34 +2584,34 @@
       "tracking_number": "DLHV178932271192033",
       "shipment_id": "SHIP-N3D-0008 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271192033",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271192033",
       "manifest_url": "/api/shipping/manifest/DLHV178932271192033",
-      "last_tracking_update": "2026-09-14T16:06:37.987Z",
+      "last_tracking_update": "2026-09-20T08:51:16.735Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:37.987Z",
+          "date": "2026-09-18T08:51:16.735Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.987Z",
+          "date": "2026-09-18T20:51:16.735Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.987Z",
+          "date": "2026-09-19T08:51:16.735Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.987Z",
+          "date": "2026-09-20T04:51:16.735Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2518,39 +2644,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.940Z",
-      "updatedAt": "2026-09-14T16:06:37.998Z",
+      "updatedAt": "2026-09-20T08:51:16.747Z",
       "awbNumber": "DLHV178932271194344",
       "trackingNumber": "DLHV178932271194344",
       "shipmentId": "SHIP-N3D-0009 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271194344",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271194344",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271194344",
-      "lastTrackingUpdate": "2026-09-14T16:06:37.998Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.747Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:37.998Z",
+          "date": "2026-09-18T08:51:16.747Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.998Z",
+          "date": "2026-09-18T20:51:16.747Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.998Z",
+          "date": "2026-09-19T08:51:16.747Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.998Z",
+          "date": "2026-09-20T04:51:16.747Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2561,34 +2687,34 @@
       "tracking_number": "DLHV178932271194344",
       "shipment_id": "SHIP-N3D-0009 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271194344",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271194344",
       "manifest_url": "/api/shipping/manifest/DLHV178932271194344",
-      "last_tracking_update": "2026-09-14T16:06:37.998Z",
+      "last_tracking_update": "2026-09-20T08:51:16.747Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:37.998Z",
+          "date": "2026-09-18T08:51:16.747Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:37.998Z",
+          "date": "2026-09-18T20:51:16.747Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:37.998Z",
+          "date": "2026-09-19T08:51:16.747Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:37.998Z",
+          "date": "2026-09-20T04:51:16.747Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2621,39 +2747,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:11.964Z",
-      "updatedAt": "2026-09-14T16:06:38.010Z",
+      "updatedAt": "2026-09-20T08:51:16.759Z",
       "awbNumber": "DLHV178932271196640",
       "trackingNumber": "DLHV178932271196640",
       "shipmentId": "SHIP-N3D-0010 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271196640",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271196640",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271196640",
-      "lastTrackingUpdate": "2026-09-14T16:06:38.010Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.759Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:38.010Z",
+          "date": "2026-09-18T08:51:16.759Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.010Z",
+          "date": "2026-09-18T20:51:16.759Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.010Z",
+          "date": "2026-09-19T08:51:16.759Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.010Z",
+          "date": "2026-09-20T04:51:16.759Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2664,34 +2790,34 @@
       "tracking_number": "DLHV178932271196640",
       "shipment_id": "SHIP-N3D-0010 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271196640",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271196640",
       "manifest_url": "/api/shipping/manifest/DLHV178932271196640",
-      "last_tracking_update": "2026-09-14T16:06:38.010Z",
+      "last_tracking_update": "2026-09-20T08:51:16.759Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:38.010Z",
+          "date": "2026-09-18T08:51:16.759Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.010Z",
+          "date": "2026-09-18T20:51:16.759Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.010Z",
+          "date": "2026-09-19T08:51:16.759Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.010Z",
+          "date": "2026-09-20T04:51:16.759Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2724,39 +2850,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:05:13.800Z",
-      "updatedAt": "2026-09-14T16:06:38.021Z",
+      "updatedAt": "2026-09-20T08:51:16.771Z",
       "awbNumber": "DLHV178932271380457",
       "trackingNumber": "DLHV178932271380457",
       "shipmentId": "SHIP-N3D-0011 13092026",
       "shippingCharge": 125,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932271380457",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932271380457",
       "manifestUrl": "/api/shipping/manifest/DLHV178932271380457",
-      "lastTrackingUpdate": "2026-09-14T16:06:38.021Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.771Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:38.021Z",
+          "date": "2026-09-18T08:51:16.771Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.021Z",
+          "date": "2026-09-18T20:51:16.771Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.021Z",
+          "date": "2026-09-19T08:51:16.771Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.021Z",
+          "date": "2026-09-20T04:51:16.771Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2767,34 +2893,34 @@
       "tracking_number": "DLHV178932271380457",
       "shipment_id": "SHIP-N3D-0011 13092026",
       "shipping_charge": 125,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932271380457",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932271380457",
       "manifest_url": "/api/shipping/manifest/DLHV178932271380457",
-      "last_tracking_update": "2026-09-14T16:06:38.021Z",
+      "last_tracking_update": "2026-09-20T08:51:16.771Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:38.021Z",
+          "date": "2026-09-18T08:51:16.771Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.021Z",
+          "date": "2026-09-18T20:51:16.771Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.021Z",
+          "date": "2026-09-19T08:51:16.771Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.021Z",
+          "date": "2026-09-20T04:51:16.771Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2827,39 +2953,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:33:40.231Z",
-      "updatedAt": "2026-09-14T16:06:38.031Z",
+      "updatedAt": "2026-09-20T08:51:16.782Z",
       "awbNumber": "DLHV17893244202361",
       "trackingNumber": "DLHV17893244202361",
       "shipmentId": "SHIP-N3D-0012 13092026",
       "shippingCharge": 125,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV17893244202361",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV17893244202361",
       "manifestUrl": "/api/shipping/manifest/DLHV17893244202361",
-      "lastTrackingUpdate": "2026-09-14T16:06:38.031Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.782Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:38.031Z",
+          "date": "2026-09-18T08:51:16.782Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.031Z",
+          "date": "2026-09-18T20:51:16.782Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.031Z",
+          "date": "2026-09-19T08:51:16.782Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.031Z",
+          "date": "2026-09-20T04:51:16.782Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2870,34 +2996,34 @@
       "tracking_number": "DLHV17893244202361",
       "shipment_id": "SHIP-N3D-0012 13092026",
       "shipping_charge": 125,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV17893244202361",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV17893244202361",
       "manifest_url": "/api/shipping/manifest/DLHV17893244202361",
-      "last_tracking_update": "2026-09-14T16:06:38.031Z",
+      "last_tracking_update": "2026-09-20T08:51:16.782Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:38.031Z",
+          "date": "2026-09-18T08:51:16.782Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.031Z",
+          "date": "2026-09-18T20:51:16.782Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.031Z",
+          "date": "2026-09-19T08:51:16.782Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.031Z",
+          "date": "2026-09-20T04:51:16.782Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2930,7 +3056,7 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:33:40.310Z",
-      "updatedAt": "2026-09-14T16:06:38.042Z",
+      "updatedAt": "2026-09-20T08:51:16.794Z",
       "razorpayOrderId": "rzp_test_order_12345",
       "razorpayPaymentId": "pay_test_payment_67890",
       "razorpaySignature": "sig_test_1234567890",
@@ -2942,34 +3068,34 @@
       "trackingNumber": "DLHV178932442032315",
       "shipmentId": "SHIP-N3D-0013 13092026",
       "shippingCharge": 105,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932442032315",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932442032315",
       "manifestUrl": "/api/shipping/manifest/DLHV178932442032315",
-      "lastTrackingUpdate": "2026-09-14T16:06:38.042Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.794Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:38.042Z",
+          "date": "2026-09-18T08:51:16.794Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.042Z",
+          "date": "2026-09-18T20:51:16.794Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.042Z",
+          "date": "2026-09-19T08:51:16.794Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.042Z",
+          "date": "2026-09-20T04:51:16.794Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -2980,34 +3106,34 @@
       "tracking_number": "DLHV178932442032315",
       "shipment_id": "SHIP-N3D-0013 13092026",
       "shipping_charge": 105,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932442032315",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932442032315",
       "manifest_url": "/api/shipping/manifest/DLHV178932442032315",
-      "last_tracking_update": "2026-09-14T16:06:38.042Z",
+      "last_tracking_update": "2026-09-20T08:51:16.794Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:38.042Z",
+          "date": "2026-09-18T08:51:16.794Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.042Z",
+          "date": "2026-09-18T20:51:16.794Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.042Z",
+          "date": "2026-09-19T08:51:16.794Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.042Z",
+          "date": "2026-09-20T04:51:16.794Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -3040,39 +3166,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:33:40.352Z",
-      "updatedAt": "2026-09-14T16:06:38.054Z",
+      "updatedAt": "2026-09-20T08:51:16.807Z",
       "awbNumber": "DLHV178932442035648",
       "trackingNumber": "DLHV178932442035648",
       "shipmentId": "SHIP-N3D-0014 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932442035648",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932442035648",
       "manifestUrl": "/api/shipping/manifest/DLHV178932442035648",
-      "lastTrackingUpdate": "2026-09-14T16:06:38.054Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.806Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:38.054Z",
+          "date": "2026-09-18T08:51:16.806Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.054Z",
+          "date": "2026-09-18T20:51:16.806Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.054Z",
+          "date": "2026-09-19T08:51:16.806Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.054Z",
+          "date": "2026-09-20T04:51:16.806Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -3083,34 +3209,34 @@
       "tracking_number": "DLHV178932442035648",
       "shipment_id": "SHIP-N3D-0014 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932442035648",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932442035648",
       "manifest_url": "/api/shipping/manifest/DLHV178932442035648",
-      "last_tracking_update": "2026-09-14T16:06:38.054Z",
+      "last_tracking_update": "2026-09-20T08:51:16.806Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:38.054Z",
+          "date": "2026-09-18T08:51:16.806Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.054Z",
+          "date": "2026-09-18T20:51:16.806Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.054Z",
+          "date": "2026-09-19T08:51:16.806Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.054Z",
+          "date": "2026-09-20T04:51:16.806Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -3143,39 +3269,39 @@
         "phone": ""
       },
       "createdAt": "2026-09-13T18:33:40.379Z",
-      "updatedAt": "2026-09-14T16:06:38.065Z",
+      "updatedAt": "2026-09-20T08:51:16.819Z",
       "awbNumber": "DLHV178932442038238",
       "trackingNumber": "DLHV178932442038238",
       "shipmentId": "SHIP-N3D-0015 13092026",
       "shippingCharge": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "shipmentStatus": "IN_TRANSIT",
       "pickupRequested": false,
       "labelUrl": "/api/shipping/label/DLHV178932442038238",
       "trackingUrl": "https://track.delhivery.com/track/package/DLHV178932442038238",
       "manifestUrl": "/api/shipping/manifest/DLHV178932442038238",
-      "lastTrackingUpdate": "2026-09-14T16:06:38.065Z",
+      "lastTrackingUpdate": "2026-09-20T08:51:16.819Z",
       "trackingHistory": [
         {
-          "date": "2026-09-12T16:06:38.065Z",
+          "date": "2026-09-18T08:51:16.819Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.065Z",
+          "date": "2026-09-18T20:51:16.819Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.065Z",
+          "date": "2026-09-19T08:51:16.819Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.065Z",
+          "date": "2026-09-20T04:51:16.819Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -3186,34 +3312,34 @@
       "tracking_number": "DLHV178932442038238",
       "shipment_id": "SHIP-N3D-0015 13092026",
       "shipping_charge": 140,
-      "estimated_delivery": "2026-09-15T00:00:00.000Z",
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
       "shipment_status": "IN_TRANSIT",
       "pickup_requested": false,
       "label_url": "/api/shipping/label/DLHV178932442038238",
       "tracking_url": "https://track.delhivery.com/track/package/DLHV178932442038238",
       "manifest_url": "/api/shipping/manifest/DLHV178932442038238",
-      "last_tracking_update": "2026-09-14T16:06:38.065Z",
+      "last_tracking_update": "2026-09-20T08:51:16.819Z",
       "tracking_history": [
         {
-          "date": "2026-09-12T16:06:38.065Z",
+          "date": "2026-09-18T08:51:16.819Z",
           "status": "Order Confirmed",
           "location": "Hyderabad Hub",
           "remark": "Shipment data received electronically by Delhivery"
         },
         {
-          "date": "2026-09-13T04:06:38.065Z",
+          "date": "2026-09-18T20:51:16.819Z",
           "status": "Picked Up",
           "location": "Gachibowli Fulfillment Center",
           "remark": "Package handed over to courier executive"
         },
         {
-          "date": "2026-09-13T16:06:38.065Z",
+          "date": "2026-09-19T08:51:16.819Z",
           "status": "In Transit",
           "location": "Hyderabad Main Logistics Park",
           "remark": "Dispatched to destination processing center"
         },
         {
-          "date": "2026-09-14T12:06:38.065Z",
+          "date": "2026-09-20T04:51:16.819Z",
           "status": "In Transit",
           "location": "Destination Facility",
           "remark": "Package processed at transit hub"
@@ -6982,6 +7108,116 @@
           "remark": "Shipment manifest generated via Delhivery"
         }
       ]
+    },
+    {
+      "id": "order-1789894314921-b0odjc",
+      "orderNumber": "N3D-0073 20092026",
+      "userId": "usr-demo",
+      "status": "SHIPPED",
+      "paymentStatus": "COD",
+      "paymentMethod": "COD",
+      "subtotal": 6596,
+      "discountAmount": 0,
+      "taxAmount": 0,
+      "shippingFee": 120,
+      "totalAmount": 6716,
+      "shippingProvider": "Delhivery",
+      "couponCode": null,
+      "couponId": null,
+      "shippingAddress": {
+        "id": "addr-demo-1",
+        "userId": "usr-demo",
+        "fullName": "Varun Manurani",
+        "phone": "9876543210",
+        "streetAddress": "Plot no 484, TNGOs Colony, Gachibowli",
+        "apartment": "TNGOs Colony",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "postalCode": "500032",
+        "country": "India",
+        "isDefault": true,
+        "type": "HOME",
+        "createdAt": "2026-09-11T08:17:29.122Z",
+        "updatedAt": "2026-09-11T08:17:29.122Z",
+        "email": "varunmanurani@gmail.com"
+      },
+      "createdAt": "2026-09-20T08:51:54.921Z",
+      "updatedAt": "2026-09-20T08:51:55.000Z",
+      "awbNumber": "DLHV178989431493769",
+      "trackingNumber": "DLHV178989431493769",
+      "shipmentId": "SHIP-N3D-0073 20092026",
+      "shippingCharge": 120,
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "shipmentStatus": "IN_TRANSIT",
+      "pickupRequested": false,
+      "labelUrl": "/api/shipping/label/DLHV178989431493769",
+      "trackingUrl": "https://track.delhivery.com/track/package/DLHV178989431493769",
+      "manifestUrl": "/api/shipping/manifest/DLHV178989431493769",
+      "lastTrackingUpdate": "2026-09-20T08:51:55.000Z",
+      "trackingHistory": [
+        {
+          "date": "2026-09-18T08:51:55.000Z",
+          "status": "Order Confirmed",
+          "location": "Hyderabad Hub",
+          "remark": "Shipment data received electronically by Delhivery"
+        },
+        {
+          "date": "2026-09-18T20:51:55.000Z",
+          "status": "Picked Up",
+          "location": "Gachibowli Fulfillment Center",
+          "remark": "Package handed over to courier executive"
+        },
+        {
+          "date": "2026-09-19T08:51:55.000Z",
+          "status": "In Transit",
+          "location": "Hyderabad Main Logistics Park",
+          "remark": "Dispatched to destination processing center"
+        },
+        {
+          "date": "2026-09-20T04:51:55.000Z",
+          "status": "In Transit",
+          "location": "Destination Facility",
+          "remark": "Package processed at transit hub"
+        }
+      ],
+      "shipping_provider": "Delhivery",
+      "awb_number": "DLHV178989431493769",
+      "tracking_number": "DLHV178989431493769",
+      "shipment_id": "SHIP-N3D-0073 20092026",
+      "shipping_charge": 120,
+      "estimated_delivery": "2026-09-21T00:00:00.000Z",
+      "shipment_status": "IN_TRANSIT",
+      "pickup_requested": false,
+      "label_url": "/api/shipping/label/DLHV178989431493769",
+      "tracking_url": "https://track.delhivery.com/track/package/DLHV178989431493769",
+      "manifest_url": "/api/shipping/manifest/DLHV178989431493769",
+      "last_tracking_update": "2026-09-20T08:51:55.000Z",
+      "tracking_history": [
+        {
+          "date": "2026-09-18T08:51:55.000Z",
+          "status": "Order Confirmed",
+          "location": "Hyderabad Hub",
+          "remark": "Shipment data received electronically by Delhivery"
+        },
+        {
+          "date": "2026-09-18T20:51:55.000Z",
+          "status": "Picked Up",
+          "location": "Gachibowli Fulfillment Center",
+          "remark": "Package handed over to courier executive"
+        },
+        {
+          "date": "2026-09-19T08:51:55.000Z",
+          "status": "In Transit",
+          "location": "Hyderabad Main Logistics Park",
+          "remark": "Dispatched to destination processing center"
+        },
+        {
+          "date": "2026-09-20T04:51:55.000Z",
+          "status": "In Transit",
+          "location": "Destination Facility",
+          "remark": "Package processed at transit hub"
+        }
+      ]
     }
   ],
   "orderItem": [
@@ -8172,6 +8408,63 @@
       "imageUrl": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=800",
       "createdAt": "2026-09-14T16:09:14.063Z",
       "updatedAt": "2026-09-14T16:09:14.063Z"
+    },
+    {
+      "id": "orderitem-1789894314921-l5g9sf",
+      "orderId": "order-1789894314921-b0odjc",
+      "productId": "prod-custom-name-keychain",
+      "variantId": null,
+      "skuSnapshot": "NX-KEY-NAME",
+      "selectedSize": null,
+      "selectedColour": null,
+      "selectedWattage": null,
+      "productTitle": "Customized 3D Printed Name Keychain (Pack of 2) • For: Test Name",
+      "customizationText": "Test Name",
+      "price": 299,
+      "quantity": 1,
+      "total": 299,
+      "subtotal": 299,
+      "imageUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800",
+      "createdAt": "2026-09-20T08:51:54.921Z",
+      "updatedAt": "2026-09-20T08:51:54.921Z"
+    },
+    {
+      "id": "orderitem-1789894314921-jpc4q2",
+      "orderId": "order-1789894314921-b0odjc",
+      "productId": "prod-spiral-ambient-lamp",
+      "variantId": "productvariant-1789894314647-d0uhot",
+      "skuSnapshot": "NX-LMP-SPRL-10CM-WW-5W",
+      "selectedSize": "10 cm Height",
+      "selectedColour": "Warm White",
+      "selectedWattage": "5W",
+      "productTitle": "Parametric Spiral LED Table Lamp (Updated)",
+      "customizationText": null,
+      "price": 1899,
+      "quantity": 2,
+      "total": 3798,
+      "subtotal": 3798,
+      "imageUrl": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800",
+      "createdAt": "2026-09-20T08:51:54.921Z",
+      "updatedAt": "2026-09-20T08:51:54.921Z"
+    },
+    {
+      "id": "orderitem-1789894314921-29yaee",
+      "orderId": "order-1789894314921-b0odjc",
+      "productId": "prod-spiral-ambient-lamp",
+      "variantId": "productvariant-1789894314681-7m00gt",
+      "skuSnapshot": "NX-LMP-SPRL-2030CM-WW-12W",
+      "selectedSize": "20 × 30 cm",
+      "selectedColour": "Warm White",
+      "selectedWattage": "12W",
+      "productTitle": "Parametric Spiral LED Table Lamp (Updated)",
+      "customizationText": null,
+      "price": 2499,
+      "quantity": 1,
+      "total": 2499,
+      "subtotal": 2499,
+      "imageUrl": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=800",
+      "createdAt": "2026-09-20T08:51:54.921Z",
+      "updatedAt": "2026-09-20T08:51:54.921Z"
     }
   ],
   "review": [],
@@ -8440,6 +8733,25 @@
   ],
   "siteSetting": [],
   "shipment": [
+    {
+      "id": "shipment-1789894314944-wuniz3",
+      "orderId": "order-1789894314921-b0odjc",
+      "orderNumber": "N3D-0073 20092026",
+      "shipmentNumber": "SHIP-N3D-0073 20092026",
+      "provider": "Delhivery",
+      "courier": "Delhivery Surface & Express",
+      "awbNumber": "DLHV178989431493769",
+      "trackingNumber": "DLHV178989431493769",
+      "trackingUrl": "https://track.delhivery.com/track/package/DLHV178989431493769",
+      "status": "IN_TRANSIT",
+      "labelUrl": "/api/shipping/label/DLHV178989431493769",
+      "shippingCost": 120,
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "createdAt": "2026-09-20T08:51:54.944Z",
+      "updatedAt": "2026-09-20T08:51:55.008Z",
+      "shippedAt": "2026-09-20T08:51:55.007Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
+    },
     {
       "id": "shipment-1789402154081-chbign",
       "orderId": "order-1789402154063-5p0uhf",
@@ -9330,11 +9642,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932442038238",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:33:40.385Z",
-      "updatedAt": "2026-09-14T16:06:38.071Z",
+      "updatedAt": "2026-09-20T08:51:16.827Z",
       "shippedAt": "2026-09-14T15:45:15.691Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789324420358-yx3mt1",
@@ -9349,11 +9661,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932442035648",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:33:40.358Z",
-      "updatedAt": "2026-09-14T16:06:38.060Z",
+      "updatedAt": "2026-09-20T08:51:16.813Z",
       "shippedAt": "2026-09-14T15:45:15.687Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789324420326-ii7xy7",
@@ -9368,11 +9680,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932442032315",
       "shippingCost": 105,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:33:40.326Z",
-      "updatedAt": "2026-09-14T16:06:38.048Z",
+      "updatedAt": "2026-09-20T08:51:16.800Z",
       "shippedAt": "2026-09-14T14:49:42.807Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789324420239-ftnh3t",
@@ -9387,11 +9699,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV17893244202361",
       "shippingCost": 125,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:33:40.239Z",
-      "updatedAt": "2026-09-14T16:06:38.036Z",
+      "updatedAt": "2026-09-20T08:51:16.788Z",
       "shippedAt": "2026-09-14T15:23:20.897Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322713807-2wkyj0",
@@ -9406,11 +9718,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271380457",
       "shippingCost": 125,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:13.807Z",
-      "updatedAt": "2026-09-14T16:06:38.026Z",
+      "updatedAt": "2026-09-20T08:51:16.777Z",
       "shippedAt": "2026-09-14T15:23:20.893Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711969-sv4pul",
@@ -9425,11 +9737,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271196640",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.969Z",
-      "updatedAt": "2026-09-14T16:06:38.015Z",
+      "updatedAt": "2026-09-20T08:51:16.765Z",
       "shippedAt": "2026-09-14T15:23:20.890Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711945-dbn28q",
@@ -9444,11 +9756,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271194344",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.945Z",
-      "updatedAt": "2026-09-14T16:06:38.004Z",
+      "updatedAt": "2026-09-20T08:51:16.753Z",
       "shippedAt": "2026-09-14T15:23:20.887Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711922-595rnb",
@@ -9463,11 +9775,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271192033",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.922Z",
-      "updatedAt": "2026-09-14T16:06:37.992Z",
+      "updatedAt": "2026-09-20T08:51:16.741Z",
       "shippedAt": "2026-09-14T15:23:20.883Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711901-pe69mf",
@@ -9482,11 +9794,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271189962",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.901Z",
-      "updatedAt": "2026-09-14T16:06:37.981Z",
+      "updatedAt": "2026-09-20T08:51:16.729Z",
       "shippedAt": "2026-09-13T18:33:44.992Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711876-8nq1oy",
@@ -9501,11 +9813,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271187560",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.876Z",
-      "updatedAt": "2026-09-14T16:06:37.971Z",
+      "updatedAt": "2026-09-20T08:51:16.716Z",
       "shippedAt": "2026-09-13T18:33:44.990Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711857-of9jv5",
@@ -9520,11 +9832,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271185562",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.857Z",
-      "updatedAt": "2026-09-14T16:09:10.023Z",
+      "updatedAt": "2026-09-20T08:51:16.703Z",
       "shippedAt": "2026-09-13T18:33:44.988Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711837-bimr48",
@@ -9539,11 +9851,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271183640",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.837Z",
-      "updatedAt": "2026-09-14T16:09:10.019Z",
+      "updatedAt": "2026-09-20T08:51:16.691Z",
       "shippedAt": "2026-09-13T18:33:44.985Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711815-3bskql",
@@ -9558,11 +9870,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV17893227118148",
       "shippingCost": 140,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.815Z",
-      "updatedAt": "2026-09-14T16:09:10.014Z",
+      "updatedAt": "2026-09-20T08:51:16.679Z",
       "shippedAt": "2026-09-13T18:33:44.983Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711794-e1kkug",
@@ -9577,11 +9889,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271179253",
       "shippingCost": 105,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.794Z",
-      "updatedAt": "2026-09-14T16:09:10.009Z",
+      "updatedAt": "2026-09-20T08:51:16.667Z",
       "shippedAt": "2026-09-13T18:10:50.006Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322711723-quv3ru",
@@ -9596,11 +9908,11 @@
       "status": "IN_TRANSIT",
       "labelUrl": "/api/shipping/label/DLHV178932271172145",
       "shippingCost": 125,
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
       "createdAt": "2026-09-13T18:05:11.723Z",
-      "updatedAt": "2026-09-14T16:09:10.004Z",
+      "updatedAt": "2026-09-20T08:51:16.654Z",
       "shippedAt": "2026-09-13T18:10:50.002Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789322719742-ortnmg",
@@ -9615,9 +9927,9 @@
       "status": "IN_TRANSIT",
       "shippedAt": "2026-09-13T18:10:50.002Z",
       "createdAt": "2026-09-13T18:05:19.742Z",
-      "updatedAt": "2026-09-14T16:09:10.004Z",
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "updatedAt": "2026-09-20T08:51:16.654Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789324425068-7nk2ec",
@@ -9632,9 +9944,9 @@
       "status": "IN_TRANSIT",
       "shippedAt": "2026-09-13T18:33:45.067Z",
       "createdAt": "2026-09-13T18:33:45.068Z",
-      "updatedAt": "2026-09-14T16:09:10.004Z",
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "updatedAt": "2026-09-20T08:51:16.654Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789324650977-wwahho",
@@ -9649,9 +9961,9 @@
       "status": "IN_TRANSIT",
       "shippedAt": "2026-09-13T18:37:30.977Z",
       "createdAt": "2026-09-13T18:37:30.977Z",
-      "updatedAt": "2026-09-14T16:09:10.004Z",
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "updatedAt": "2026-09-20T08:51:16.654Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789399400994-b3ltlt",
@@ -9666,9 +9978,9 @@
       "status": "IN_TRANSIT",
       "shippedAt": "2026-09-14T15:23:20.994Z",
       "createdAt": "2026-09-14T15:23:20.995Z",
-      "updatedAt": "2026-09-14T16:09:10.004Z",
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "updatedAt": "2026-09-20T08:51:16.654Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789400715804-f6crs5",
@@ -9683,9 +9995,9 @@
       "status": "IN_TRANSIT",
       "shippedAt": "2026-09-14T15:45:15.803Z",
       "createdAt": "2026-09-14T15:45:15.804Z",
-      "updatedAt": "2026-09-14T16:09:10.004Z",
-      "estimatedDelivery": "2026-09-15T00:00:00.000Z",
-      "estimatedDeliveryDate": "2026-09-15T00:00:00.000Z"
+      "updatedAt": "2026-09-20T08:51:16.654Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     },
     {
       "id": "shipment-1789402150125-daqunr",
@@ -9697,10 +10009,12 @@
       "awbNumber": "AWB987654321",
       "trackingNumber": "AWB987654321",
       "trackingUrl": "https://delhivery.com/track/AWB987654321",
-      "status": "SHIPPED",
+      "status": "IN_TRANSIT",
       "shippedAt": "2026-09-14T16:09:10.125Z",
       "createdAt": "2026-09-14T16:09:10.125Z",
-      "updatedAt": "2026-09-14T16:09:10.125Z"
+      "updatedAt": "2026-09-20T08:51:16.654Z",
+      "estimatedDelivery": "2026-09-21T00:00:00.000Z",
+      "estimatedDeliveryDate": "2026-09-21T00:00:00.000Z"
     }
   ],
   "shipmentStatusHistory": [
@@ -9761,6 +10075,127 @@
   ],
   "productLampOption": [
     {
+      "id": "lamp-opt-wat-1789894314618-fugtc",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "WATTAGE",
+      "optionValue": "12W",
+      "priceDelta": 200,
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "lamp-opt-wat-1789894314618-w0esd",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "WATTAGE",
+      "optionValue": "5W",
+      "priceDelta": 0,
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "lamp-opt-col-1789894314618-ztg8j",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "COLOUR",
+      "optionValue": "Cool White",
+      "priceDelta": 100,
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "lamp-opt-col-1789894314618-avtsx",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "COLOUR",
+      "optionValue": "Warm White",
+      "priceDelta": 0,
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "opt-sz-1789894314618-6o9q3",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "20 × 30 cm",
+      "priceDelta": 400,
+      "sortOrder": 4,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "opt-sz-1789894314617-iy9da",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "100 mm",
+      "priceDelta": 0,
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "opt-sz-1789894314617-s42y0",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "10 × 15 cm",
+      "priceDelta": 0,
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "opt-sz-1789894314617-c5iaa",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "10 cm Height",
+      "priceDelta": 0,
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:51:54.618Z",
+      "updatedAt": "2026-09-20T08:51:54.618Z"
+    },
+    {
+      "id": "opt-spiral-siz-1",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "15 cm Height",
+      "priceDelta": 0,
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
+    },
+    {
+      "id": "opt-spiral-siz-2",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "25 cm Height",
+      "priceDelta": 400,
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
+    },
+    {
+      "id": "opt-spiral-siz-3",
+      "productId": "prod-spiral-ambient-lamp",
+      "optionType": "SIZE",
+      "optionValue": "35 cm Height",
+      "priceDelta": 800,
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
+    },
+    {
       "id": "opt-spiral-col-1",
       "productId": "prod-spiral-ambient-lamp",
       "optionType": "COLOUR",
@@ -9768,8 +10203,8 @@
       "priceDelta": 0,
       "sortOrder": 1,
       "isActive": true,
-      "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
     },
     {
       "id": "opt-spiral-col-2",
@@ -9779,8 +10214,8 @@
       "priceDelta": 0,
       "sortOrder": 2,
       "isActive": true,
-      "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
     },
     {
       "id": "opt-spiral-wat-1",
@@ -9790,8 +10225,8 @@
       "priceDelta": 0,
       "sortOrder": 1,
       "isActive": true,
-      "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
     },
     {
       "id": "opt-spiral-wat-2",
@@ -9801,8 +10236,8 @@
       "priceDelta": 100,
       "sortOrder": 2,
       "isActive": true,
-      "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
     },
     {
       "id": "opt-spiral-wat-3",
@@ -9812,8 +10247,8 @@
       "priceDelta": 150,
       "sortOrder": 3,
       "isActive": true,
-      "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
     },
     {
       "id": "opt-spiral-wat-4",
@@ -9823,8 +10258,41 @@
       "priceDelta": 200,
       "sortOrder": 4,
       "isActive": true,
-      "createdAt": "2026-09-11T08:17:29.123Z",
-      "updatedAt": "2026-09-11T08:17:29.123Z"
+      "createdAt": "2026-09-20T08:52:01.060Z",
+      "updatedAt": "2026-09-20T08:52:01.060Z"
+    },
+    {
+      "id": "opt-moon-siz-1",
+      "productId": "prod-lithophane-moon-lamp",
+      "optionType": "SIZE",
+      "optionValue": "10 cm Height",
+      "priceDelta": 0,
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:32:01.596Z",
+      "updatedAt": "2026-09-20T08:32:01.596Z"
+    },
+    {
+      "id": "opt-moon-siz-2",
+      "productId": "prod-lithophane-moon-lamp",
+      "optionType": "SIZE",
+      "optionValue": "15 cm Height",
+      "priceDelta": 350,
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:32:01.596Z",
+      "updatedAt": "2026-09-20T08:32:01.596Z"
+    },
+    {
+      "id": "opt-moon-siz-3",
+      "productId": "prod-lithophane-moon-lamp",
+      "optionType": "SIZE",
+      "optionValue": "20 cm Height",
+      "priceDelta": 700,
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-09-20T08:32:01.596Z",
+      "updatedAt": "2026-09-20T08:32:01.596Z"
     },
     {
       "id": "opt-moon-col-1",

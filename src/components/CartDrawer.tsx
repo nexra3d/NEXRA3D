@@ -160,8 +160,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     )}
 
                     {/* Variant & Lamp Attribute Badges */}
-                    {(item.selectedColour || item.selectedWattage || item.variant?.colour || item.variant?.wattage || item.variant?.name) && (
+                    {(item.selectedSize || item.selectedColour || item.selectedWattage || item.variant?.size || item.variant?.colour || item.variant?.wattage || item.variant?.name) && (
                       <div className="flex flex-wrap gap-1 py-1">
+                        {(item.selectedSize || item.variant?.size) && (
+                          <span className="bg-indigo-50 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-100">
+                            Size: {item.selectedSize || item.variant?.size}
+                          </span>
+                        )}
                         {(item.selectedColour || item.variant?.colour) && (
                           <span className="bg-cyan-50 text-cyan-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-cyan-100">
                             Colour: {item.selectedColour || item.variant?.colour}
@@ -172,7 +177,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             Wattage: {item.selectedWattage || item.variant?.wattage}
                           </span>
                         )}
-                        {!item.selectedColour && !item.selectedWattage && item.variant?.name && (
+                        {!item.selectedSize && !item.selectedColour && !item.selectedWattage && item.variant?.name && (
                           <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">
                             {item.variant.name}
                           </span>

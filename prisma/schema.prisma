@@ -176,6 +176,8 @@ model Product {
   requiresImageUpload   Boolean             @default(false)
   minimumImageUploads   Int                 @default(1)
   maximumImageUploads   Int                 @default(5)
+  hasSizes              Boolean             @default(false)
+  hasColours            Boolean             @default(false)
   images                ProductImage[]
   variants              ProductVariant[]
   cartItems             CartItem[]
@@ -220,6 +222,7 @@ model ProductVariant {
   price         Decimal
   mrp           Decimal
   stockQuantity Int         @default(0)
+  size          String?
   colour        String?
   wattage       String?
   attributes    Json?
@@ -255,6 +258,7 @@ model CartItem {
   variantId           String?
   variant             ProductVariant?                @relation(fields: [variantId], references: [id], onDelete: SetNull)
   quantity            Int                            @default(1)
+  selectedSize        String?
   selectedColour      String?
   selectedWattage     String?
   customizationText   String?
@@ -376,6 +380,7 @@ model OrderItem {
   variant             ProductVariant?                @relation(fields: [variantId], references: [id], onDelete: SetNull)
   productTitle        String
   skuSnapshot         String?
+  selectedSize        String?
   selectedColour      String?
   selectedWattage     String?
   customizationText   String?

@@ -899,7 +899,8 @@ export default function App() {
     customizationText?: string,
     selectedColour?: string,
     selectedWattage?: string,
-    customizationImages?: any[]
+    customizationImages?: any[],
+    selectedSize?: string
   ) => {
     if (!user) {
       setIsAuthOpen(true);
@@ -935,10 +936,11 @@ export default function App() {
       if (hasCustomImages) return false;
       const idMatch = item.productId === prodId || item.product?.id === prodId;
       const varMatch = (item.variantId || null) === (actualVariantId || null);
+      const sizeMatch = (item.selectedSize || null) === (selectedSize || null);
       const colMatch = (item.selectedColour || null) === (selectedColour || null);
       const watMatch = (item.selectedWattage || null) === (selectedWattage || null);
       const custMatch = (item.customizationText || null) === (trimmedCustomization || null);
-      return idMatch && varMatch && colMatch && watMatch && custMatch;
+      return idMatch && varMatch && sizeMatch && colMatch && watMatch && custMatch;
     });
 
     let optimisticItems: CartItem[];
@@ -977,6 +979,7 @@ export default function App() {
         },
         quantity: actualQty,
         variantId: actualVariantId,
+        selectedSize: selectedSize || null,
         selectedColour: selectedColour || null,
         selectedWattage: selectedWattage || null,
         customizationText: trimmedCustomization || null,
@@ -1008,6 +1011,7 @@ export default function App() {
             variantId: actualVariantId,
             quantity: actualQty,
             customizationText: trimmedCustomization,
+            selectedSize,
             selectedColour,
             selectedWattage,
             customizationImages: customizationImages || []
@@ -1690,11 +1694,11 @@ export default function App() {
             }}
             isWishlisted={wishlistProductIds.includes(quickViewProduct.id)}
             onToggleWishlist={handleToggleWishlist}
-            onAddToCart={(p, variantId, qty, customizationText, selectedColour, selectedWattage, customizationImages) =>
-              handleAddToCart(p, variantId, qty || 1, customizationText, selectedColour, selectedWattage, customizationImages)
+            onAddToCart={(p, variantId, qty, customizationText, selectedColour, selectedWattage, customizationImages, selectedSize) =>
+              handleAddToCart(p, variantId, qty || 1, customizationText, selectedColour, selectedWattage, customizationImages, selectedSize)
             }
-            onBuyNow={(p, customizationText, selectedColour, selectedWattage, variantId, customizationImages) => {
-              handleAddToCart(p, variantId, 1, customizationText, selectedColour, selectedWattage, customizationImages);
+            onBuyNow={(p, customizationText, selectedColour, selectedWattage, variantId, customizationImages, selectedSize) => {
+              handleAddToCart(p, variantId, 1, customizationText, selectedColour, selectedWattage, customizationImages, selectedSize);
               handleProceedToCheckout();
             }}
             onSelectRelatedProduct={(p) => setQuickViewProduct(p)}

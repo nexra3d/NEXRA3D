@@ -124,6 +124,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     isFeatured: true,
     isTrending: true,
     isBestSeller: true,
+    hasSizes: true,
+    hasColours: true,
     specifications: {
       'Diameter': '15 cm (6 inches)',
       'Light Source': 'Dual Warm/White LED with Dimmer',
@@ -154,6 +156,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     reviewCount: 42,
     isFeatured: true,
     isTrending: false,
+    hasSizes: true,
+    hasColours: true,
     specifications: {
       'Height': '28 cm',
       'Material': 'Silk Dual-Color PLA+',

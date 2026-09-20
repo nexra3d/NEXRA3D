@@ -443,9 +443,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   // Lamp Matrix Configurator State
+  const [prodHasSizes, setProdHasSizes] = useState(false);
+  const [prodHasColours, setProdHasColours] = useState(false);
+  const [productSizes, setProductSizes] = useState<string[]>([]);
+  const [newSizeInput, setNewSizeInput] = useState('');
+  const [newSizeDeltaInput, setNewSizeDeltaInput] = useState('');
   const [lampColours, setLampColours] = useState<string[]>([]);
   const [lampWattages, setLampWattages] = useState<string[]>([]);
   const [newLampColourInput, setNewLampColourInput] = useState('');
+  const [newColourDeltaInput, setNewColourDeltaInput] = useState('');
   const [newLampWattageInput, setNewLampWattageInput] = useState('');
   const [newLampWattageDeltaInput, setNewLampWattageDeltaInput] = useState('');
   const [variantSuccess, setVariantSuccess] = useState<string | null>(null);
@@ -492,6 +498,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Load product images, variants, and lamp options when editing a product
   const loadProductImagesAndVariants = async (productId: string) => {
     try {
+      setProductSizes([]);
       setLampColours([]);
       setLampWattages([]);
       const [imgRes, varRes, lampRes] = await Promise.all([
@@ -509,25 +516,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
       if (lampRes.ok) {
         const lampData = await lampRes.json();
-        if (lampData && Array.isArray(lampData.colours)) {
-          setLampColours(
-            lampData.colours.map((c: any) => {
-              if (typeof c === 'string') return c;
-              const val = c?.value || c?.colour || '';
-              const delta = Number(c?.priceDelta || 0);
-              return delta > 0 ? `${val} (+₹${delta})` : val;
-            })
-          );
-        }
-        if (lampData && Array.isArray(lampData.wattages)) {
-          setLampWattages(
-            lampData.wattages.map((w: any) => {
-              if (typeof w === 'string') return w;
-              const val = w?.value || w?.wattage || '';
-              const delta = Number(w?.priceDelta || 0);
-              return delta > 0 ? `${val} (+₹${delta})` : val;
-            })
-          );
+        if (lampData) {
+          if (lampData.hasSizes !== undefined) {
+            setProdHasSizes(Boolean(lampData.hasSizes));
+          }
+          if (lampData.hasColours !== undefined) {
+            setProdHasColours(Boolean(lampData.hasColours));
+          }
+          if (Array.isArray(lampData.sizes)) {
+            setProductSizes(
+              lampData.sizes.map((s: any) => {
+                if (typeof s === 'string') return s;
+                const val = s?.value || s?.size || '';
+                const delta = Number(s?.priceDelta || 0);
+                return delta > 0 ? `${val} (+₹${delta})` : val;
+              })
+            );
+          }
+          if (Array.isArray(lampData.colours)) {
+            setLampColours(
+              lampData.colours.map((c: any) => {
+                if (typeof c === 'string') return c;
+                const val = c?.value || c?.colour || '';
+                const delta = Number(c?.priceDelta || 0);
+                return delta > 0 ? `${val} (+₹${delta})` : val;
+              })
+            );
+          }
+          if (Array.isArray(lampData.wattages)) {
+            setLampWattages(
+              lampData.wattages.map((w: any) => {
+                if (typeof w === 'string') return w;
+                const val = w?.value || w?.wattage || '';
+                const delta = Number(w?.priceDelta || 0);
+                return delta > 0 ? `${val} (+₹${delta})` : val;
+              })
+            );
+          }
         }
       }
     } catch (err) {
@@ -568,9 +593,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setProductVariants([]);
     setImageUploadError(null);
     setShowAddVariantForm(false);
+    setProdHasSizes(false);
+    setProdHasColours(false);
+    setProductSizes([]);
+    setNewSizeInput('');
+    setNewSizeDeltaInput('');
     setLampColours([]);
     setLampWattages([]);
     setNewLampColourInput('');
+    setNewColourDeltaInput('');
     setNewLampWattageInput('');
     setNewLampWattageDeltaInput('');
     setVariantSuccess(null);
@@ -609,6 +640,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setProdLength(p.length !== null && p.length !== undefined ? String(p.length) : '');
     setProdWidth(p.width !== null && p.width !== undefined ? String(p.width) : '');
     setProdHeight(p.height !== null && p.height !== undefined ? String(p.height) : '');
+    setProdHasSizes(Boolean(p.hasSizes));
+    setProdHasColours(Boolean(p.hasColours));
     setProductFormError(null);
     setPendingProductImages([]);
 
@@ -738,10 +771,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Helper to parse option text like "4W (+₹30)" or "4W (+30)" or "4W = 30"
-  const parseOptionInput = (input: any, defaultType: 'COLOUR' | 'WATTAGE') => {
+  // Helper to parse option text like "10 cm (+₹50)", "4W (+₹30)", or "Warm White (+100)"
+  const parseOptionInput = (input: any, defaultType: 'COLOUR' | 'WATTAGE' | 'SIZE') => {
     if (typeof input === 'object' && input !== null) {
-      const val = String(input.value || input.colour || input.wattage || input.optionValue || '').trim();
+      const val = String(input.value || input.size || input.colour || input.wattage || input.optionValue || '').trim();
       const delta = Number(input.priceDelta ?? input.price_delta ?? 0);
       return { value: val, priceDelta: delta };
     }
@@ -765,7 +798,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (str.toUpperCase().includes('RGB') || str.toUpperCase().includes('MULTI')) {
         delta = 200;
       }
-    } else {
+    } else if (defaultType === 'WATTAGE') {
       const u = str.toUpperCase();
       if (u === '7W') delta = 100;
       else if (u === '9W' || u.includes('9W')) delta = 150;
@@ -780,10 +813,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return { value: str, priceDelta: delta };
   };
 
-  // Lamp Matrix Generation Functions
+  // Product Options & Matrix Generation Functions (Sizes, Colours, Wattages)
   const handleGenerateLampMatrix = () => {
-    if (lampColours.length === 0 || lampWattages.length === 0) {
-      setVariantError('Please configure at least one Lamp Colour and one Bulb Wattage before generating matrix.');
+    const parsedSizes = productSizes.map((s) => parseOptionInput(s, 'SIZE')).filter((s) => s.value);
+    const parsedCols = lampColours.map((c) => parseOptionInput(c, 'COLOUR')).filter((c) => c.value);
+    const parsedWatts = lampWattages.map((w) => parseOptionInput(w, 'WATTAGE')).filter((w) => w.value);
+
+    const sizeList = parsedSizes.length > 0 ? parsedSizes : [null];
+    const colList = parsedCols.length > 0 ? parsedCols : [null];
+    const wattList = parsedWatts.length > 0 ? parsedWatts : [null];
+
+    if (sizeList[0] === null && colList[0] === null && wattList[0] === null) {
+      setVariantError('Please configure at least one Size, Colour, or Wattage option before generating matrix.');
       return;
     }
 
@@ -792,36 +833,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const base = Number(prodPrice || 1499);
     const baseMrp = Number(prodMrp || base * 1.2);
 
-    const parsedCols = lampColours.map((c) => parseOptionInput(c, 'COLOUR')).filter((c) => c.value);
-    const parsedWatts = lampWattages.map((w) => parseOptionInput(w, 'WATTAGE')).filter((w) => w.value);
-
     const generated: any[] = [];
-    parsedCols.forEach((colObj) => {
-      parsedWatts.forEach((wattObj) => {
-        const col = colObj.value;
-        const watt = wattObj.value;
-        const delta = colObj.priceDelta + wattObj.priceDelta;
+    sizeList.forEach((szObj) => {
+      colList.forEach((colObj) => {
+        wattList.forEach((wattObj) => {
+          const sz = szObj ? szObj.value : null;
+          const col = colObj ? colObj.value : null;
+          const watt = wattObj ? wattObj.value : null;
+          const delta = (szObj?.priceDelta || 0) + (colObj?.priceDelta || 0) + (wattObj?.priceDelta || 0);
 
-        const price = Math.max(0, base + delta);
-        const mrp = Math.max(price, baseMrp + delta);
-        const cleanSku = `${prodSku || 'LAMP'}-${col.replace(/[^a-zA-Z0-9]/g, '')}-${watt.replace(/[^a-zA-Z0-9]/g, '')}`.toUpperCase();
-        const name = `${col} - ${watt}`;
+          const price = Math.max(0, base + delta);
+          const mrp = Math.max(price, baseMrp + delta);
 
-        // Check if an existing variant matches
-        const existingMatch = productVariants.find(
-          (v) => (v.colour === col || v.attributes?.colour === col) && (v.wattage === watt || v.attributes?.wattage === watt)
-        );
+          const skuParts = [
+            prodSku || 'PROD',
+            sz ? sz.replace(/[^a-zA-Z0-9]/g, '') : '',
+            col ? col.replace(/[^a-zA-Z0-9]/g, '') : '',
+            watt ? watt.replace(/[^a-zA-Z0-9]/g, '') : ''
+          ].filter(Boolean);
+          const cleanSku = skuParts.join('-').toUpperCase();
 
-        generated.push({
-          id: existingMatch?.id,
-          sku: existingMatch?.sku || cleanSku,
-          name,
-          price,
-          mrp,
-          stockQuantity: existingMatch ? existingMatch.stockQuantity : Number(prodStock || 10),
-          colour: col,
-          wattage: watt,
-          isActive: true
+          const nameParts = [sz, col, watt].filter(Boolean);
+          const name = nameParts.join(' - ') || 'Default Variant';
+
+          // Check if an existing variant matches
+          const existingMatch = productVariants.find(
+            (v) =>
+              (!sz || v.size === sz || v.attributes?.size === sz) &&
+              (!col || v.colour === col || v.attributes?.colour === col) &&
+              (!watt || v.wattage === watt || v.attributes?.wattage === watt)
+          );
+
+          generated.push({
+            id: existingMatch?.id,
+            sku: existingMatch?.sku || cleanSku,
+            name,
+            price,
+            mrp,
+            stockQuantity: existingMatch ? existingMatch.stockQuantity : Number(prodStock || 10),
+            size: sz,
+            colour: col,
+            wattage: watt,
+            isActive: true
+          });
         });
       });
     });
@@ -834,36 +888,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setVariantError('Please save the main product first before saving variant matrix to database.');
       return;
     }
-    if (productVariants.length === 0) {
-      setVariantError('No variants generated. Click "Generate Matrix" first.');
+    if (productVariants.length === 0 && productSizes.length === 0 && lampColours.length === 0 && lampWattages.length === 0) {
+      setVariantError('No options or variants configured.');
       return;
     }
 
     setVariantError(null);
     setVariantSuccess(null);
     try {
-      // Sync lamp options and variant matrix in parallel
-      const [res] = await Promise.all([
-        fetch(`/api/products/${editingProductId}/variants/matrix`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          credentials: 'include',
-          body: JSON.stringify({ variants: productVariants })
-        }),
+      // Sync options and variant matrix in parallel
+      const syncPayload = {
+        hasSizes: prodHasSizes || productSizes.length > 0,
+        hasColours: prodHasColours || lampColours.length > 0,
+        sizes: productSizes,
+        colours: lampColours,
+        wattages: lampWattages
+      };
+
+      const promises: Promise<any>[] = [
         fetch(`/api/products/${editingProductId}/lamp-options/sync`, {
           method: 'POST',
           headers: getAuthHeaders(),
           credentials: 'include',
-          body: JSON.stringify({ colours: lampColours, wattages: lampWattages })
-        }).catch((err) => console.warn('Lamp sync error:', err))
-      ]);
-      const data = await res.json();
-      if (!res.ok) {
-        setVariantError(data.error || 'Failed to save variant matrix');
+          body: JSON.stringify(syncPayload)
+        }).catch((err) => console.warn('Options sync error:', err))
+      ];
+
+      if (productVariants.length > 0) {
+        promises.push(
+          fetch(`/api/products/${editingProductId}/variants/matrix`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ variants: productVariants })
+          })
+        );
+      }
+
+      const results = await Promise.all(promises);
+      const varRes = results[1] || results[0];
+      if (varRes && !varRes.ok) {
+        const data = await varRes.json().catch(() => ({}));
+        setVariantError(data.error || 'Failed to save product options');
       } else {
         await loadProductImagesAndVariants(editingProductId);
         onRefreshData();
-        setVariantSuccess('Lamp options & variant matrix saved successfully!');
+        setVariantSuccess('Product options & variant matrix saved successfully!');
         setTimeout(() => setVariantSuccess(null), 3000);
       }
     } catch (err: any) {
@@ -1009,6 +1079,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       isFeatured: prodIsFeatured,
       isNewArrival: prodIsNewArrival,
       isBestSeller: prodIsBestSeller,
+      hasSizes: prodHasSizes,
+      hasColours: prodHasColours,
       requiresCustomization: prodRequiresCustomization,
       requiresImageUpload: prodRequiresImageUpload,
       minimumImageUploads: Number(prodMinimumImageUploads || 1),
@@ -1057,17 +1129,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       }
 
-      // Sync lamp options if defined
-      if (savedProductId && (lampColours.length > 0 || lampWattages.length > 0)) {
+      // Sync product options if defined
+      if (savedProductId && (productSizes.length > 0 || lampColours.length > 0 || lampWattages.length > 0 || prodHasSizes || prodHasColours)) {
         try {
           await fetch(`/api/products/${savedProductId}/lamp-options/sync`, {
             method: 'POST',
             headers: getAuthHeaders(),
             credentials: 'include',
-            body: JSON.stringify({ colours: lampColours, wattages: lampWattages })
+            body: JSON.stringify({
+              hasSizes: prodHasSizes || productSizes.length > 0,
+              hasColours: prodHasColours || lampColours.length > 0,
+              sizes: productSizes,
+              colours: lampColours,
+              wattages: lampWattages
+            })
           });
         } catch (lampErr) {
-          console.error('Lamp options sync error:', lampErr);
+          console.error('Product options sync error:', lampErr);
         }
       }
 
@@ -2360,17 +2438,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Stage 6: Lamp Category Configurator & Variant Matrix Generator (ONLY shown for Lamp & Light category products) */}
-                  {isLampCategory && (
+                  {/* Stage 6: Product Options & Variant Matrix Generator (Sizes, Colours, Wattages) */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
                       <div>
                         <h5 className="font-bold text-amber-700 text-xs flex items-center gap-1.5">
                           <Layers className="w-4 h-4" />
-                          <span>Lamp Configurator & Variant Price Matrix</span>
+                          <span>Product Options & Variant Price Matrix</span>
                         </h5>
                         <p className="text-[10px] text-slate-500">
-                          Configure Lamp Colours (Warm White, Cool White, Neutral White) & Bulb Wattages (5W, 7W, 9W, 12W)
+                          Configure customizable Sizes (e.g. 10cm, 15cm), Colours (e.g. Warm White, RGB), and Bulb Wattages (e.g. 4W, 9W) with optional price adjustments.
                         </p>
                       </div>
 
@@ -2382,115 +2459,273 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                           Generate Matrix
                         </button>
-                        {editingProductId && productVariants.length > 0 && (
+                        {editingProductId && (
                           <button
                             type="button"
                             onClick={handleSaveLampMatrix}
                             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer shadow-xs"
                           >
-                            Save Matrix to Database
+                            Save Options to DB
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Colour Options Config */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-                      <span className="text-[11px] font-bold text-slate-700 block">Configured Lamp Colours:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {lampColours.map((col, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
-                          >
-                            <span>{col}</span>
-                            <button
-                              type="button"
-                              onClick={() => setLampColours(lampColours.filter((_, i) => i !== idx))}
-                              className="text-slate-400 hover:text-rose-500 text-xs"
-                            >
-                              &times;
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
+                    {/* Quick Toggles */}
+                    <div className="flex flex-wrap gap-3 py-1 text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-slate-700">
                         <input
-                          type="text"
-                          placeholder="Add new colour option (e.g. RGB Multi-Colour)"
-                          value={newLampColourInput}
-                          onChange={(e) => setNewLampColourInput(e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1"
+                          type="checkbox"
+                          checked={prodHasSizes}
+                          onChange={(e) => setProdHasSizes(e.target.checked)}
+                          className="w-4 h-4 accent-amber-600 rounded"
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (newLampColourInput.trim()) {
-                              setLampColours([...lampColours, newLampColourInput.trim()]);
-                              setNewLampColourInput('');
-                            }
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-lg"
-                        >
-                          + Add Colour
-                        </button>
-                      </div>
+                        <span>Enable Sizes / Dimensions</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={prodHasColours}
+                          onChange={(e) => setProdHasColours(e.target.checked)}
+                          className="w-4 h-4 accent-amber-600 rounded"
+                        />
+                        <span>Enable Colour Options</span>
+                      </label>
                     </div>
 
-                    {/* Wattage Options Config */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-                      <span className="text-[11px] font-bold text-slate-700 block">Configured Bulb Wattages:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {lampWattages.map((watt, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
-                          >
-                            <span>{watt}</span>
-                            <button
-                              type="button"
-                              onClick={() => setLampWattages(lampWattages.filter((_, i) => i !== idx))}
-                              className="text-slate-400 hover:text-rose-500 text-xs"
-                            >
-                              &times;
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                    {/* 1. Size Options Config */}
+                    {(prodHasSizes || productSizes.length > 0) && (
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[11px] font-bold text-slate-700">Configured Sizes / Dimensions:</span>
+                          <div className="flex gap-1">
+                            {['10 cm', '15 cm (+₹100)', '20 cm (+₹250)', '25 cm (+₹450)'].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => {
+                                  if (!productSizes.includes(preset)) {
+                                    setProductSizes([...productSizes, preset]);
+                                  }
+                                }}
+                                className="text-[10px] bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-800 font-semibold px-2 py-0.5 rounded cursor-pointer transition-colors"
+                              >
+                                + {preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                      <div className="flex gap-2 pt-1">
-                        <input
-                          type="text"
-                          placeholder="Wattage (e.g. 4W)"
-                          value={newLampWattageInput}
-                          onChange={(e) => setNewLampWattageInput(e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1"
-                        />
-                        <input
-                          type="number"
-                          placeholder="Price Delta ₹ (e.g. 30)"
-                          value={newLampWattageDeltaInput}
-                          onChange={(e) => setNewLampWattageDeltaInput(e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 w-32"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (newLampWattageInput.trim()) {
-                              const delta = newLampWattageDeltaInput.trim();
-                              const formatted = delta ? `${newLampWattageInput.trim()} (+₹${delta})` : newLampWattageInput.trim();
-                              setLampWattages([...lampWattages, formatted]);
-                              setNewLampWattageInput('');
-                              setNewLampWattageDeltaInput('');
-                            }
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-lg cursor-pointer"
-                        >
-                          + Add Wattage
-                        </button>
+                        <div className="flex flex-wrap gap-1.5">
+                          {productSizes.map((sz, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                            >
+                              <span>{sz}</span>
+                              <button
+                                type="button"
+                                onClick={() => setProductSizes(productSizes.filter((_, i) => i !== idx))}
+                                className="text-slate-400 hover:text-rose-500 text-xs"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                          {productSizes.length === 0 && (
+                            <span className="text-[11px] text-slate-400 italic">No sizes added yet. Use presets or input below.</span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Size name (e.g. 15 cm or Large)"
+                            value={newSizeInput}
+                            onChange={(e) => setNewSizeInput(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Price Delta ₹ (e.g. 100)"
+                            value={newSizeDeltaInput}
+                            onChange={(e) => setNewSizeDeltaInput(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 w-32"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (newSizeInput.trim()) {
+                                const delta = newSizeDeltaInput.trim();
+                                const formatted = delta ? `${newSizeInput.trim()} (+₹${delta})` : newSizeInput.trim();
+                                setProductSizes([...productSizes, formatted]);
+                                setNewSizeInput('');
+                                setNewSizeDeltaInput('');
+                              }
+                            }}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-lg cursor-pointer"
+                          >
+                            + Add Size
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* 2. Colour Options Config */}
+                    {(prodHasColours || lampColours.length > 0 || isLampCategory) && (
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[11px] font-bold text-slate-700">Configured Colours:</span>
+                          <div className="flex gap-1">
+                            {['Warm White', 'Cool White', 'Neutral White', 'RGB Multi-Colour (+₹200)'].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => {
+                                  if (!lampColours.includes(preset)) {
+                                    setLampColours([...lampColours, preset]);
+                                  }
+                                }}
+                                className="text-[10px] bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-800 font-semibold px-2 py-0.5 rounded cursor-pointer transition-colors"
+                              >
+                                + {preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {lampColours.map((col, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                            >
+                              <span>{col}</span>
+                              <button
+                                type="button"
+                                onClick={() => setLampColours(lampColours.filter((_, i) => i !== idx))}
+                                className="text-slate-400 hover:text-rose-500 text-xs"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                          {lampColours.length === 0 && (
+                            <span className="text-[11px] text-slate-400 italic">No colours added yet.</span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Colour name (e.g. RGB Multi-Colour or Matte Black)"
+                            value={newLampColourInput}
+                            onChange={(e) => setNewLampColourInput(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Price Delta ₹ (e.g. 200)"
+                            value={newColourDeltaInput}
+                            onChange={(e) => setNewColourDeltaInput(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 w-32"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (newLampColourInput.trim()) {
+                                const delta = newColourDeltaInput.trim();
+                                const formatted = delta ? `${newLampColourInput.trim()} (+₹${delta})` : newLampColourInput.trim();
+                                setLampColours([...lampColours, formatted]);
+                                setNewLampColourInput('');
+                                setNewColourDeltaInput('');
+                              }
+                            }}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-lg cursor-pointer"
+                          >
+                            + Add Colour
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Wattage Options Config */}
+                    {(isLampCategory || lampWattages.length > 0) && (
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[11px] font-bold text-slate-700">Configured Bulb Wattages:</span>
+                          <div className="flex gap-1">
+                            {['4W', '7W (+₹100)', '9W (+₹150)', '12W (+₹200)'].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => {
+                                  if (!lampWattages.includes(preset)) {
+                                    setLampWattages([...lampWattages, preset]);
+                                  }
+                                }}
+                                className="text-[10px] bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-800 font-semibold px-2 py-0.5 rounded cursor-pointer transition-colors"
+                              >
+                                + {preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {lampWattages.map((watt, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                            >
+                              <span>{watt}</span>
+                              <button
+                                type="button"
+                                onClick={() => setLampWattages(lampWattages.filter((_, i) => i !== idx))}
+                                className="text-slate-400 hover:text-rose-500 text-xs"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                          {lampWattages.length === 0 && (
+                            <span className="text-[11px] text-slate-400 italic">No wattages added yet.</span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Wattage (e.g. 4W)"
+                            value={newLampWattageInput}
+                            onChange={(e) => setNewLampWattageInput(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Price Delta ₹ (e.g. 30)"
+                            value={newLampWattageDeltaInput}
+                            onChange={(e) => setNewLampWattageDeltaInput(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 w-32"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (newLampWattageInput.trim()) {
+                                const delta = newLampWattageDeltaInput.trim();
+                                const formatted = delta ? `${newLampWattageInput.trim()} (+₹${delta})` : newLampWattageInput.trim();
+                                setLampWattages([...lampWattages, formatted]);
+                                setNewLampWattageInput('');
+                                setNewLampWattageDeltaInput('');
+                              }
+                            }}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-lg cursor-pointer"
+                          >
+                            + Add Wattage
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {variantError && (
                       <div className="bg-rose-50 text-rose-700 text-xs p-2 rounded-lg border border-rose-200">
@@ -2510,6 +2745,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <thead>
                           <tr className="text-slate-500 font-bold border-b border-slate-200">
                             <th className="py-1.5">SKU</th>
+                            <th className="py-1.5">Size</th>
                             <th className="py-1.5">Colour</th>
                             <th className="py-1.5">Wattage</th>
                             <th className="py-1.5">Price (₹)</th>
@@ -2521,8 +2757,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {productVariants.map((v, idx) => (
                             <tr key={v.id || idx} className="border-b border-slate-100 text-slate-800">
                               <td className="py-1.5 font-mono text-indigo-600">{v.sku}</td>
-                              <td className="py-1.5 font-bold text-amber-700">{v.colour || v.attributes?.colour || 'Standard'}</td>
-                              <td className="py-1.5 font-bold text-amber-700">{v.wattage || v.attributes?.wattage || 'Base'}</td>
+                              <td className="py-1.5 font-medium text-indigo-700">{v.size || v.attributes?.size || '-'}</td>
+                              <td className="py-1.5 font-bold text-amber-700">{v.colour || v.attributes?.colour || '-'}</td>
+                              <td className="py-1.5 font-bold text-amber-700">{v.wattage || v.attributes?.wattage || '-'}</td>
                               <td className="py-1.5">
                                 <input
                                   type="number"
@@ -2569,8 +2806,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           ))}
                           {productVariants.length === 0 && (
                             <tr>
-                              <td colSpan={6} className="py-3 text-slate-400 italic text-center">
-                                No variants generated. Click "Generate Matrix" above to auto-create Colour & Wattage combinations.
+                              <td colSpan={7} className="py-3 text-slate-400 italic text-center">
+                                No variants generated. Configure options above and click "Generate Matrix".
                               </td>
                             </tr>
                           )}
@@ -2578,7 +2815,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </table>
                     </div>
                   </div>
-                  )}
 
                   {/* Toggles */}
                   <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-200 font-bold">

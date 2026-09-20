@@ -108,6 +108,8 @@ export const productCreateSchema = z.object({
   requiresImageUpload: z.boolean().default(false),
   minimumImageUploads: z.coerce.number().int().min(1, 'Minimum uploads must be at least 1').default(1),
   maximumImageUploads: z.coerce.number().int().min(1, 'Maximum uploads must be at least 1').max(20, 'Maximum uploads cannot exceed 20').default(5),
+  hasSizes: z.boolean().default(false),
+  hasColours: z.boolean().default(false),
   categoryId: z.string().min(1, 'Category selection is required'),
   seoTitle: z.string().trim().optional().nullable(),
   seoDescription: z.string().trim().optional().nullable(),
@@ -146,6 +148,8 @@ export const productUpdateSchema = z.object({
   requiresImageUpload: z.boolean().optional(),
   minimumImageUploads: z.coerce.number().int().min(1).optional(),
   maximumImageUploads: z.coerce.number().int().min(1).max(20).optional(),
+  hasSizes: z.boolean().optional(),
+  hasColours: z.boolean().optional(),
   categoryId: z.string().min(1).optional(),
   seoTitle: z.string().trim().optional().nullable(),
   seoDescription: z.string().trim().optional().nullable(),
@@ -165,6 +169,9 @@ export const productVariantCreateSchema = z.object({
   price: z.coerce.number().min(0, 'Price must be 0 or greater'),
   mrp: z.coerce.number().min(0, 'MRP must be 0 or greater'),
   stockQuantity: z.coerce.number().int().min(0).default(0),
+  size: z.string().trim().optional().nullable(),
+  colour: z.string().trim().optional().nullable(),
+  wattage: z.string().trim().optional().nullable(),
   attributes: z.record(z.string(), z.any()).optional().nullable(),
   isActive: z.boolean().default(true)
 });
@@ -179,7 +186,12 @@ export type ProductVariantUpdateInput = z.infer<typeof productVariantUpdateSchem
 export const cartItemAddSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
   variantId: z.string().trim().optional().nullable(),
-  quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1').default(1)
+  quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1').default(1),
+  selectedSize: z.string().trim().optional().nullable(),
+  selectedColour: z.string().trim().optional().nullable(),
+  selectedWattage: z.string().trim().optional().nullable(),
+  customizationText: z.string().trim().optional().nullable(),
+  customizationImages: z.array(z.any()).optional().nullable()
 });
 
 export const cartItemUpdateSchema = z.object({

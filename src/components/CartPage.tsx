@@ -357,8 +357,14 @@ export const CartPage: React.FC<CartPageProps> = ({
                       )}
 
                       {/* Lamp Option Attributes */}
-                      {((item as any).selectedColour || (item as any).selectedWattage || (item.variant as any)?.colour || (item.variant as any)?.wattage) && (
+                      {((item as any).selectedSize || (item as any).selectedColour || (item as any).selectedWattage || (item.variant as any)?.size || (item.variant as any)?.colour || (item.variant as any)?.wattage) && (
                         <div className="flex flex-wrap gap-1.5 pt-1">
+                          {((item as any).selectedSize || (item.variant as any)?.size) && (
+                            <span className="bg-indigo-50 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-md border border-indigo-100 flex items-center gap-1">
+                              <span>Size:</span>
+                              <span className="text-indigo-950">{(item as any).selectedSize || (item.variant as any)?.size}</span>
+                            </span>
+                          )}
                           {((item as any).selectedColour || (item.variant as any)?.colour) && (
                             <span className="bg-cyan-50 text-cyan-800 text-xs font-bold px-2.5 py-0.5 rounded-md border border-cyan-100 flex items-center gap-1">
                               <span>Colour:</span>
