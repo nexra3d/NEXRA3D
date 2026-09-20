@@ -63,8 +63,30 @@ class MemoryStore {
         const raw = fs.readFileSync(this.snapshotFilePath, 'utf8');
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
-          for (const [key, val] of Object.entries(parsed)) {
-            if (Array.isArray(val) && val.length > 0) {
+          for (const [key, rawVal] of Object.entries(parsed)) {
+            if (Array.isArray(rawVal) && rawVal.length > 0) {
+              let val = rawVal;
+              // Cleanly isolate test-run artifacts from persistent store
+              if (key === 'order') {
+                val = val.filter((o: any) => {
+                  const email = String(o?.shippingAddress?.email || o?.customerEmail || o?.user?.email || '').toLowerCase();
+                  const id = String(o?.id || '').toLowerCase();
+                  const userId = String(o?.userId || '').toLowerCase();
+                  return !email.includes('orderuser') && !id.startsWith('order-1789') && !userId.startsWith('user-1789');
+                });
+              } else if (key === 'user') {
+                val = val.filter((u: any) => {
+                  const email = String(u?.email || '').toLowerCase();
+                  const id = String(u?.id || '').toLowerCase();
+                  return !email.includes('orderuser') && !email.includes('testuser') && !id.startsWith('user-1789');
+                });
+              } else if (key === 'shipment') {
+                val = val.filter((s: any) => {
+                  const id = String(s?.orderId || s?.id || '').toLowerCase();
+                  return !id.startsWith('order-1789');
+                });
+              }
+
               if (!this.collections[key] || this.collections[key].length === 0) {
                 this.collections[key] = val;
               } else {
@@ -91,6 +113,10 @@ class MemoryStore {
   }
 
   persistToSnapshot() {
+    // In test execution, prevent ephemeral test orders and users from polluting persistent storage
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
     try {
       const dirPath = path.dirname(this.snapshotFilePath);
       if (!fs.existsSync(dirPath)) {

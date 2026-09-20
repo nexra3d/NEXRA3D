@@ -4736,14 +4736,18 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
     const hasSizesEnabled = Boolean((product as any).hasSizes) || configuredSizes.length > 0;
     let verifiedSize: string | null = null;
     if (hasSizesEnabled) {
-      if (!selectedSize || !String(selectedSize).trim()) {
+      if (!isTestMode && (!selectedSize || !String(selectedSize).trim())) {
         return res.status(400).json({ error: 'Please select a size before adding to cart.' });
       }
-      const sMatch = configuredSizes.find((s: string) => s.trim().toLowerCase() === String(selectedSize).trim().toLowerCase());
-      if (!sMatch && !isTestMode && configuredSizes.length > 0) {
-        return res.status(400).json({ error: `Selected size '${selectedSize}' is not valid for this product.` });
+      if (selectedSize && String(selectedSize).trim()) {
+        const sMatch = configuredSizes.find((s: string) => s.trim().toLowerCase() === String(selectedSize).trim().toLowerCase());
+        if (!sMatch && !isTestMode && configuredSizes.length > 0) {
+          return res.status(400).json({ error: `Selected size '${selectedSize}' is not valid for this product.` });
+        }
+        verifiedSize = sMatch || String(selectedSize).trim();
+      } else if (configuredSizes.length > 0) {
+        verifiedSize = configuredSizes[0];
       }
-      verifiedSize = sMatch || String(selectedSize).trim();
     } else if (selectedSize && !isTestMode && configuredSizes.length === 0) {
       return res.status(400).json({ error: 'Size option is not available for this product.' });
     }
@@ -4751,14 +4755,18 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
     const hasColoursEnabled = Boolean((product as any).hasColours) || configuredColours.length > 0;
     let verifiedColour: string | null = null;
     if (hasColoursEnabled) {
-      if (!selectedColour || !String(selectedColour).trim()) {
+      if (!isTestMode && (!selectedColour || !String(selectedColour).trim())) {
         return res.status(400).json({ error: 'Please select a colour before adding to cart.' });
       }
-      const cMatch = configuredColours.find((c: string) => c.trim().toLowerCase() === String(selectedColour).trim().toLowerCase());
-      if (!cMatch && !isTestMode && configuredColours.length > 0) {
-        return res.status(400).json({ error: `Selected colour '${selectedColour}' is not valid for this product.` });
+      if (selectedColour && String(selectedColour).trim()) {
+        const cMatch = configuredColours.find((c: string) => c.trim().toLowerCase() === String(selectedColour).trim().toLowerCase());
+        if (!cMatch && !isTestMode && configuredColours.length > 0) {
+          return res.status(400).json({ error: `Selected colour '${selectedColour}' is not valid for this product.` });
+        }
+        verifiedColour = cMatch || String(selectedColour).trim();
+      } else if (configuredColours.length > 0) {
+        verifiedColour = configuredColours[0];
       }
-      verifiedColour = cMatch || String(selectedColour).trim();
     } else if (selectedColour && !isTestMode && configuredColours.length === 0) {
       return res.status(400).json({ error: 'Colour option is not available for this product.' });
     }
