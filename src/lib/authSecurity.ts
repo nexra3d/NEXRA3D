@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { CookieOptions } from 'express';
+import 'dotenv/config';
 
 // ==========================================
 // 1. JWT & SECRETS MANAGEMENT
@@ -45,8 +46,10 @@ function resolveJwtSecret(): string {
   }
 
   if (isProduction && !RAW_JWT_SECRET) {
-    console.warn('[SECURITY NOTICE] JWT_SECRET is not configured in production environment. Generating a 256-bit cryptographically secure ephemeral secret for this process.');
-    return crypto.randomBytes(32).toString('hex');
+    throw new Error(
+      '[FATAL SECURITY ERROR] JWT_SECRET must be configured in production. ' +
+      'Refusing to start with an ephemeral signing key because it would invalidate sessions across instances.'
+    );
   }
 
   // In development and test environments:

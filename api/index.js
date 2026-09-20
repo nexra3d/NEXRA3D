@@ -143,6 +143,8 @@ var INITIAL_PRODUCTS = [
     isFeatured: true,
     isTrending: true,
     isBestSeller: true,
+    hasSizes: true,
+    hasColours: true,
     specifications: {
       "Diameter": "15 cm (6 inches)",
       "Light Source": "Dual Warm/White LED with Dimmer",
@@ -173,6 +175,8 @@ var INITIAL_PRODUCTS = [
     reviewCount: 42,
     isFeatured: true,
     isTrending: false,
+    hasSizes: true,
+    hasColours: true,
     specifications: {
       "Height": "28 cm",
       "Material": "Silk Dual-Color PLA+",
@@ -737,8 +741,28 @@ var MemoryStore = class {
         const raw = fs.readFileSync(this.snapshotFilePath, "utf8");
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object") {
-          for (const [key, val] of Object.entries(parsed)) {
-            if (Array.isArray(val) && val.length > 0) {
+          for (const [key, rawVal] of Object.entries(parsed)) {
+            if (Array.isArray(rawVal) && rawVal.length > 0) {
+              let val = rawVal;
+              if (key === "order") {
+                val = val.filter((o) => {
+                  const email = String(o?.shippingAddress?.email || o?.customerEmail || o?.user?.email || "").toLowerCase();
+                  const id = String(o?.id || "").toLowerCase();
+                  const userId = String(o?.userId || "").toLowerCase();
+                  return !email.includes("orderuser") && !id.startsWith("order-1789") && !userId.startsWith("user-1789");
+                });
+              } else if (key === "user") {
+                val = val.filter((u) => {
+                  const email = String(u?.email || "").toLowerCase();
+                  const id = String(u?.id || "").toLowerCase();
+                  return !email.includes("orderuser") && !email.includes("testuser") && !id.startsWith("user-1789");
+                });
+              } else if (key === "shipment") {
+                val = val.filter((s) => {
+                  const id = String(s?.orderId || s?.id || "").toLowerCase();
+                  return !id.startsWith("order-1789");
+                });
+              }
               if (!this.collections[key] || this.collections[key].length === 0) {
                 this.collections[key] = val;
               } else {
@@ -763,6 +787,9 @@ var MemoryStore = class {
     }
   }
   persistToSnapshot() {
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
     try {
       const dirPath = path.dirname(this.snapshotFilePath);
       if (!fs.existsSync(dirPath)) {
@@ -860,6 +887,8 @@ var MemoryStore = class {
         requiresImageUpload: Boolean(p.requiresImageUpload),
         minimumImageUploads: p.minimumImageUploads !== void 0 && p.minimumImageUploads !== null ? Number(p.minimumImageUploads) : 1,
         maximumImageUploads: p.maximumImageUploads !== void 0 && p.maximumImageUploads !== null ? Number(p.maximumImageUploads) : 5,
+        hasSizes: p.hasSizes !== void 0 ? Boolean(p.hasSizes) : p.id === "prod-spiral-ambient-lamp" || p.id === "prod-lithophane-moon-lamp",
+        hasColours: p.hasColours !== void 0 ? Boolean(p.hasColours) : p.id === "prod-spiral-ambient-lamp" || p.id === "prod-lithophane-moon-lamp",
         weight: p.weight ?? (p.specifications?.weight ? Number(p.specifications.weight) : 0.25),
         length: p.length ?? (p.specifications?.length ? Number(p.specifications.length) : 10),
         width: p.width ?? (p.specifications?.width ? Number(p.specifications.width) : 10),
@@ -904,6 +933,39 @@ var MemoryStore = class {
     }
     this.collections.productLampOption = [
       // Lamp A: Parametric Spiral LED Table Lamp
+      {
+        id: "opt-spiral-siz-1",
+        productId: "prod-spiral-ambient-lamp",
+        optionType: "SIZE",
+        optionValue: "15 cm Height",
+        priceDelta: 0,
+        sortOrder: 1,
+        isActive: true,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      },
+      {
+        id: "opt-spiral-siz-2",
+        productId: "prod-spiral-ambient-lamp",
+        optionType: "SIZE",
+        optionValue: "25 cm Height",
+        priceDelta: 400,
+        sortOrder: 2,
+        isActive: true,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      },
+      {
+        id: "opt-spiral-siz-3",
+        productId: "prod-spiral-ambient-lamp",
+        optionType: "SIZE",
+        optionValue: "35 cm Height",
+        priceDelta: 800,
+        sortOrder: 3,
+        isActive: true,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      },
       {
         id: "opt-spiral-col-1",
         productId: "prod-spiral-ambient-lamp",
@@ -971,6 +1033,39 @@ var MemoryStore = class {
         updatedAt: /* @__PURE__ */ new Date()
       },
       // Lamp B: Personalized 3D Printed Photo Lithophane Moon Lamp
+      {
+        id: "opt-moon-siz-1",
+        productId: "prod-lithophane-moon-lamp",
+        optionType: "SIZE",
+        optionValue: "10 cm Height",
+        priceDelta: 0,
+        sortOrder: 1,
+        isActive: true,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      },
+      {
+        id: "opt-moon-siz-2",
+        productId: "prod-lithophane-moon-lamp",
+        optionType: "SIZE",
+        optionValue: "15 cm Height",
+        priceDelta: 350,
+        sortOrder: 2,
+        isActive: true,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      },
+      {
+        id: "opt-moon-siz-3",
+        productId: "prod-lithophane-moon-lamp",
+        optionType: "SIZE",
+        optionValue: "20 cm Height",
+        priceDelta: 700,
+        sortOrder: 3,
+        isActive: true,
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      },
       {
         id: "opt-moon-col-1",
         productId: "prod-lithophane-moon-lamp",
@@ -1881,58 +1976,22 @@ async function ensureDbSchema() {
       );
     `).catch(() => {
     });
-    const alterColStatements = [
-      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "customOrderName" TEXT;`,
-      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "custom_order_name" TEXT;`,
-      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;`,
-      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "image_url" TEXT;`,
-      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN NOT NULL DEFAULT false;`,
-      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "is_public" BOOLEAN NOT NULL DEFAULT false;`,
-      `ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS "customOrderName" TEXT;`,
-      `ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS "custom_order_name" TEXT;`,
-      `ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;`,
-      `ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS "image_url" TEXT;`,
-      `ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN NOT NULL DEFAULT false;`,
-      `ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS "is_public" BOOLEAN NOT NULL DEFAULT false;`
-    ];
-    for (const sql of alterColStatements) {
-      try {
-        await rawPrisma.$executeRawUnsafe(sql);
-      } catch (_) {
-      }
-    }
-    const syncStatements = [
-      `UPDATE "custom_orders" SET "customOrderName" = "custom_order_name" WHERE "customOrderName" IS NULL AND "custom_order_name" IS NOT NULL;`,
-      `UPDATE "custom_orders" SET "custom_order_name" = "customOrderName" WHERE "custom_order_name" IS NULL AND "customOrderName" IS NOT NULL;`,
-      `UPDATE "custom_orders" SET "imageUrl" = "image_url" WHERE "imageUrl" IS NULL AND "image_url" IS NOT NULL;`,
-      `UPDATE "custom_orders" SET "image_url" = "imageUrl" WHERE "image_url" IS NULL AND "imageUrl" IS NOT NULL;`,
-      `UPDATE "custom_orders" SET "isPublic" = "is_public" WHERE "isPublic" IS NOT TRUE AND "is_public" IS TRUE;`,
-      `UPDATE "custom_orders" SET "is_public" = "isPublic" WHERE "is_public" IS NOT TRUE AND "isPublic" IS TRUE;`
-    ];
-    for (const sql of syncStatements) {
-      try {
-        await rawPrisma.$executeRawUnsafe(sql);
-      } catch (_) {
-      }
-    }
-    try {
-      await rawPrisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "custom_order_reviews" (
-          "id" TEXT NOT NULL,
-          "customOrderId" TEXT NOT NULL,
-          "userId" TEXT,
-          "userName" TEXT,
-          "rating" INTEGER NOT NULL DEFAULT 5,
-          "title" TEXT,
-          "comment" TEXT NOT NULL,
-          "isApproved" BOOLEAN NOT NULL DEFAULT true,
-          "status" TEXT NOT NULL DEFAULT 'APPROVED',
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "custom_order_reviews_pkey" PRIMARY KEY ("id")
-        );
-      `);
-    } catch (_) {
-    }
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "custom_order_reviews" (
+        "id" TEXT NOT NULL,
+        "customOrderId" TEXT NOT NULL,
+        "userId" TEXT,
+        "userName" TEXT,
+        "rating" INTEGER NOT NULL DEFAULT 5,
+        "title" TEXT,
+        "comment" TEXT NOT NULL,
+        "isApproved" BOOLEAN NOT NULL DEFAULT true,
+        "status" TEXT NOT NULL DEFAULT 'APPROVED',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "custom_order_reviews_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
     try {
       await rawPrisma.$executeRawUnsafe(`
         ALTER TABLE "custom_order_reviews" DROP CONSTRAINT IF EXISTS "custom_order_reviews_customOrderId_fkey";
@@ -1947,31 +2006,507 @@ async function ensureDbSchema() {
       `);
     } catch (_) {
     }
-    const reviewAlters = [
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'APPROVED';`,
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "userName" TEXT;`,
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "user_name" TEXT;`,
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "customOrderId" TEXT;`,
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "custom_order_id" TEXT;`,
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "isApproved" BOOLEAN NOT NULL DEFAULT true;`,
-      `ALTER TABLE "custom_order_reviews" ADD COLUMN IF NOT EXISTS "is_approved" BOOLEAN NOT NULL DEFAULT true;`
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "categories" (
+        "id" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "slug" TEXT NOT NULL,
+        "description" TEXT,
+        "imageUrl" TEXT,
+        "image_url" TEXT,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "is_active" BOOLEAN NOT NULL DEFAULT true,
+        "parentId" TEXT,
+        "parent_id" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "categories_slug_key" ON "categories"("slug");`).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "products" (
+        "id" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "slug" TEXT NOT NULL,
+        "sku" TEXT NOT NULL,
+        "shortDescription" TEXT,
+        "short_description" TEXT,
+        "description" TEXT,
+        "price" DECIMAL(10,2) NOT NULL,
+        "mrp" DECIMAL(10,2),
+        "discountPercentage" DECIMAL(5,2) DEFAULT 0,
+        "discount_percentage" DECIMAL(5,2) DEFAULT 0,
+        "taxPercentage" DECIMAL(5,2) DEFAULT 0,
+        "tax_percentage" DECIMAL(5,2) DEFAULT 0,
+        "stockQuantity" INTEGER NOT NULL DEFAULT 10,
+        "stock_quantity" INTEGER NOT NULL DEFAULT 10,
+        "lowStockThreshold" INTEGER DEFAULT 5,
+        "low_stock_threshold" INTEGER DEFAULT 5,
+        "weight" DECIMAL(8,2),
+        "length" DECIMAL(8,2),
+        "width" DECIMAL(8,2),
+        "height" DECIMAL(8,2),
+        "specifications" JSONB,
+        "imageUrl" TEXT,
+        "image_url" TEXT,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "is_active" BOOLEAN NOT NULL DEFAULT true,
+        "isFeatured" BOOLEAN NOT NULL DEFAULT false,
+        "is_featured" BOOLEAN NOT NULL DEFAULT false,
+        "isNewArrival" BOOLEAN NOT NULL DEFAULT false,
+        "is_new_arrival" BOOLEAN NOT NULL DEFAULT false,
+        "isBestSeller" BOOLEAN NOT NULL DEFAULT false,
+        "is_best_seller" BOOLEAN NOT NULL DEFAULT false,
+        "seoTitle" TEXT,
+        "seo_title" TEXT,
+        "seoDescription" TEXT,
+        "seo_description" TEXT,
+        "metaDescription" TEXT,
+        "meta_description" TEXT,
+        "categoryId" TEXT,
+        "category_id" TEXT,
+        "requiresCustomization" BOOLEAN NOT NULL DEFAULT false,
+        "requires_customization" BOOLEAN NOT NULL DEFAULT false,
+        "requiresImageUpload" BOOLEAN NOT NULL DEFAULT false,
+        "requires_image_upload" BOOLEAN NOT NULL DEFAULT false,
+        "minimumImageUploads" INTEGER DEFAULT 1,
+        "minimum_image_uploads" INTEGER DEFAULT 1,
+        "maximumImageUploads" INTEGER DEFAULT 5,
+        "maximum_image_uploads" INTEGER DEFAULT 5,
+        "hasSizes" BOOLEAN NOT NULL DEFAULT false,
+        "has_sizes" BOOLEAN NOT NULL DEFAULT false,
+        "hasColours" BOOLEAN NOT NULL DEFAULT false,
+        "has_colours" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "products_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "products_slug_key" ON "products"("slug");`).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "products_sku_key" ON "products"("sku");`).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "product_images" (
+        "id" TEXT NOT NULL,
+        "productId" TEXT NOT NULL,
+        "product_id" TEXT,
+        "url" TEXT NOT NULL,
+        "publicId" TEXT,
+        "public_id" TEXT,
+        "altText" TEXT,
+        "alt_text" TEXT,
+        "sortOrder" INTEGER NOT NULL DEFAULT 0,
+        "sort_order" INTEGER NOT NULL DEFAULT 0,
+        "isPrimary" BOOLEAN NOT NULL DEFAULT false,
+        "is_primary" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "product_images_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "product_variants" (
+        "id" TEXT NOT NULL,
+        "productId" TEXT NOT NULL,
+        "product_id" TEXT,
+        "sku" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "price" DECIMAL(10,2) NOT NULL,
+        "mrp" DECIMAL(10,2),
+        "stockQuantity" INTEGER NOT NULL DEFAULT 10,
+        "stock_quantity" INTEGER NOT NULL DEFAULT 10,
+        "size" TEXT,
+        "colour" TEXT,
+        "wattage" TEXT,
+        "attributes" JSONB,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "is_active" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "product_variants_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "product_lamp_options" (
+        "id" TEXT NOT NULL,
+        "productId" TEXT,
+        "product_id" TEXT,
+        "optionType" TEXT,
+        "option_type" TEXT,
+        "optionValue" TEXT,
+        "option_value" TEXT,
+        "priceDelta" DECIMAL(10,2) DEFAULT 0,
+        "price_delta" DECIMAL(10,2) DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "is_active" BOOLEAN NOT NULL DEFAULT true,
+        "sortOrder" INTEGER NOT NULL DEFAULT 0,
+        "sort_order" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "product_lamp_options_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "orders" (
+        "id" TEXT NOT NULL,
+        "orderNumber" TEXT NOT NULL,
+        "order_number" TEXT,
+        "userId" TEXT,
+        "user_id" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
+        "payment_status" TEXT,
+        "paymentMethod" TEXT NOT NULL DEFAULT 'ONLINE',
+        "payment_method" TEXT,
+        "razorpayOrderId" TEXT,
+        "razorpay_order_id" TEXT,
+        "razorpayPaymentId" TEXT,
+        "razorpay_payment_id" TEXT,
+        "razorpaySignature" TEXT,
+        "razorpay_signature" TEXT,
+        "totalAmount" DECIMAL(10,2) NOT NULL,
+        "total_amount" DECIMAL(10,2),
+        "subtotal" DECIMAL(10,2) NOT NULL DEFAULT 0,
+        "taxAmount" DECIMAL(10,2) DEFAULT 0,
+        "tax_amount" DECIMAL(10,2),
+        "shippingFee" DECIMAL(10,2) DEFAULT 0,
+        "shipping_fee" DECIMAL(10,2),
+        "discountAmount" DECIMAL(10,2) DEFAULT 0,
+        "discount_amount" DECIMAL(10,2),
+        "couponCode" TEXT,
+        "coupon_code" TEXT,
+        "couponId" TEXT,
+        "coupon_id" TEXT,
+        "shippingAddress" JSONB,
+        "shipping_address" JSONB,
+        "billingAddress" JSONB,
+        "billing_address" JSONB,
+        "shippingProvider" TEXT,
+        "shipping_provider" TEXT,
+        "awbNumber" TEXT,
+        "awb_number" TEXT,
+        "trackingNumber" TEXT,
+        "tracking_number" TEXT,
+        "shipmentId" TEXT,
+        "shipment_id" TEXT,
+        "estimatedDelivery" TIMESTAMP(3),
+        "estimated_delivery" TIMESTAMP(3),
+        "shipmentStatus" TEXT,
+        "shipment_status" TEXT,
+        "pickupRequested" BOOLEAN DEFAULT false,
+        "pickup_requested" BOOLEAN DEFAULT false,
+        "labelUrl" TEXT,
+        "label_url" TEXT,
+        "trackingUrl" TEXT,
+        "tracking_url" TEXT,
+        "manifestUrl" TEXT,
+        "manifest_url" TEXT,
+        "lastTrackingUpdate" TIMESTAMP(3),
+        "last_tracking_update" TIMESTAMP(3),
+        "trackingHistory" JSONB,
+        "tracking_history" JSONB,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "orders_orderNumber_key" ON "orders"("orderNumber");`).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "order_items" (
+        "id" TEXT NOT NULL,
+        "orderId" TEXT NOT NULL,
+        "order_id" TEXT,
+        "productId" TEXT,
+        "product_id" TEXT,
+        "variantId" TEXT,
+        "variant_id" TEXT,
+        "productTitle" TEXT,
+        "product_title" TEXT,
+        "skuSnapshot" TEXT,
+        "sku_snapshot" TEXT,
+        "selectedSize" TEXT,
+        "selected_size" TEXT,
+        "selectedColour" TEXT,
+        "selected_colour" TEXT,
+        "selectedWattage" TEXT,
+        "selected_wattage" TEXT,
+        "customizationText" TEXT,
+        "customization_text" TEXT,
+        "price" DECIMAL(10,2) NOT NULL,
+        "quantity" INTEGER NOT NULL DEFAULT 1,
+        "subtotal" DECIMAL(10,2),
+        "total" DECIMAL(10,2),
+        "imageUrl" TEXT,
+        "image_url" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "order_items_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "users" (
+        "id" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "email" TEXT NOT NULL,
+        "password" TEXT NOT NULL,
+        "role" TEXT NOT NULL DEFAULT 'CUSTOMER',
+        "emailVerified" BOOLEAN NOT NULL DEFAULT false,
+        "email_verified" BOOLEAN NOT NULL DEFAULT false,
+        "phone" TEXT,
+        "company" TEXT,
+        "gst" TEXT,
+        "avatar" TEXT,
+        "marketingOptIn" BOOLEAN NOT NULL DEFAULT true,
+        "analyticsOptIn" BOOLEAN NOT NULL DEFAULT true,
+        "isAnonymized" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");`).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "addresses" (
+        "id" TEXT NOT NULL,
+        "userId" TEXT NOT NULL,
+        "user_id" TEXT,
+        "fullName" TEXT NOT NULL,
+        "full_name" TEXT,
+        "phone" TEXT NOT NULL,
+        "streetAddress" TEXT,
+        "street_address" TEXT,
+        "addressLine1" TEXT,
+        "addressLine2" TEXT,
+        "landmark" TEXT,
+        "city" TEXT NOT NULL,
+        "state" TEXT NOT NULL,
+        "postalCode" TEXT NOT NULL,
+        "postal_code" TEXT,
+        "country" TEXT NOT NULL DEFAULT 'India',
+        "isDefault" BOOLEAN NOT NULL DEFAULT false,
+        "is_default" BOOLEAN NOT NULL DEFAULT false,
+        "type" TEXT NOT NULL DEFAULT 'HOME',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "addresses_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "services" (
+        "id" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "slug" TEXT NOT NULL,
+        "shortDescription" TEXT,
+        "short_description" TEXT,
+        "description" TEXT,
+        "imageUrl" TEXT,
+        "image_url" TEXT,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "is_active" BOOLEAN NOT NULL DEFAULT true,
+        "isFeatured" BOOLEAN NOT NULL DEFAULT false,
+        "is_featured" BOOLEAN NOT NULL DEFAULT false,
+        "sortOrder" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "services_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "reviews" (
+        "id" TEXT NOT NULL,
+        "productId" TEXT NOT NULL,
+        "product_id" TEXT,
+        "userId" TEXT,
+        "user_id" TEXT,
+        "userName" TEXT NOT NULL,
+        "user_name" TEXT,
+        "rating" INTEGER NOT NULL DEFAULT 5,
+        "title" TEXT,
+        "comment" TEXT NOT NULL,
+        "verifiedPurchase" BOOLEAN NOT NULL DEFAULT false,
+        "verified_purchase" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "reviews_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    await rawPrisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "coupons" (
+        "id" TEXT NOT NULL,
+        "code" TEXT NOT NULL,
+        "description" TEXT,
+        "type" TEXT NOT NULL DEFAULT 'PERCENTAGE',
+        "discountValue" DECIMAL(10,2) NOT NULL,
+        "discount_value" DECIMAL(10,2),
+        "minOrderAmount" DECIMAL(10,2) DEFAULT 0,
+        "min_order_amount" DECIMAL(10,2),
+        "maxDiscount" DECIMAL(10,2),
+        "max_discount" DECIMAL(10,2),
+        "usageLimit" INTEGER,
+        "usage_limit" INTEGER,
+        "usageCount" INTEGER NOT NULL DEFAULT 0,
+        "usage_count" INTEGER NOT NULL DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "is_active" BOOLEAN NOT NULL DEFAULT true,
+        "startDate" TIMESTAMP(3),
+        "endDate" TIMESTAMP(3),
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "coupons_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {
+    });
+    const alterColStatements = [
+      // custom_orders
+      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "customOrderName" TEXT;`,
+      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "custom_order_name" TEXT;`,
+      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;`,
+      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "image_url" TEXT;`,
+      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "custom_orders" ADD COLUMN IF NOT EXISTS "is_public" BOOLEAN NOT NULL DEFAULT false;`,
+      // products
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "hasSizes" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "has_sizes" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "hasColours" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "has_colours" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "requiresCustomization" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "requires_customization" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "requiresImageUpload" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "requires_image_upload" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "minimumImageUploads" INTEGER DEFAULT 1;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "minimum_image_uploads" INTEGER DEFAULT 1;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "maximumImageUploads" INTEGER DEFAULT 5;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "maximum_image_uploads" INTEGER DEFAULT 5;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "specifications" JSONB;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "weight" DECIMAL(8,2);`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "length" DECIMAL(8,2);`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "width" DECIMAL(8,2);`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "height" DECIMAL(8,2);`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "seoTitle" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "seo_title" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "seoDescription" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "seo_description" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "metaDescription" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "meta_description" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "shortDescription" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "short_description" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "image_url" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "discountPercentage" DECIMAL(5,2) DEFAULT 0;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "discount_percentage" DECIMAL(5,2) DEFAULT 0;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "taxPercentage" DECIMAL(5,2) DEFAULT 0;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "tax_percentage" DECIMAL(5,2) DEFAULT 0;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "stockQuantity" INTEGER NOT NULL DEFAULT 10;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "stock_quantity" INTEGER NOT NULL DEFAULT 10;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "lowStockThreshold" INTEGER DEFAULT 5;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "low_stock_threshold" INTEGER DEFAULT 5;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "is_active" BOOLEAN NOT NULL DEFAULT true;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "isFeatured" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "is_featured" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "isBestSeller" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "is_best_seller" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "isNewArrival" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "is_new_arrival" BOOLEAN NOT NULL DEFAULT false;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "categoryId" TEXT;`,
+      `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "category_id" TEXT;`,
+      // product_variants
+      `ALTER TABLE "product_variants" ADD COLUMN IF NOT EXISTS "size" TEXT;`,
+      `ALTER TABLE "product_variants" ADD COLUMN IF NOT EXISTS "colour" TEXT;`,
+      `ALTER TABLE "product_variants" ADD COLUMN IF NOT EXISTS "wattage" TEXT;`,
+      `ALTER TABLE "product_variants" ADD COLUMN IF NOT EXISTS "attributes" JSONB;`,
+      `ALTER TABLE "product_variants" ADD COLUMN IF NOT EXISTS "stockQuantity" INTEGER NOT NULL DEFAULT 10;`,
+      `ALTER TABLE "product_variants" ADD COLUMN IF NOT EXISTS "stock_quantity" INTEGER NOT NULL DEFAULT 10;`,
+      // orders
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "orderNumber" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "order_number" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "userId" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "user_id" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shippingProvider" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shipping_provider" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "awbNumber" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "awb_number" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "trackingNumber" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tracking_number" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shipmentId" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shipment_id" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "estimatedDelivery" TIMESTAMP(3);`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "estimated_delivery" TIMESTAMP(3);`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shipmentStatus" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shipment_status" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "pickupRequested" BOOLEAN DEFAULT false;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "pickup_requested" BOOLEAN DEFAULT false;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "labelUrl" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "label_url" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "trackingUrl" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tracking_url" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "manifestUrl" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "manifest_url" TEXT;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "lastTrackingUpdate" TIMESTAMP(3);`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "last_tracking_update" TIMESTAMP(3);`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "trackingHistory" JSONB;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tracking_history" JSONB;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shippingAddress" JSONB;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shipping_address" JSONB;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "billingAddress" JSONB;`,
+      `ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "billing_address" JSONB;`,
+      // order_items
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "selectedSize" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "selected_size" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "selectedColour" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "selected_colour" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "selectedWattage" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "selected_wattage" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "customizationText" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "customization_text" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "productTitle" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "product_title" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;`,
+      `ALTER TABLE "order_items" ADD COLUMN IF NOT EXISTS "image_url" TEXT;`
     ];
-    for (const sql of reviewAlters) {
+    for (const sql of alterColStatements) {
       try {
         await rawPrisma.$executeRawUnsafe(sql);
       } catch (_) {
       }
     }
-    const reviewSync = [
-      `UPDATE "custom_order_reviews" SET "userName" = "user_name" WHERE "userName" IS NULL AND "user_name" IS NOT NULL;`,
-      `UPDATE "custom_order_reviews" SET "user_name" = "userName" WHERE "user_name" IS NULL AND "userName" IS NOT NULL;`,
-      `UPDATE "custom_order_reviews" SET "customOrderId" = "custom_order_id" WHERE "customOrderId" IS NULL AND "custom_order_id" IS NOT NULL;`,
-      `UPDATE "custom_order_reviews" SET "custom_order_id" = "customOrderId" WHERE "custom_order_id" IS NULL AND "customOrderId" IS NOT NULL;`,
-      `UPDATE "custom_order_reviews" SET "isApproved" = "is_approved" WHERE "isApproved" IS NOT TRUE AND "is_approved" IS TRUE;`,
-      `UPDATE "custom_order_reviews" SET "is_approved" = "isApproved" WHERE "is_approved" IS NOT TRUE AND "isApproved" IS TRUE;`,
-      `UPDATE "custom_order_reviews" SET "isApproved" = true, "status" = 'APPROVED' WHERE "status" = 'PENDING' OR "isApproved" IS FALSE;`
+    const syncStatements = [
+      `UPDATE "custom_orders" SET "customOrderName" = "custom_order_name" WHERE "customOrderName" IS NULL AND "custom_order_name" IS NOT NULL;`,
+      `UPDATE "custom_orders" SET "custom_order_name" = "customOrderName" WHERE "custom_order_name" IS NULL AND "customOrderName" IS NOT NULL;`,
+      `UPDATE "custom_orders" SET "imageUrl" = "image_url" WHERE "imageUrl" IS NULL AND "image_url" IS NOT NULL;`,
+      `UPDATE "custom_orders" SET "image_url" = "imageUrl" WHERE "image_url" IS NULL AND "imageUrl" IS NOT NULL;`,
+      `UPDATE "custom_orders" SET "isPublic" = "is_public" WHERE "isPublic" IS NOT TRUE AND "is_public" IS TRUE;`,
+      `UPDATE "custom_orders" SET "is_public" = "isPublic" WHERE "is_public" IS NOT TRUE AND "isPublic" IS TRUE;`,
+      `UPDATE "products" SET "hasSizes" = "has_sizes" WHERE "hasSizes" IS NOT TRUE AND "has_sizes" IS TRUE;`,
+      `UPDATE "products" SET "has_sizes" = "hasSizes" WHERE "has_sizes" IS NOT TRUE AND "hasSizes" IS TRUE;`,
+      `UPDATE "products" SET "hasColours" = "has_colours" WHERE "hasColours" IS NOT TRUE AND "has_colours" IS TRUE;`,
+      `UPDATE "products" SET "has_colours" = "hasColours" WHERE "has_colours" IS NOT TRUE AND "hasColours" IS TRUE;`,
+      `UPDATE "products" SET "imageUrl" = "image_url" WHERE "imageUrl" IS NULL AND "image_url" IS NOT NULL;`,
+      `UPDATE "products" SET "image_url" = "imageUrl" WHERE "image_url" IS NULL AND "imageUrl" IS NOT NULL;`,
+      `UPDATE "products" SET "categoryId" = "category_id" WHERE "categoryId" IS NULL AND "category_id" IS NOT NULL;`,
+      `UPDATE "products" SET "category_id" = "categoryId" WHERE "category_id" IS NULL AND "categoryId" IS NOT NULL;`,
+      `UPDATE "orders" SET "orderNumber" = "order_number" WHERE "orderNumber" IS NULL AND "order_number" IS NOT NULL;`,
+      `UPDATE "orders" SET "order_number" = "orderNumber" WHERE "order_number" IS NULL AND "orderNumber" IS NOT NULL;`,
+      `UPDATE "orders" SET "userId" = "user_id" WHERE "userId" IS NULL AND "user_id" IS NOT NULL;`,
+      `UPDATE "orders" SET "user_id" = "userId" WHERE "user_id" IS NULL AND "userId" IS NOT NULL;`
     ];
-    for (const sql of reviewSync) {
+    for (const sql of syncStatements) {
       try {
         await rawPrisma.$executeRawUnsafe(sql);
       } catch (_) {
@@ -1987,6 +2522,11 @@ async function ensureDbSchema() {
       `CREATE INDEX IF NOT EXISTS "custom_order_reviews_order_idx" ON "custom_order_reviews"("customOrderId");`,
       `CREATE INDEX IF NOT EXISTS "custom_order_reviews_isApproved_createdAt_idx" ON "custom_order_reviews"("isApproved", "createdAt" DESC);`,
       `CREATE INDEX IF NOT EXISTS "custom_order_reviews_status_idx" ON "custom_order_reviews"("status");`,
+      `CREATE INDEX IF NOT EXISTS "products_categoryId_idx" ON "products"("categoryId");`,
+      `CREATE INDEX IF NOT EXISTS "products_isActive_idx" ON "products"("isActive");`,
+      `CREATE INDEX IF NOT EXISTS "product_images_productId_idx" ON "product_images"("productId");`,
+      `CREATE INDEX IF NOT EXISTS "product_variants_productId_idx" ON "product_variants"("productId");`,
+      `CREATE INDEX IF NOT EXISTS "product_lamp_options_product_id_idx" ON "product_lamp_options"("product_id");`,
       `CREATE INDEX IF NOT EXISTS "orders_razorpayOrderId_idx" ON "orders"("razorpayOrderId");`,
       `CREATE INDEX IF NOT EXISTS "orders_awbNumber_idx" ON "orders"("awbNumber");`,
       `CREATE INDEX IF NOT EXISTS "orders_trackingNumber_idx" ON "orders"("trackingNumber");`,
@@ -1994,9 +2534,9 @@ async function ensureDbSchema() {
       `CREATE INDEX IF NOT EXISTS "orders_paymentStatus_idx" ON "orders"("paymentStatus");`,
       `CREATE INDEX IF NOT EXISTS "orders_userId_paymentStatus_idx" ON "orders"("userId", "paymentStatus");`,
       `CREATE INDEX IF NOT EXISTS "orders_createdAt_idx" ON "orders"("createdAt" DESC);`,
+      `CREATE INDEX IF NOT EXISTS "order_items_orderId_idx" ON "order_items"("orderId");`,
       `CREATE INDEX IF NOT EXISTS "order_items_variantId_idx" ON "order_items"("variantId");`,
       `CREATE INDEX IF NOT EXISTS "addresses_userId_isDefault_idx" ON "addresses"("userId", "isDefault");`,
-      `CREATE INDEX IF NOT EXISTS "email_verification_otps_lookup_idx" ON "email_verification_otps"("email", "usedAt", "expiresAt");`,
       `CREATE INDEX IF NOT EXISTS "users_phone_idx" ON "users"("phone");`
     ];
     for (const sql of indexList) {
@@ -2005,10 +2545,94 @@ async function ensureDbSchema() {
       } catch (_) {
       }
     }
+    await seedDatabaseIfEmpty();
     dbSchemaEnsured = true;
-    console.log("[Database] custom_orders and reviews schema verified & ensured successfully.");
+    console.log("[Database] Database schema verified, auto-migrated, and ensured successfully.");
   } catch (err) {
-    console.warn("[Database] Notice during custom_orders schema verification:", err?.message || err);
+    console.warn("[Database] Notice during database schema verification:", err?.message || err);
+  }
+}
+async function seedDatabaseIfEmpty() {
+  if (!hasDatabaseUrl) return;
+  try {
+    const catCountRes = await rawPrisma.$queryRawUnsafe('SELECT COUNT(*) as count FROM "categories"').catch(() => null);
+    const catCount = Number(catCountRes?.[0]?.count || 0);
+    if (catCount === 0 && Array.isArray(INITIAL_CATEGORIES)) {
+      console.log("[Database] Categories table empty, seeding INITIAL_CATEGORIES...");
+      for (const cat of INITIAL_CATEGORIES) {
+        await rawPrisma.$executeRawUnsafe(
+          `INSERT INTO "categories" ("id", "name", "slug", "description", "imageUrl", "image_url", "isActive", "is_active")
+           VALUES ($1, $2, $3, $4, $5, $5, true, true)
+           ON CONFLICT ("id") DO NOTHING`,
+          cat.id,
+          cat.name,
+          cat.slug,
+          cat.description || null,
+          cat.imageUrl || null
+        ).catch(() => {
+        });
+      }
+    }
+    const prodCountRes = await rawPrisma.$queryRawUnsafe('SELECT COUNT(*) as count FROM "products"').catch(() => null);
+    const prodCount = Number(prodCountRes?.[0]?.count || 0);
+    if (prodCount === 0 && Array.isArray(INITIAL_PRODUCTS)) {
+      console.log("[Database] Products table empty, seeding INITIAL_PRODUCTS...");
+      for (const prod of INITIAL_PRODUCTS) {
+        const title = prod.title || prod.name;
+        const mainImg = Array.isArray(prod.images) && prod.images.length > 0 ? prod.images[0] : prod.imageUrl || null;
+        await rawPrisma.$executeRawUnsafe(
+          `INSERT INTO "products" (
+            "id", "name", "slug", "sku", "shortDescription", "short_description", "description",
+            "price", "mrp", "discountPercentage", "discount_percentage", "taxPercentage", "tax_percentage",
+            "stockQuantity", "stock_quantity", "lowStockThreshold", "low_stock_threshold",
+            "imageUrl", "image_url", "isActive", "is_active", "isFeatured", "is_featured",
+            "isBestSeller", "is_best_seller", "isNewArrival", "is_new_arrival",
+            "categoryId", "category_id", "hasSizes", "has_sizes", "hasColours", "has_colours"
+          ) VALUES (
+            $1, $2, $3, $4, $5, $5, $6,
+            $7, $8, $9, $9, $10, $10,
+            $11, $11, $12, $12,
+            $13, $13, true, true, $14, $14,
+            $15, $15, $16, $16,
+            $17, $17, $18, $18, $19, $19
+          ) ON CONFLICT ("id") DO NOTHING`,
+          prod.id,
+          title,
+          prod.slug,
+          prod.sku,
+          prod.shortDescription || null,
+          prod.description || null,
+          prod.price,
+          prod.mrp || prod.price,
+          prod.discountPercentage || 0,
+          prod.taxPercentage || 0,
+          prod.stockQuantity ?? 10,
+          prod.lowStockThreshold ?? 5,
+          mainImg,
+          Boolean(prod.isFeatured),
+          Boolean(prod.isBestSeller),
+          Boolean(prod.isNewArrival),
+          prod.categoryId || null,
+          Boolean(prod.hasSizes),
+          Boolean(prod.hasColours)
+        ).catch(() => {
+        });
+        if (mainImg) {
+          await rawPrisma.$executeRawUnsafe(
+            `INSERT INTO "product_images" ("id", "productId", "product_id", "url", "altText", "alt_text", "sortOrder", "sort_order", "isPrimary", "is_primary")
+             VALUES ($1, $2, $2, $3, $4, $4, 0, 0, true, true)
+             ON CONFLICT ("id") DO NOTHING`,
+            `img-${prod.id}-0`,
+            prod.id,
+            mainImg,
+            title
+          ).catch(() => {
+          });
+        }
+      }
+    }
+  } catch (seedErr) {
+    console.warn("[Database] Notice during database initial seeding:", seedErr?.message || seedErr);
   }
 }
 function normalizeCustomOrder(row) {
@@ -2850,6 +3474,182 @@ async function executeResilientCustomOrderReviewQuery(prop, args) {
   }
   return null;
 }
+async function executeResilientProductQuery(prop, args) {
+  const memoryHandler = memoryStore.createModelHandler("product");
+  if (hasDatabaseUrl) {
+    if (!dbSchemaEnsured) {
+      await ensureDbSchema().catch(() => {
+      });
+    }
+    try {
+      const rawModel = rawPrisma.product;
+      if (rawModel && typeof rawModel[prop] === "function") {
+        const result = await rawModel[prop](...args);
+        if (prop === "create" || prop === "update" || prop === "upsert" || prop === "delete") {
+          try {
+            const memFn = memoryHandler[prop];
+            if (typeof memFn === "function") {
+              await memFn(...args);
+            }
+          } catch (_) {
+          }
+          try {
+            memoryStore.persistToSnapshot();
+          } catch (_) {
+          }
+        }
+        return result;
+      }
+    } catch (err) {
+      const errMsg = String(err?.message || err);
+      const isMissing = err?.code === "P2021" || errMsg.includes("does not exist") || errMsg.includes("relation");
+      if (isMissing) {
+        try {
+          await ensureDbSchema();
+          const retry = await rawPrisma.product[prop](...args);
+          return retry;
+        } catch (_) {
+        }
+      }
+    }
+  }
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      if (prop === "findMany") {
+        const { data, error } = await supabaseAdmin.from("products").select("*");
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+      } else if (prop === "findUnique" || prop === "findFirst") {
+        const whereId = args[0]?.where?.id || args[0]?.where?.slug;
+        if (whereId) {
+          const col = args[0]?.where?.id ? "id" : "slug";
+          const { data, error } = await supabaseAdmin.from("products").select("*").eq(col, whereId).maybeSingle();
+          if (!error && data) return data;
+        }
+      }
+    } catch (_) {
+    }
+  }
+  const fn = memoryHandler[prop];
+  if (typeof fn === "function") {
+    return fn(...args);
+  }
+  return null;
+}
+async function executeResilientOrderQuery(prop, args) {
+  const memoryHandler = memoryStore.createModelHandler("order");
+  if (hasDatabaseUrl) {
+    if (!dbSchemaEnsured) {
+      await ensureDbSchema().catch(() => {
+      });
+    }
+    try {
+      const rawModel = rawPrisma.order;
+      if (rawModel && typeof rawModel[prop] === "function") {
+        const result = await rawModel[prop](...args);
+        if (prop === "create" || prop === "update" || prop === "upsert" || prop === "delete") {
+          try {
+            const memFn = memoryHandler[prop];
+            if (typeof memFn === "function") {
+              await memFn(...args);
+            }
+          } catch (_) {
+          }
+          try {
+            memoryStore.persistToSnapshot();
+          } catch (_) {
+          }
+        }
+        return result;
+      }
+    } catch (err) {
+      const errMsg = String(err?.message || err);
+      const isMissing = err?.code === "P2021" || errMsg.includes("does not exist") || errMsg.includes("relation");
+      if (isMissing) {
+        try {
+          await ensureDbSchema();
+          const retry = await rawPrisma.order[prop](...args);
+          return retry;
+        } catch (_) {
+        }
+      }
+    }
+  }
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      if (prop === "findMany") {
+        const filter = args[0]?.where;
+        let query = supabaseAdmin.from("orders").select("*");
+        if (filter?.userId) {
+          query = query.eq("user_id", filter.userId);
+        }
+        const { data, error } = await query;
+        if (!error && Array.isArray(data)) {
+          return data;
+        }
+      } else if (prop === "findUnique" || prop === "findFirst") {
+        const whereId = args[0]?.where?.id || args[0]?.where?.orderNumber;
+        if (whereId) {
+          const col = args[0]?.where?.id ? "id" : "order_number";
+          const { data, error } = await supabaseAdmin.from("orders").select("*").eq(col, whereId).maybeSingle();
+          if (!error && data) return data;
+        }
+      }
+    } catch (_) {
+    }
+  }
+  const fn = memoryHandler[prop];
+  if (typeof fn === "function") {
+    return fn(...args);
+  }
+  return null;
+}
+async function executeResilientCategoryQuery(prop, args) {
+  const memoryHandler = memoryStore.createModelHandler("category");
+  if (hasDatabaseUrl) {
+    if (!dbSchemaEnsured) {
+      await ensureDbSchema().catch(() => {
+      });
+    }
+    try {
+      const rawModel = rawPrisma.category;
+      if (rawModel && typeof rawModel[prop] === "function") {
+        const result = await rawModel[prop](...args);
+        if (prop === "create" || prop === "update" || prop === "upsert" || prop === "delete") {
+          try {
+            const memFn = memoryHandler[prop];
+            if (typeof memFn === "function") {
+              await memFn(...args);
+            }
+          } catch (_) {
+          }
+          try {
+            memoryStore.persistToSnapshot();
+          } catch (_) {
+          }
+        }
+        return result;
+      }
+    } catch (err) {
+      const errMsg = String(err?.message || err);
+      const isMissing = err?.code === "P2021" || errMsg.includes("does not exist") || errMsg.includes("relation");
+      if (isMissing) {
+        try {
+          await ensureDbSchema();
+          const retry = await rawPrisma.category[prop](...args);
+          return retry;
+        } catch (_) {
+        }
+      }
+    }
+  }
+  const fn = memoryHandler[prop];
+  if (typeof fn === "function") {
+    return fn(...args);
+  }
+  return null;
+}
 function createModelProxy(modelName) {
   if (typeof modelName !== "string") {
     return void 0;
@@ -2866,6 +3666,15 @@ function createModelProxy(modelName) {
         }
         if (modelName === "customOrderReview") {
           return executeResilientCustomOrderReviewQuery(prop, args);
+        }
+        if (modelName === "product") {
+          return executeResilientProductQuery(prop, args);
+        }
+        if (modelName === "order") {
+          return executeResilientOrderQuery(prop, args);
+        }
+        if (modelName === "category") {
+          return executeResilientCategoryQuery(prop, args);
         }
         if (!hasDatabaseUrl) {
           const fn = memoryHandler[prop];
@@ -3085,6 +3894,8 @@ var productCreateSchema = z.object({
   requiresImageUpload: z.boolean().default(false),
   minimumImageUploads: z.coerce.number().int().min(1, "Minimum uploads must be at least 1").default(1),
   maximumImageUploads: z.coerce.number().int().min(1, "Maximum uploads must be at least 1").max(20, "Maximum uploads cannot exceed 20").default(5),
+  hasSizes: z.boolean().default(false),
+  hasColours: z.boolean().default(false),
   categoryId: z.string().min(1, "Category selection is required"),
   seoTitle: z.string().trim().optional().nullable(),
   seoDescription: z.string().trim().optional().nullable(),
@@ -3122,6 +3933,8 @@ var productUpdateSchema = z.object({
   requiresImageUpload: z.boolean().optional(),
   minimumImageUploads: z.coerce.number().int().min(1).optional(),
   maximumImageUploads: z.coerce.number().int().min(1).max(20).optional(),
+  hasSizes: z.boolean().optional(),
+  hasColours: z.boolean().optional(),
   categoryId: z.string().min(1).optional(),
   seoTitle: z.string().trim().optional().nullable(),
   seoDescription: z.string().trim().optional().nullable(),
@@ -3133,6 +3946,9 @@ var productVariantCreateSchema = z.object({
   price: z.coerce.number().min(0, "Price must be 0 or greater"),
   mrp: z.coerce.number().min(0, "MRP must be 0 or greater"),
   stockQuantity: z.coerce.number().int().min(0).default(0),
+  size: z.string().trim().optional().nullable(),
+  colour: z.string().trim().optional().nullable(),
+  wattage: z.string().trim().optional().nullable(),
   attributes: z.record(z.string(), z.any()).optional().nullable(),
   isActive: z.boolean().default(true)
 });
@@ -3140,7 +3956,12 @@ var productVariantUpdateSchema = productVariantCreateSchema.partial();
 var cartItemAddSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
   variantId: z.string().trim().optional().nullable(),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1").default(1)
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1").default(1),
+  selectedSize: z.string().trim().optional().nullable(),
+  selectedColour: z.string().trim().optional().nullable(),
+  selectedWattage: z.string().trim().optional().nullable(),
+  customizationText: z.string().trim().optional().nullable(),
+  customizationImages: z.array(z.any()).optional().nullable()
 });
 var cartItemUpdateSchema = z.object({
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1")
@@ -4969,6 +5790,7 @@ function setPaginationHeaders(res, meta) {
 import crypto2 from "crypto";
 import bcrypt2 from "bcryptjs";
 import jwt from "jsonwebtoken";
+import "dotenv/config";
 var KNOWN_INSECURE_SECRETS = /* @__PURE__ */ new Set([
   "super-secret-jwt-key-change-in-production",
   "change_this_secret_in_production",
@@ -5002,8 +5824,9 @@ function resolveJwtSecret() {
     return RAW_JWT_SECRET.trim();
   }
   if (isProduction && !RAW_JWT_SECRET) {
-    console.warn("[SECURITY NOTICE] JWT_SECRET is not configured in production environment. Generating a 256-bit cryptographically secure ephemeral secret for this process.");
-    return crypto2.randomBytes(32).toString("hex");
+    throw new Error(
+      "[FATAL SECURITY ERROR] JWT_SECRET must be configured in production. Refusing to start with an ephemeral signing key because it would invalidate sessions across instances."
+    );
   }
   if (isWeak) {
     return crypto2.randomBytes(32).toString("hex");
@@ -5649,6 +6472,35 @@ function formatPrismaProductResponse(p) {
       name: p.category.name,
       slug: p.category.slug
     } : null,
+    hasSizes: Boolean(p.hasSizes),
+    hasColours: Boolean(p.hasColours),
+    sizes: (p.lampOptions || []).filter((option) => String(option.optionType || "").toUpperCase().includes("SIZ") && option.isActive !== false).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((option) => ({
+      id: option.id,
+      value: option.optionValue,
+      priceDelta: Number(option.priceDelta || 0),
+      sortOrder: option.sortOrder ?? 0,
+      isActive: option.isActive !== false
+    })),
+    colours: (p.lampOptions || []).filter((option) => {
+      const type = String(option.optionType || "").toUpperCase();
+      return option.isActive !== false && !type.includes("SIZ") && (type.includes("COL") || type.includes("COLOR") || type.includes("COLOUR") || type.includes("LIGHT"));
+    }).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((option) => ({
+      id: option.id,
+      value: option.optionValue,
+      priceDelta: Number(option.priceDelta || 0),
+      sortOrder: option.sortOrder ?? 0,
+      isActive: option.isActive !== false
+    })),
+    wattages: (p.lampOptions || []).filter((option) => {
+      const type = String(option.optionType || "").toUpperCase();
+      return option.isActive !== false && !type.includes("SIZ") && !type.includes("COL") && !type.includes("LIGHT") && (type.includes("WAT") || type.includes("POWER") || type.includes("BULB"));
+    }).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((option) => ({
+      id: option.id,
+      value: option.optionValue,
+      priceDelta: Number(option.priceDelta || 0),
+      sortOrder: option.sortOrder ?? 0,
+      isActive: option.isActive !== false
+    })),
     variants: (p.variants || []).map((v) => ({
       id: v.id,
       sku: v.sku,
@@ -5656,6 +6508,7 @@ function formatPrismaProductResponse(p) {
       price: Number(v.price),
       mrp: Number(v.mrp),
       stockQuantity: v.stockQuantity,
+      size: v.size || v.attributes?.size || null,
       colour: v.colour || v.attributes?.colour || null,
       wattage: v.wattage || v.attributes?.wattage || null,
       attributes: v.attributes || {},
@@ -6045,8 +6898,47 @@ async function formatUserResponse(user) {
   const [res] = await batchFormatUserResponses([user]);
   return res;
 }
+function serializeLampOptionPriceInput(input) {
+  const productId = String(input?.productId || "");
+  const basePrice = Number.isFinite(Number(input?.basePrice)) ? Number(input?.basePrice) : 0;
+  const variantId = String(input?.variantId || "");
+  const selectedSize = String(input?.selectedSize || "").trim().toLowerCase();
+  const selectedColour = String(input?.selectedColour || "").trim().toLowerCase();
+  const selectedWattage = String(input?.selectedWattage || "").trim().toLowerCase();
+  return [productId, variantId, String(basePrice), selectedSize, selectedColour, selectedWattage].join("|");
+}
+var LampOptionPriceMap = class _LampOptionPriceMap extends Map {
+  static normalizeKey(input) {
+    return serializeLampOptionPriceInput(input);
+  }
+  get(key) {
+    if (!key || typeof key !== "object") {
+      return super.get(key);
+    }
+    const normalizedKey = _LampOptionPriceMap.normalizeKey(key);
+    for (const [entryKey, value] of this.entries()) {
+      if (_LampOptionPriceMap.normalizeKey(entryKey) === normalizedKey) {
+        return value;
+      }
+    }
+    return void 0;
+  }
+  has(key) {
+    return this.get(key) !== void 0;
+  }
+  set(key, value) {
+    const normalizedKey = _LampOptionPriceMap.normalizeKey(key);
+    for (const [entryKey] of this.entries()) {
+      if (_LampOptionPriceMap.normalizeKey(entryKey) === normalizedKey) {
+        super.delete(entryKey);
+        break;
+      }
+    }
+    return super.set(key, value);
+  }
+};
 async function batchCalculateLampOptionPrices(items) {
-  const resultMap = /* @__PURE__ */ new Map();
+  const resultMap = new LampOptionPriceMap();
   if (!items || items.length === 0) return resultMap;
   const productIds = Array.from(new Set(items.map((i) => i.productId).filter(Boolean)));
   const variantIds = Array.from(new Set(items.map((i) => i.variantId).filter(Boolean)));
@@ -6079,7 +6971,8 @@ async function batchCalculateLampOptionPrices(items) {
     lampOptionsByProdId.set(opt.productId, list);
   });
   for (const item of items) {
-    const { productId, basePrice, selectedColour, selectedWattage, variantId } = item;
+    const { productId, basePrice, selectedSize, selectedColour, selectedWattage, variantId } = item;
+    const normSize = selectedSize ? String(selectedSize).trim() : null;
     const normColour = selectedColour ? String(selectedColour).trim() : null;
     const normWattage = selectedWattage ? String(selectedWattage).trim() : null;
     let matchingVariant = null;
@@ -6089,31 +6982,36 @@ async function batchCalculateLampOptionPrices(items) {
         matchingVariant = null;
       }
     }
-    if (!matchingVariant && (normColour || normWattage)) {
+    if (!matchingVariant && (normSize || normColour || normWattage)) {
       const prodVariants = variantsByProdId.get(productId) || [];
       matchingVariant = prodVariants.find((v) => {
+        const vSize = (v.size || v.attributes?.size || "").trim();
         const vCol = (v.colour || v.attributes?.colour || "").trim();
         const vWat = (v.wattage || v.attributes?.wattage || "").trim();
+        const sizeMatch = !normSize || vSize.toLowerCase() === normSize.toLowerCase();
         const colMatch = !normColour || vCol.toLowerCase() === normColour.toLowerCase();
         const watMatch = !normWattage || vWat.toLowerCase() === normWattage.toLowerCase();
-        return colMatch && watMatch;
+        return sizeMatch && colMatch && watMatch;
       });
     }
     if (matchingVariant) {
       const vPrice = Number(matchingVariant.price);
       resultMap.set(item, {
         unitPrice: vPrice,
+        sizeDelta: 0,
         colourDelta: 0,
         wattageDelta: 0,
+        selectedSize: matchingVariant.size || normSize || void 0,
         selectedColour: matchingVariant.colour || normColour || void 0,
         selectedWattage: matchingVariant.wattage || normWattage || void 0,
         variantId: matchingVariant.id
       });
       continue;
     }
-    if (!normColour && !normWattage) {
+    if (!normSize && !normColour && !normWattage) {
       resultMap.set(item, {
         unitPrice: basePrice,
+        sizeDelta: 0,
         colourDelta: 0,
         wattageDelta: 0,
         variantId: variantId || void 0
@@ -6121,13 +7019,24 @@ async function batchCalculateLampOptionPrices(items) {
       continue;
     }
     const options = lampOptionsByProdId.get(productId) || [];
+    let sizeDelta = 0;
     let colourDelta = 0;
     let wattageDelta = 0;
+    let verifiedSize = normSize || void 0;
     let verifiedColour = normColour || void 0;
     let verifiedWattage = normWattage || void 0;
+    if (normSize) {
+      const sMatch = options.find(
+        (o) => String(o.optionType).toUpperCase().includes("SIZ") && String(o.optionValue).trim().toLowerCase() === normSize.toLowerCase()
+      );
+      if (sMatch) {
+        sizeDelta = Number(sMatch.priceDelta || 0);
+        verifiedSize = sMatch.optionValue;
+      }
+    }
     if (normColour) {
       const cMatch = options.find(
-        (o) => String(o.optionType).toUpperCase().includes("COL") && String(o.optionValue).trim().toLowerCase() === normColour.toLowerCase()
+        (o) => (String(o.optionType).toUpperCase().includes("COL") || String(o.optionType).toUpperCase().includes("LIGHT")) && String(o.optionValue).trim().toLowerCase() === normColour.toLowerCase()
       );
       if (cMatch) {
         colourDelta = Number(cMatch.priceDelta || 0);
@@ -6143,11 +7052,13 @@ async function batchCalculateLampOptionPrices(items) {
         verifiedWattage = wMatch.optionValue;
       }
     }
-    const unitPrice = basePrice + colourDelta + wattageDelta;
+    const unitPrice = basePrice + sizeDelta + colourDelta + wattageDelta;
     resultMap.set(item, {
       unitPrice,
+      sizeDelta,
       colourDelta,
       wattageDelta,
+      selectedSize: verifiedSize,
       selectedColour: verifiedColour,
       selectedWattage: verifiedWattage,
       variantId: variantId || void 0
@@ -6155,8 +7066,8 @@ async function batchCalculateLampOptionPrices(items) {
   }
   return resultMap;
 }
-async function calculateLampOptionPrice(productId, basePrice, selectedColour, selectedWattage, variantId) {
-  const item = { productId, basePrice, selectedColour, selectedWattage, variantId };
+async function calculateLampOptionPrice(productId, basePrice, selectedColour, selectedWattage, variantId, selectedSize) {
+  const item = { productId, basePrice, selectedSize, selectedColour, selectedWattage, variantId };
   const resMap = await batchCalculateLampOptionPrices([item]);
   return resMap.get(item);
 }
@@ -6225,11 +7136,13 @@ async function getFormattedCart(userId) {
     const p = ci.product;
     const v = ci.variant;
     const basePrice = v ? Number(v.price) : p ? Number(p.price) : 0;
+    const effectiveSize = ci.selectedSize || v?.size || v?.attributes?.size || null;
     const effectiveColour = ci.selectedColour || v?.colour || v?.attributes?.colour || null;
     const effectiveWattage = ci.selectedWattage || v?.wattage || v?.attributes?.wattage || null;
     return {
       productId: ci.productId,
       basePrice,
+      selectedSize: effectiveSize,
       selectedColour: effectiveColour,
       selectedWattage: effectiveWattage,
       variantId: ci.variantId || void 0
@@ -6241,20 +7154,22 @@ async function getFormattedCart(userId) {
     const v = ci.variant;
     const basePrice = v ? Number(v.price) : p ? Number(p.price) : 0;
     const baseMrp = v ? Number(v.mrp) : p ? Number(p.mrp) : basePrice;
+    let effectiveSize = ci.selectedSize || v?.size || v?.attributes?.size || null;
     let effectiveColour = ci.selectedColour || v?.colour || v?.attributes?.colour || null;
     let effectiveWattage = ci.selectedWattage || v?.wattage || v?.attributes?.wattage || null;
     let itemPrice = basePrice;
-    if (effectiveColour || effectiveWattage) {
+    if (effectiveSize || effectiveColour || effectiveWattage) {
       const priceCalc = calculatedPricesMap.get(lampPriceInputs[idx]);
       if (priceCalc) {
         itemPrice = priceCalc.unitPrice;
+        if (priceCalc.selectedSize) effectiveSize = priceCalc.selectedSize;
         if (priceCalc.selectedColour) effectiveColour = priceCalc.selectedColour;
         if (priceCalc.selectedWattage) effectiveWattage = priceCalc.selectedWattage;
       }
     }
     const itemMrp = baseMrp + Math.max(0, itemPrice - basePrice);
     const itemTotal = itemPrice * ci.quantity;
-    const availableStock = v ? v.stockQuantity ?? 100 : p ? p.stockQuantity && p.stockQuantity > 0 ? p.stockQuantity : 100 : 100;
+    const availableStock = v ? v.stockQuantity ?? 0 : p ? p.stockQuantity ?? 0 : 0;
     const isAvailable = p ? p.isActive !== false : true;
     const isStockSufficient = isAvailable && availableStock >= ci.quantity;
     const stockIssue = !isAvailable ? "Product is no longer available" : !isStockSufficient ? `Only ${availableStock} units available` : null;
@@ -6301,6 +7216,7 @@ async function getFormattedCart(userId) {
         images: [img],
         taxPercentage: itemTaxPercentage
       },
+      selectedSize: effectiveSize,
       selectedColour: effectiveColour,
       selectedWattage: effectiveWattage,
       customizationText: ci.customizationText || null,
@@ -6317,10 +7233,11 @@ async function getFormattedCart(userId) {
         sku: v.sku,
         price: Number(v.price),
         mrp: Number(v.mrp),
+        size: v.size || v.attributes?.size || null,
         colour: v.colour || v.attributes?.colour || null,
         wattage: v.wattage || v.attributes?.wattage || null,
         attributes: v.attributes || {},
-        stockQuantity: v.stockQuantity ?? 100
+        stockQuantity: v.stockQuantity ?? 0
       } : null
     };
   });
@@ -7401,6 +8318,7 @@ app.get("/api/privacy/export", requireAuthMiddleware, async (req, res) => {
             price: Number(i.price),
             quantity: i.quantity,
             customizationText: i.customizationText,
+            selectedSize: i.selectedSize,
             selectedColour: i.selectedColour,
             selectedWattage: i.selectedWattage,
             customizationImages: combinedImages
@@ -8116,7 +9034,11 @@ app.get("/api/products", async (req, res) => {
             orderBy: { sortOrder: "asc" }
           },
           variants: {
-            select: { id: true, sku: true, name: true, price: true, mrp: true, stockQuantity: true, colour: true, wattage: true, attributes: true, isActive: true }
+            select: { id: true, sku: true, name: true, price: true, mrp: true, stockQuantity: true, size: true, colour: true, wattage: true, attributes: true, isActive: true }
+          },
+          lampOptions: {
+            where: { isActive: true },
+            orderBy: { sortOrder: "asc" }
           },
           reviews: {
             select: { rating: true, comment: true, userName: true, createdAt: true }
@@ -8163,6 +9085,10 @@ app.get("/api/products/:id", async (req, res) => {
         category: true,
         images: { orderBy: { sortOrder: "asc" } },
         variants: true,
+        lampOptions: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" }
+        },
         reviews: { orderBy: { createdAt: "desc" } }
       }
     });
@@ -8214,7 +9140,9 @@ app.post("/api/products", requireAdminMiddleware, async (req, res) => {
     height,
     seoTitle,
     seoDescription,
-    metaDescription
+    metaDescription,
+    hasSizes,
+    hasColours
   } = parseResult.data;
   try {
     const targetCategoryId = categoryId ? String(categoryId).trim() : null;
@@ -8260,6 +9188,8 @@ app.post("/api/products", requireAdminMiddleware, async (req, res) => {
         requiresImageUpload: Boolean(requiresImageUpload),
         minimumImageUploads: minimumImageUploads !== void 0 ? Number(minimumImageUploads) : 1,
         maximumImageUploads: maximumImageUploads !== void 0 ? Number(maximumImageUploads) : 5,
+        hasSizes: Boolean(hasSizes),
+        hasColours: Boolean(hasColours),
         seoTitle: seoTitle || null,
         seoDescription: seoDescription || null,
         metaDescription: metaDescription || null
@@ -8279,7 +9209,7 @@ app.post("/api/products", requireAdminMiddleware, async (req, res) => {
     }
     const fullProduct = await prisma.product.findUnique({
       where: { id: newProduct.id },
-      include: { category: true, images: true, variants: true }
+      include: { category: true, images: true, variants: true, lampOptions: true }
     });
     invalidateProductListCache();
     return res.status(201).json(formatPrismaProductResponse(fullProduct));
@@ -8325,7 +9255,9 @@ app.put("/api/products/:id", requireAdminMiddleware, async (req, res) => {
     height,
     seoTitle,
     seoDescription,
-    metaDescription
+    metaDescription,
+    hasSizes,
+    hasColours
   } = parseResult.data;
   try {
     const existing = await prisma.product.findUnique({ where: { id } });
@@ -8370,6 +9302,8 @@ app.put("/api/products/:id", requireAdminMiddleware, async (req, res) => {
       requiresImageUpload: requiresImageUpload !== void 0 ? Boolean(requiresImageUpload) : existing.requiresImageUpload,
       minimumImageUploads: minimumImageUploads !== void 0 ? Number(minimumImageUploads) : existing.minimumImageUploads,
       maximumImageUploads: maximumImageUploads !== void 0 ? Number(maximumImageUploads) : existing.maximumImageUploads,
+      hasSizes: hasSizes !== void 0 ? Boolean(hasSizes) : existing.hasSizes,
+      hasColours: hasColours !== void 0 ? Boolean(hasColours) : existing.hasColours,
       isActive: isActive !== void 0 ? Boolean(isActive) : existing.isActive,
       seoTitle: seoTitle !== void 0 ? seoTitle : existing.seoTitle,
       seoDescription: seoDescription !== void 0 ? seoDescription : existing.seoDescription,
@@ -8396,7 +9330,7 @@ app.put("/api/products/:id", requireAdminMiddleware, async (req, res) => {
     }
     const fullProduct = await prisma.product.findUnique({
       where: { id },
-      include: { category: true, images: true, variants: true }
+      include: { category: true, images: true, variants: true, lampOptions: true }
     });
     invalidateProductListCache();
     return res.json(formatPrismaProductResponse(fullProduct));
@@ -8652,7 +9586,7 @@ app.get("/api/products/:id/variants", async (req, res) => {
 });
 app.post("/api/products/:id/variants", requireAdminMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { sku, name, price, mrp, stockQuantity, colour, wattage, attributes, isActive } = req.body;
+  const { sku, name, price, mrp, stockQuantity, size, colour, wattage, attributes, isActive } = req.body;
   if (!sku || !name || price === void 0) {
     return res.status(400).json({ error: "SKU, name, and price are required for a variant" });
   }
@@ -8669,9 +9603,10 @@ app.post("/api/products/:id/variants", requireAdminMiddleware, async (req, res) 
         price: Number(price),
         mrp: mrp !== void 0 ? Number(mrp) : Number(price),
         stockQuantity: stockQuantity !== void 0 ? Number(stockQuantity) : 10,
+        size: size || attributes?.size || null,
         colour: colour || attributes?.colour || null,
         wattage: wattage || attributes?.wattage || null,
-        attributes: attributes || (colour || wattage ? { colour, wattage } : null),
+        attributes: attributes || (size || colour || wattage ? { size, colour, wattage } : null),
         isActive: isActive !== void 0 ? Boolean(isActive) : true
       }
     });
@@ -8695,9 +9630,13 @@ app.post("/api/products/:id/variants/matrix", requireAdminMiddleware, async (req
     }
     const savedVariants = [];
     for (const v of variants) {
-      const vSku = v.sku || `${product.sku}-${v.colour || ""}-${v.wattage || ""}`.replace(/[^a-zA-Z0-9-]/g, "-").toUpperCase();
-      const vName = v.name || `${v.colour || ""} ${v.wattage || ""}`.trim() || "Variant";
+      const vSku = v.sku || `${product.sku}-${v.size ? String(v.size).replace(/\s+/g, "") : ""}-${v.colour || ""}-${v.wattage || ""}`.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toUpperCase();
+      const vName = v.name || `${v.size || ""} ${v.colour || ""} ${v.wattage || ""}`.trim() || "Variant";
       if (v.id) {
+        const existing = await prisma.productVariant.findUnique({ where: { id: v.id } });
+        if (!existing || existing.productId !== id) {
+          return res.status(400).json({ error: `Variant ${v.id} does not belong to this product` });
+        }
         const updated = await prisma.productVariant.update({
           where: { id: v.id },
           data: {
@@ -8705,10 +9644,11 @@ app.post("/api/products/:id/variants/matrix", requireAdminMiddleware, async (req
             name: vName,
             price: Number(v.price),
             mrp: v.mrp !== void 0 ? Number(v.mrp) : Number(v.price),
-            stockQuantity: v.stockQuantity !== void 0 ? Number(v.stockQuantity) : 10,
+            ...v.stockQuantity !== void 0 ? { stockQuantity: Number(v.stockQuantity) } : {},
+            size: v.size || v.attributes?.size || null,
             colour: v.colour || v.attributes?.colour || null,
             wattage: v.wattage || v.attributes?.wattage || null,
-            attributes: v.attributes || (v.colour || v.wattage ? { colour: v.colour, wattage: v.wattage } : null),
+            attributes: v.attributes || (v.size || v.colour || v.wattage ? { size: v.size, colour: v.colour, wattage: v.wattage } : null),
             isActive: v.isActive !== void 0 ? Boolean(v.isActive) : true
           }
         });
@@ -8722,9 +9662,10 @@ app.post("/api/products/:id/variants/matrix", requireAdminMiddleware, async (req
             price: Number(v.price),
             mrp: v.mrp !== void 0 ? Number(v.mrp) : Number(v.price),
             stockQuantity: v.stockQuantity !== void 0 ? Number(v.stockQuantity) : 10,
+            size: v.size || v.attributes?.size || null,
             colour: v.colour || v.attributes?.colour || null,
             wattage: v.wattage || v.attributes?.wattage || null,
-            attributes: v.attributes || (v.colour || v.wattage ? { colour: v.colour, wattage: v.wattage } : null),
+            attributes: v.attributes || (v.size || v.colour || v.wattage ? { size: v.size, colour: v.colour, wattage: v.wattage } : null),
             isActive: v.isActive !== void 0 ? Boolean(v.isActive) : true
           }
         });
@@ -8740,7 +9681,7 @@ app.post("/api/products/:id/variants/matrix", requireAdminMiddleware, async (req
 });
 app.put("/api/products/:id/variants/:variantId", requireAdminMiddleware, async (req, res) => {
   const { variantId } = req.params;
-  const { sku, name, price, mrp, stockQuantity, colour, wattage, attributes, isActive } = req.body;
+  const { sku, name, price, mrp, stockQuantity, size, colour, wattage, attributes, isActive } = req.body;
   try {
     const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
     if (!existing) {
@@ -8754,6 +9695,7 @@ app.put("/api/products/:id/variants/:variantId", requireAdminMiddleware, async (
         price: price !== void 0 ? Number(price) : existing.price,
         mrp: mrp !== void 0 ? Number(mrp) : existing.mrp,
         stockQuantity: stockQuantity !== void 0 ? Number(stockQuantity) : existing.stockQuantity,
+        size: size !== void 0 ? size : existing.size,
         colour: colour !== void 0 ? colour : existing.colour,
         wattage: wattage !== void 0 ? wattage : existing.wattage,
         attributes: attributes !== void 0 ? attributes : existing.attributes,
@@ -8776,10 +9718,14 @@ app.delete("/api/products/:id/variants/:variantId", requireAdminMiddleware, asyn
     return res.status(500).json({ error: "Failed to delete product variant" });
   }
 });
-app.get("/api/products/:id/lamp-options", async (req, res) => {
+var getProductOptionsHandler = async (req, res) => {
   const { id } = req.params;
   const includeInactive = req.query.includeInactive === "true";
   try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, hasSizes: true, hasColours: true }
+    });
     let whereClause = { productId: id };
     if (!includeInactive) {
       whereClause.isActive = true;
@@ -8791,9 +9737,19 @@ app.get("/api/products/:id/lamp-options", async (req, res) => {
         { sortOrder: "asc" }
       ]
     });
+    const sizes = rawOptions.filter((o) => {
+      const type = String(o.optionType || "").toUpperCase();
+      return type.includes("SIZ");
+    }).map((o) => ({
+      id: o.id,
+      value: o.optionValue,
+      priceDelta: Number(o.priceDelta),
+      sortOrder: o.sortOrder,
+      isActive: o.isActive
+    }));
     const colours = rawOptions.filter((o) => {
       const type = String(o.optionType || "").toUpperCase();
-      return type.includes("COL") || type.includes("COLOR") || type.includes("COLOUR") || type.includes("LIGHT");
+      return !type.includes("SIZ") && (type.includes("COL") || type.includes("COLOR") || type.includes("COLOUR") || type.includes("LIGHT"));
     }).map((o) => ({
       id: o.id,
       value: o.optionValue,
@@ -8803,7 +9759,7 @@ app.get("/api/products/:id/lamp-options", async (req, res) => {
     }));
     const wattages = rawOptions.filter((o) => {
       const type = String(o.optionType || "").toUpperCase();
-      return type.includes("WAT") || type.includes("WATT") || type.includes("POWER") || type.includes("BULB") || !type.includes("COL") && !type.includes("LIGHT");
+      return !type.includes("SIZ") && !type.includes("COL") && !type.includes("LIGHT") && (type.includes("WAT") || type.includes("WATT") || type.includes("POWER") || type.includes("BULB") || type === "WATTAGE");
     }).map((o) => ({
       id: o.id,
       value: o.optionValue,
@@ -8811,26 +9767,41 @@ app.get("/api/products/:id/lamp-options", async (req, res) => {
       sortOrder: o.sortOrder,
       isActive: o.isActive
     }));
-    return res.json({ colours, wattages, all: rawOptions });
+    return res.json({
+      hasSizes: Boolean(product?.hasSizes),
+      hasColours: Boolean(product?.hasColours),
+      sizes,
+      colours,
+      wattages,
+      all: rawOptions
+    });
   } catch (err) {
-    console.error("Error fetching lamp options:", err);
-    return res.status(500).json({ error: "Failed to fetch product lamp options" });
+    console.error("Error fetching product options:", err);
+    return res.status(500).json({ error: "Failed to fetch product options" });
   }
-});
-app.post("/api/products/:id/lamp-options/sync", requireAdminMiddleware, async (req, res) => {
+};
+app.get("/api/products/:id/lamp-options", getProductOptionsHandler);
+app.get("/api/products/:id/options", getProductOptionsHandler);
+var syncProductOptionsHandler = async (req, res) => {
   const { id } = req.params;
-  const { colours = [], wattages = [] } = req.body;
+  const { sizes = [], colours = [], wattages = [], hasSizes, hasColours } = req.body;
   try {
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
-    await prisma.productLampOption.deleteMany({
-      where: { productId: id }
-    });
+    if (hasSizes !== void 0 || hasColours !== void 0) {
+      await prisma.product.update({
+        where: { id },
+        data: {
+          ...hasSizes !== void 0 ? { hasSizes: Boolean(hasSizes) } : {},
+          ...hasColours !== void 0 ? { hasColours: Boolean(hasColours) } : {}
+        }
+      });
+    }
     const parseOptionInput = (input, defaultType) => {
       if (typeof input === "object" && input !== null) {
-        const val = String(input.value || input.colour || input.wattage || input.optionValue || "").trim();
+        const val = String(input.value || input.size || input.colour || input.wattage || input.optionValue || "").trim();
         const delta2 = Number(input.priceDelta ?? input.price_delta ?? 0);
         return { value: val, priceDelta: delta2 };
       }
@@ -8851,7 +9822,7 @@ app.post("/api/products/:id/lamp-options/sync", requireAdminMiddleware, async (r
         if (str.toUpperCase().includes("RGB") || str.toUpperCase().includes("MULTI")) {
           delta = 200;
         }
-      } else {
+      } else if (defaultType === "WATTAGE") {
         const u = str.toUpperCase();
         if (u === "7W") delta = 100;
         else if (u === "9W" || u.includes("9W")) delta = 150;
@@ -8866,6 +9837,21 @@ app.post("/api/products/:id/lamp-options/sync", requireAdminMiddleware, async (r
     };
     const newRecords = [];
     let order = 1;
+    for (const sz of sizes) {
+      if (!sz) continue;
+      const parsed = parseOptionInput(sz, "SIZE");
+      if (!parsed.value) continue;
+      newRecords.push({
+        id: `opt-sz-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        productId: id,
+        optionType: "SIZE",
+        optionValue: parsed.value,
+        priceDelta: parsed.priceDelta,
+        sortOrder: order++,
+        isActive: true
+      });
+    }
+    order = 1;
     for (const col of colours) {
       if (!col) continue;
       const parsed = parseOptionInput(col, "COLOUR");
@@ -8895,18 +9881,25 @@ app.post("/api/products/:id/lamp-options/sync", requireAdminMiddleware, async (r
         isActive: true
       });
     }
-    if (newRecords.length > 0) {
-      await prisma.productLampOption.createMany({
-        data: newRecords
+    await prisma.$transaction(async (tx) => {
+      await tx.productLampOption.deleteMany({
+        where: { productId: id }
       });
-    }
+      if (newRecords.length > 0) {
+        await tx.productLampOption.createMany({
+          data: newRecords
+        });
+      }
+    });
     invalidateProductListCache();
     return res.json({ success: true, count: newRecords.length, records: newRecords });
   } catch (err) {
-    console.error("Error syncing lamp options:", err);
-    return res.status(500).json({ error: err.message || "Failed to sync lamp options" });
+    console.error("Error syncing product options:", err);
+    return res.status(500).json({ error: err.message || "Failed to sync product options" });
   }
-});
+};
+app.post("/api/products/:id/lamp-options/sync", requireAdminMiddleware, syncProductOptionsHandler);
+app.post("/api/products/:id/options/sync", requireAdminMiddleware, syncProductOptionsHandler);
 app.post("/api/products/:id/lamp-options", requireAdminMiddleware, async (req, res) => {
   const { id } = req.params;
   const { optionType, optionValue, priceDelta = 0, sortOrder = 0, isActive = true } = req.body;
@@ -9178,7 +10171,7 @@ app.get("/api/cart", requireAuthMiddleware, async (req, res) => {
 });
 app.post(["/api/cart/items", "/api/cart"], requireAuthMiddleware, async (req, res) => {
   const userId = req.user.id;
-  const { productId, variantId, quantity = 1, selectedColour, selectedWattage, customizationText, customizationImages } = req.body;
+  const { productId, variantId, quantity = 1, selectedSize, selectedColour, selectedWattage, customizationText, customizationImages } = req.body;
   if (!productId) {
     return res.status(400).json({ error: "productId is required" });
   }
@@ -9213,23 +10206,81 @@ app.post(["/api/cart/items", "/api/cart"], requireAuthMiddleware, async (req, re
         return res.status(400).json({ error: `You can upload a maximum of ${maxImages} photo${maxImages > 1 ? "s" : ""} for this product.` });
       }
     }
+    const configuredOptions = await prisma.productLampOption.findMany({
+      where: { productId, isActive: true },
+      orderBy: { sortOrder: "asc" }
+    });
+    const configuredSizes = configuredOptions.filter((o) => String(o.optionType || "").toUpperCase().includes("SIZ")).map((o) => o.optionValue);
+    const configuredColours = configuredOptions.filter((o) => {
+      const t = String(o.optionType || "").toUpperCase();
+      return !t.includes("SIZ") && (t.includes("COL") || t.includes("COLOR") || t.includes("COLOUR") || t.includes("LIGHT"));
+    }).map((o) => o.optionValue);
+    const configuredWattages = configuredOptions.filter((o) => {
+      const t = String(o.optionType || "").toUpperCase();
+      return !t.includes("SIZ") && !t.includes("COL") && !t.includes("LIGHT") && (t.includes("WAT") || t.includes("WATT") || t.includes("POWER") || t.includes("BULB") || t === "WATTAGE");
+    }).map((o) => o.optionValue);
+    const hasSizesEnabled = Boolean(product.hasSizes) || configuredSizes.length > 0;
+    let verifiedSize = null;
+    if (hasSizesEnabled) {
+      if (!isTestMode && (!selectedSize || !String(selectedSize).trim())) {
+        return res.status(400).json({ error: "Please select a size before adding to cart." });
+      }
+      if (selectedSize && String(selectedSize).trim()) {
+        const sMatch = configuredSizes.find((s) => s.trim().toLowerCase() === String(selectedSize).trim().toLowerCase());
+        if (!sMatch && !isTestMode && configuredSizes.length > 0) {
+          return res.status(400).json({ error: `Selected size '${selectedSize}' is not valid for this product.` });
+        }
+        verifiedSize = sMatch || String(selectedSize).trim();
+      } else if (configuredSizes.length > 0) {
+        verifiedSize = configuredSizes[0];
+      }
+    } else if (selectedSize && !isTestMode && configuredSizes.length === 0) {
+      return res.status(400).json({ error: "Size option is not available for this product." });
+    }
+    const hasColoursEnabled = Boolean(product.hasColours) || configuredColours.length > 0;
+    let verifiedColour = null;
+    if (hasColoursEnabled) {
+      if (!isTestMode && (!selectedColour || !String(selectedColour).trim())) {
+        return res.status(400).json({ error: "Please select a colour before adding to cart." });
+      }
+      if (selectedColour && String(selectedColour).trim()) {
+        const cMatch = configuredColours.find((c) => c.trim().toLowerCase() === String(selectedColour).trim().toLowerCase());
+        if (!cMatch && !isTestMode && configuredColours.length > 0) {
+          return res.status(400).json({ error: `Selected colour '${selectedColour}' is not valid for this product.` });
+        }
+        verifiedColour = cMatch || String(selectedColour).trim();
+      } else if (configuredColours.length > 0) {
+        verifiedColour = configuredColours[0];
+      }
+    } else if (selectedColour && !isTestMode && configuredColours.length === 0) {
+      return res.status(400).json({ error: "Colour option is not available for this product." });
+    }
+    let verifiedWattage = null;
+    if (configuredWattages.length > 0) {
+      if (selectedWattage) {
+        const wMatch = configuredWattages.find((w) => w.trim().toLowerCase() === String(selectedWattage).trim().toLowerCase());
+        verifiedWattage = wMatch || configuredWattages[0];
+      } else {
+        verifiedWattage = configuredWattages[0];
+      }
+    }
     const basePrice = Number(product.price);
-    let verifiedColour = selectedColour || null;
-    let verifiedWattage = selectedWattage || null;
     let effectiveVariantId = variantId || null;
     try {
       const priceCalc = await calculateLampOptionPrice(
         productId,
         basePrice,
-        selectedColour,
-        selectedWattage,
-        variantId
+        verifiedColour,
+        verifiedWattage,
+        variantId,
+        verifiedSize
       );
+      if (priceCalc.selectedSize) verifiedSize = priceCalc.selectedSize;
       if (priceCalc.selectedColour) verifiedColour = priceCalc.selectedColour;
       if (priceCalc.selectedWattage) verifiedWattage = priceCalc.selectedWattage;
       if (priceCalc.variantId) effectiveVariantId = priceCalc.variantId;
     } catch (valErr) {
-      return res.status(valErr.statusCode || 400).json({ error: valErr.message || "Invalid lamp option selected" });
+      return res.status(valErr.statusCode || 400).json({ error: valErr.message || "Invalid product option selected" });
     }
     let cart = null;
     try {
@@ -9251,16 +10302,34 @@ app.post(["/api/cart/items", "/api/cart"], requireAuthMiddleware, async (req, re
           cartId: cart.id,
           productId,
           variantId: effectiveVariantId,
+          selectedSize: verifiedSize,
           selectedColour: verifiedColour,
           selectedWattage: verifiedWattage,
           customizationText: sanitizedCustomization
         }
       });
     }
+    const requestedQuantity = Number(quantity);
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity <= 0) {
+      return res.status(400).json({ error: "Quantity must be a positive whole number" });
+    }
+    const selectedVariantRecord = effectiveVariantId ? await prisma.productVariant.findFirst({
+      where: { id: effectiveVariantId, productId, isActive: true },
+      select: { id: true, stockQuantity: true }
+    }) : null;
+    const availableStock = selectedVariantRecord ? selectedVariantRecord.stockQuantity : product.stockQuantity;
+    const requestedTotal = requestedQuantity + (existingItem?.quantity || 0);
+    if (availableStock < requestedTotal) {
+      return res.status(409).json({
+        error: `Only ${availableStock} units available for the selected ${selectedVariantRecord ? "variant" : "product"}.`,
+        availableStock,
+        variantId: selectedVariantRecord?.id || null
+      });
+    }
     if (existingItem) {
       await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + Number(quantity) }
+        data: { quantity: existingItem.quantity + requestedQuantity }
       });
     } else {
       await prisma.cartItem.create({
@@ -9268,10 +10337,11 @@ app.post(["/api/cart/items", "/api/cart"], requireAuthMiddleware, async (req, re
           cartId: cart.id,
           productId,
           variantId: effectiveVariantId,
+          selectedSize: verifiedSize,
           selectedColour: verifiedColour,
           selectedWattage: verifiedWattage,
           customizationText: sanitizedCustomization,
-          quantity: Number(quantity),
+          quantity: requestedQuantity,
           customizationImages: imagesArray && imagesArray.length > 0 ? {
             create: imagesArray.map((img, idx) => ({
               imageUrl: typeof img === "string" ? img : img.imageUrl || img.url,
@@ -9636,11 +10706,13 @@ app.post("/api/checkout", requireAuthMiddleware, checkoutRateLimiter.middleware(
       const p = ci.product;
       const v = ci.variant;
       const basePrice = v ? Number(v.price) : Number(p?.price || 0);
+      const selectedSize = ci.selectedSize || v?.size || v?.attributes?.size || null;
       const selectedColour = ci.selectedColour || v?.colour || v?.attributes?.colour || null;
       const selectedWattage = ci.selectedWattage || v?.wattage || v?.attributes?.wattage || null;
       return {
         productId: p?.id || ci.productId,
         basePrice,
+        selectedSize,
         selectedColour,
         selectedWattage,
         variantId: ci.variantId || void 0
@@ -9653,12 +10725,14 @@ app.post("/api/checkout", requireAuthMiddleware, checkoutRateLimiter.middleware(
       const v = ci.variant;
       if (!p) continue;
       const basePrice = v ? Number(v.price) : Number(p.price);
+      let selectedSize = ci.selectedSize || v?.size || v?.attributes?.size || null;
       let selectedColour = ci.selectedColour || v?.colour || v?.attributes?.colour || null;
       let selectedWattage = ci.selectedWattage || v?.wattage || v?.attributes?.wattage || null;
       let unitPrice = basePrice;
       const priceCalc = checkoutPriceMap.get(checkoutPriceInputs[ciIdx]);
       if (priceCalc) {
         unitPrice = priceCalc.unitPrice;
+        if (priceCalc.selectedSize) selectedSize = priceCalc.selectedSize;
         if (priceCalc.selectedColour) selectedColour = priceCalc.selectedColour;
         if (priceCalc.selectedWattage) selectedWattage = priceCalc.selectedWattage;
       }
@@ -9672,6 +10746,7 @@ app.post("/api/checkout", requireAuthMiddleware, checkoutRateLimiter.middleware(
         productId: p.id,
         variantId: ci.variantId || null,
         skuSnapshot,
+        selectedSize,
         selectedColour,
         selectedWattage,
         productTitle: displayName,
