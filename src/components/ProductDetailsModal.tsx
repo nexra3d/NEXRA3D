@@ -72,7 +72,6 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const variantsList: ProductVariant[] = product?.variants || product?.productVariants || [];
 
   const productName = product?.name || product?.title || 'Product Item';
-  const stockQty = product?.stockQuantity ?? product?.stock ?? 0;
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
@@ -80,6 +79,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const [activeTab, setActiveTab] = useState<'description' | 'specs' | 'reviews'>('description');
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const stockQty = selectedVariant
+    ? Number(selectedVariant.stockQuantity ?? 0)
+    : variantsList.length > 0
+    ? 0
+    : Number(product?.stockQuantity ?? product?.stock ?? 0);
 
   // Related products state
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);

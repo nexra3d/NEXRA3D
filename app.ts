@@ -193,6 +193,42 @@ function formatPrismaProductResponse(p: any) {
     } : null,
     hasSizes: Boolean(p.hasSizes),
     hasColours: Boolean(p.hasColours),
+    sizes: (p.lampOptions || [])
+      .filter((option: any) => String(option.optionType || '').toUpperCase().includes('SIZ') && option.isActive !== false)
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((option: any) => ({
+        id: option.id,
+        value: option.optionValue,
+        priceDelta: Number(option.priceDelta || 0),
+        sortOrder: option.sortOrder ?? 0,
+        isActive: option.isActive !== false
+      })),
+    colours: (p.lampOptions || [])
+      .filter((option: any) => {
+        const type = String(option.optionType || '').toUpperCase();
+        return option.isActive !== false && !type.includes('SIZ') && (type.includes('COL') || type.includes('COLOR') || type.includes('COLOUR') || type.includes('LIGHT'));
+      })
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((option: any) => ({
+        id: option.id,
+        value: option.optionValue,
+        priceDelta: Number(option.priceDelta || 0),
+        sortOrder: option.sortOrder ?? 0,
+        isActive: option.isActive !== false
+      })),
+    wattages: (p.lampOptions || [])
+      .filter((option: any) => {
+        const type = String(option.optionType || '').toUpperCase();
+        return option.isActive !== false && !type.includes('SIZ') && !type.includes('COL') && !type.includes('LIGHT') && (type.includes('WAT') || type.includes('POWER') || type.includes('BULB'));
+      })
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((option: any) => ({
+        id: option.id,
+        value: option.optionValue,
+        priceDelta: Number(option.priceDelta || 0),
+        sortOrder: option.sortOrder ?? 0,
+        isActive: option.isActive !== false
+      })),
     variants: (p.variants || []).map((v: any) => ({
       id: v.id,
       sku: v.sku,
@@ -715,10 +751,58 @@ export interface LampOptionPriceResult {
 export type ProductOptionPriceInput = LampOptionPriceInput;
 export type ProductOptionPriceResult = LampOptionPriceResult;
 
+function serializeLampOptionPriceInput(input?: Partial<LampOptionPriceInput> | null): string {
+  const productId = String(input?.productId || '');
+  const basePrice = Number.isFinite(Number(input?.basePrice)) ? Number(input?.basePrice) : 0;
+  const variantId = String(input?.variantId || '');
+  const selectedSize = String(input?.selectedSize || '').trim().toLowerCase();
+  const selectedColour = String(input?.selectedColour || '').trim().toLowerCase();
+  const selectedWattage = String(input?.selectedWattage || '').trim().toLowerCase();
+
+  return [productId, variantId, String(basePrice), selectedSize, selectedColour, selectedWattage].join('|');
+}
+
+class LampOptionPriceMap extends Map<LampOptionPriceInput, LampOptionPriceResult> {
+  private static normalizeKey(input?: Partial<LampOptionPriceInput> | null): string {
+    return serializeLampOptionPriceInput(input);
+  }
+
+  override get(key: LampOptionPriceInput): LampOptionPriceResult | undefined {
+    if (!key || typeof key !== 'object') {
+      return super.get(key as any);
+    }
+
+    const normalizedKey = LampOptionPriceMap.normalizeKey(key);
+    for (const [entryKey, value] of this.entries()) {
+      if (LampOptionPriceMap.normalizeKey(entryKey) === normalizedKey) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  override has(key: LampOptionPriceInput): boolean {
+    return this.get(key) !== undefined;
+  }
+
+  override set(key: LampOptionPriceInput, value: LampOptionPriceResult): this {
+    const normalizedKey = LampOptionPriceMap.normalizeKey(key);
+    for (const [entryKey] of this.entries()) {
+      if (LampOptionPriceMap.normalizeKey(entryKey) === normalizedKey) {
+        super.delete(entryKey);
+        break;
+      }
+    }
+
+    return super.set(key, value);
+  }
+}
+
 async function batchCalculateLampOptionPrices(
   items: LampOptionPriceInput[]
 ): Promise<Map<LampOptionPriceInput, LampOptionPriceResult>> {
-  const resultMap = new Map<LampOptionPriceInput, LampOptionPriceResult>();
+  const resultMap = new LampOptionPriceMap();
   if (!items || items.length === 0) return resultMap;
 
   const productIds = Array.from(new Set(items.map((i) => i.productId).filter(Boolean)));
@@ -989,8 +1073,8 @@ async function getFormattedCart(userId: string) {
       const itemTotal = itemPrice * ci.quantity;
 
       const availableStock = v
-        ? (v.stockQuantity ?? 100)
-        : (p ? (p.stockQuantity && p.stockQuantity > 0 ? p.stockQuantity : 100) : 100);
+        ? (v.stockQuantity ?? 0)
+        : (p ? (p.stockQuantity ?? 0) : 0);
       const isAvailable = p ? p.isActive !== false : true;
       const isStockSufficient = isAvailable && availableStock >= ci.quantity;
       const stockIssue = !isAvailable
@@ -1063,7 +1147,7 @@ async function getFormattedCart(userId: string) {
           colour: v.colour || (v.attributes as any)?.colour || null,
           wattage: v.wattage || (v.attributes as any)?.wattage || null,
           attributes: v.attributes || {},
-          stockQuantity: v.stockQuantity ?? 100
+          stockQuantity: v.stockQuantity ?? 0
         } : null
       };
     });
@@ -3401,7 +3485,11 @@ app.get('/api/products', async (req: Request, res: Response) => {
             orderBy: { sortOrder: 'asc' }
           },
           variants: {
-            select: { id: true, sku: true, name: true, price: true, mrp: true, stockQuantity: true, colour: true, wattage: true, attributes: true, isActive: true }
+            select: { id: true, sku: true, name: true, price: true, mrp: true, stockQuantity: true, size: true, colour: true, wattage: true, attributes: true, isActive: true }
+          },
+          lampOptions: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' }
           },
           reviews: {
             select: { rating: true, comment: true, userName: true, createdAt: true }
@@ -3455,6 +3543,10 @@ app.get('/api/products/:id', async (req: Request, res: Response) => {
         category: true,
         images: { orderBy: { sortOrder: 'asc' } },
         variants: true,
+        lampOptions: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        },
         reviews: { orderBy: { createdAt: 'desc' } }
       }
     });
@@ -3559,7 +3651,7 @@ app.post('/api/products', requireAdminMiddleware, async (req: Request, res: Resp
 
     const fullProduct = await prisma.product.findUnique({
       where: { id: newProduct.id },
-      include: { category: true, images: true, variants: true }
+      include: { category: true, images: true, variants: true, lampOptions: true }
     });
 
     invalidateProductListCache();
@@ -3664,7 +3756,7 @@ app.put('/api/products/:id', requireAdminMiddleware, async (req: Request, res: R
 
     const fullProduct = await prisma.product.findUnique({
       where: { id },
-      include: { category: true, images: true, variants: true }
+      include: { category: true, images: true, variants: true, lampOptions: true }
     });
 
     invalidateProductListCache();
@@ -4029,6 +4121,11 @@ app.post('/api/products/:id/variants/matrix', requireAdminMiddleware, async (req
       const vName = v.name || `${v.size || ''} ${v.colour || ''} ${v.wattage || ''}`.trim() || 'Variant';
 
       if (v.id) {
+        const existing = await prisma.productVariant.findUnique({ where: { id: v.id } });
+        if (!existing || existing.productId !== id) {
+          return res.status(400).json({ error: `Variant ${v.id} does not belong to this product` });
+        }
+
         const updated = await prisma.productVariant.update({
           where: { id: v.id },
           data: {
@@ -4036,7 +4133,7 @@ app.post('/api/products/:id/variants/matrix', requireAdminMiddleware, async (req
             name: vName,
             price: Number(v.price),
             mrp: v.mrp !== undefined ? Number(v.mrp) : Number(v.price),
-            stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : 10,
+            ...(v.stockQuantity !== undefined ? { stockQuantity: Number(v.stockQuantity) } : {}),
             size: v.size || v.attributes?.size || null,
             colour: v.colour || v.attributes?.colour || null,
             wattage: v.wattage || v.attributes?.wattage || null,
@@ -4220,11 +4317,6 @@ const syncProductOptionsHandler = async (req: Request, res: Response) => {
       });
     }
 
-    // Delete existing options ONLY for this product ID
-    await prisma.productLampOption.deleteMany({
-      where: { productId: id }
-    });
-
     const parseOptionInput = (input: any, defaultType: 'COLOUR' | 'WATTAGE' | 'SIZE') => {
       if (typeof input === 'object' && input !== null) {
         const val = String(input.value || input.size || input.colour || input.wattage || input.optionValue || '').trim();
@@ -4320,11 +4412,17 @@ const syncProductOptionsHandler = async (req: Request, res: Response) => {
       });
     }
 
-    if (newRecords.length > 0) {
-      await prisma.productLampOption.createMany({
-        data: newRecords
+    await prisma.$transaction(async (tx) => {
+      await tx.productLampOption.deleteMany({
+        where: { productId: id }
       });
-    }
+
+      if (newRecords.length > 0) {
+        await tx.productLampOption.createMany({
+          data: newRecords
+        });
+      }
+    });
 
     invalidateProductListCache();
     return res.json({ success: true, count: newRecords.length, records: newRecords });
@@ -4834,10 +4932,33 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
       });
     }
 
+    const requestedQuantity = Number(quantity);
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity <= 0) {
+      return res.status(400).json({ error: 'Quantity must be a positive whole number' });
+    }
+
+    const selectedVariantRecord = effectiveVariantId
+      ? await prisma.productVariant.findFirst({
+          where: { id: effectiveVariantId, productId, isActive: true },
+          select: { id: true, stockQuantity: true }
+        })
+      : null;
+    const availableStock = selectedVariantRecord
+      ? selectedVariantRecord.stockQuantity
+      : product.stockQuantity;
+    const requestedTotal = requestedQuantity + (existingItem?.quantity || 0);
+    if (availableStock < requestedTotal) {
+      return res.status(409).json({
+        error: `Only ${availableStock} units available for the selected ${selectedVariantRecord ? 'variant' : 'product'}.`,
+        availableStock,
+        variantId: selectedVariantRecord?.id || null
+      });
+    }
+
     if (existingItem) {
       await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + Number(quantity) }
+        data: { quantity: existingItem.quantity + requestedQuantity }
       });
     } else {
       await prisma.cartItem.create({
@@ -4849,7 +4970,7 @@ app.post(['/api/cart/items', '/api/cart'], requireAuthMiddleware, async (req: Au
           selectedColour: verifiedColour,
           selectedWattage: verifiedWattage,
           customizationText: sanitizedCustomization,
-          quantity: Number(quantity),
+          quantity: requestedQuantity,
           customizationImages: (imagesArray && imagesArray.length > 0) ? {
             create: imagesArray.map((img: any, idx: number) => ({
               imageUrl: typeof img === 'string' ? img : (img.imageUrl || img.url),
