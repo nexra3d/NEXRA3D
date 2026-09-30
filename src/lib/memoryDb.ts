@@ -14,6 +14,29 @@ function generateId(prefix = 'id'): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 }
 
+function applyAtomicOperation(currentVal: any, updateVal: any): any {
+  if (updateVal && typeof updateVal === 'object' && !Array.isArray(updateVal) && !(updateVal instanceof Date)) {
+    const curNum = typeof currentVal === 'number' ? currentVal : (Number(currentVal) || 0);
+    if ('decrement' in updateVal) {
+      return curNum - Number(updateVal.decrement || 0);
+    }
+    if ('increment' in updateVal) {
+      return curNum + Number(updateVal.increment || 0);
+    }
+    if ('multiply' in updateVal) {
+      return curNum * Number(updateVal.multiply || 0);
+    }
+    if ('divide' in updateVal) {
+      const div = Number(updateVal.divide);
+      return div !== 0 ? curNum / div : curNum;
+    }
+    if ('set' in updateVal) {
+      return updateVal.set;
+    }
+  }
+  return updateVal;
+}
+
 class MemoryStore {
   collections: Record<string, any[]> = {
     user: [],
@@ -789,11 +812,11 @@ class MemoryStore {
     if (include.items) {
       let rawItems: any[] = [];
       if (modelLower === 'cart') {
-        rawItems = this.getStore('cartItem').filter((ci) => ci.cartId === item.id);
+        rawItems = this.getStore('cartItem').filter((ci) => ci.cartId === item.id || ci.cart_id === item.id);
       } else if (modelLower === 'wishlist') {
-        rawItems = this.getStore('wishlistItem').filter((wi) => wi.wishlistId === item.id);
+        rawItems = this.getStore('wishlistItem').filter((wi) => wi.wishlistId === item.id || wi.wishlist_id === item.id);
       } else if (modelLower === 'order') {
-        rawItems = this.getStore('orderItem').filter((oi) => oi.orderId === item.id);
+        rawItems = this.getStore('orderItem').filter((oi) => oi.orderId === item.id || oi.order_id === item.id);
       }
 
       const itemIncludes = typeof include.items === 'object' ? (include.items.include || { product: true, variant: true }) : { product: true, variant: true };
@@ -801,8 +824,9 @@ class MemoryStore {
       cloned.items = rawItems.map((child) => this.attachIncludes(child, modelChildType, itemIncludes));
     }
     if (include.product || modelLower === 'cartitem' || modelLower === 'wishlistitem' || modelLower === 'orderitem') {
-      if (item.productId && !cloned.product) {
-        const prod = this.getStore('product').find((p) => p.id === item.productId) || null;
+      const prodId = item.productId || item.product_id;
+      if (prodId && !cloned.product) {
+        const prod = this.getStore('product').find((p) => p.id === prodId) || null;
         if (prod) {
           const prodIncludes = typeof include.product === 'object' ? (include.product.include || { images: true, category: true }) : { images: true, category: true };
           cloned.product = this.attachIncludes(prod, 'product', prodIncludes);
@@ -812,8 +836,9 @@ class MemoryStore {
       }
     }
     if (include.variant || modelLower === 'cartitem' || modelLower === 'orderitem') {
-      if (item.variantId && !cloned.variant) {
-        cloned.variant = this.getStore('productVariant').find((v) => v.id === item.variantId) || null;
+      const varId = item.variantId || item.variant_id;
+      if (varId && !cloned.variant) {
+        cloned.variant = this.getStore('productVariant').find((v) => v.id === varId) || null;
       }
     }
     if (include.payment) {
@@ -1015,21 +1040,23 @@ class MemoryStore {
           this.persistToSnapshot();
           return this.attachIncludes(newItem, modelName, args.include);
         }
+
         const current = store[itemIndex];
         const updateData = this.processDataRelations(args.data || {});
-        const updated = {
+        const updated: any = {
           ...current,
-          ...updateData,
           updatedAt: new Date()
         };
-        // Synchronize camelCase to snake_case and vice-versa
+        // Apply atomic operations and synchronize camelCase to snake_case and vice-versa
         for (const [k, v] of Object.entries(updateData)) {
+          const appliedVal = applyAtomicOperation(current[k], v);
+          updated[k] = appliedVal;
           if (/[A-Z]/.test(k)) {
             const snakeKey = k.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-            updated[snakeKey] = v;
+            updated[snakeKey] = appliedVal;
           } else if (k.includes('_')) {
             const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-            updated[camelKey] = v;
+            updated[camelKey] = appliedVal;
           }
         }
         store[itemIndex] = updated;
@@ -1042,7 +1069,19 @@ class MemoryStore {
         const updateData = this.processDataRelations(args.data || {});
         store.forEach((item, idx) => {
           if (this.matchWhere(item, args.where)) {
-            store[idx] = { ...item, ...updateData, updatedAt: new Date() };
+            const updated: any = { ...item, updatedAt: new Date() };
+            for (const [k, v] of Object.entries(updateData)) {
+              const appliedVal = applyAtomicOperation(item[k], v);
+              updated[k] = appliedVal;
+              if (/[A-Z]/.test(k)) {
+                const snakeKey = k.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+                updated[snakeKey] = appliedVal;
+              } else if (k.includes('_')) {
+                const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+                updated[camelKey] = appliedVal;
+              }
+            }
+            store[idx] = updated;
             count++;
           }
         });
@@ -1057,15 +1096,18 @@ class MemoryStore {
           existingIndex = store.findIndex((i) => String(i.id || '').trim().toLowerCase() === targetId);
         }
         if (existingIndex !== -1) {
+          const current = store[existingIndex];
           const updateData = this.processDataRelations(args.update || {});
-          const updated = { ...store[existingIndex], ...updateData, updatedAt: new Date() };
+          const updated: any = { ...current, updatedAt: new Date() };
           for (const [k, v] of Object.entries(updateData)) {
+            const appliedVal = applyAtomicOperation(current[k], v);
+            updated[k] = appliedVal;
             if (/[A-Z]/.test(k)) {
               const snakeKey = k.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-              updated[snakeKey] = v;
+              updated[snakeKey] = appliedVal;
             } else if (k.includes('_')) {
               const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-              updated[camelKey] = v;
+              updated[camelKey] = appliedVal;
             }
           }
           store[existingIndex] = updated;

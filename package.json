@@ -7,10 +7,13 @@
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild api/serverless.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outfile=api/index.js",
     "start": "node dist/server.cjs",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --schema=prisma/schema.prisma || prisma generate --schema=/app/applet/prisma/schema.prisma || true",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -38,7 +41,6 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "resend": "^6.18.1",
-    "vite": "^6.2.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -56,6 +58,7 @@
     "esbuild": "^0.25.0",
     "jsdom": "^30.0.1",
     "prisma": "^6.4.0",
+    "sharp": "^0.35.5",
     "supertest": "^7.2.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",

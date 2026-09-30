@@ -144,6 +144,13 @@ function formatPrismaProductResponse(p: any) {
   const priceNum = Number(p.price) || 0;
   const mrpNum = Number(p.mrp) || priceNum;
 
+  const rawStock = p.stockQuantity ?? p.stock;
+  const stockQty = typeof rawStock === 'number'
+    ? rawStock
+    : (typeof rawStock === 'object' && rawStock && 'decrement' in rawStock
+        ? 0
+        : (!isNaN(Number(rawStock)) ? Number(rawStock) : 0));
+
   const reviewList = p.reviews || [];
   const reviewCount = reviewList.length;
   const avgRating = reviewCount > 0
@@ -162,8 +169,8 @@ function formatPrismaProductResponse(p: any) {
     mrp: mrpNum,
     discountPercentage: Number(p.discountPercentage) || 0,
     taxPercentage: Number(p.taxPercentage) || 0,
-    stockQuantity: p.stockQuantity ?? 0,
-    stock: p.stockQuantity ?? 0,
+    stockQuantity: stockQty,
+    stock: stockQty,
     lowStockThreshold: p.lowStockThreshold ?? 5,
     weight: p.weight !== null && p.weight !== undefined ? Number(p.weight) : null,
     length: p.length !== null && p.length !== undefined ? Number(p.length) : null,
@@ -953,9 +960,11 @@ async function getFormattedCart(userId: string) {
       const itemMrp = baseMrp + Math.max(0, itemPrice - basePrice);
       const itemTotal = itemPrice * ci.quantity;
 
-      const availableStock = v
-        ? (v.stockQuantity ?? 100)
-        : (p ? (p.stockQuantity && p.stockQuantity > 0 ? p.stockQuantity : 100) : 100);
+      const vRawStock = v?.stockQuantity ?? v?.stock;
+      const vStock = v ? (typeof vRawStock === 'number' ? vRawStock : (!isNaN(Number(vRawStock)) ? Number(vRawStock) : 100)) : null;
+      const pRawStock = p?.stockQuantity ?? p?.stock;
+      const pStock = p ? (typeof pRawStock === 'number' ? pRawStock : (!isNaN(Number(pRawStock)) ? Number(pRawStock) : 100)) : 100;
+      const availableStock = vStock !== null ? vStock : pStock;
       const isAvailable = p ? p.isActive !== false : true;
       const isStockSufficient = isAvailable && availableStock >= ci.quantity;
       const stockIssue = !isAvailable

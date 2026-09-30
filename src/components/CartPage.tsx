@@ -26,6 +26,13 @@ interface CartItemData {
   unitPrice: number;
   unitMrp: number;
   lineTotal: number;
+  price?: number;
+  mrp?: number;
+  totalPrice?: number;
+  title?: string;
+  name?: string;
+  imageUrl?: string;
+  taxPercentage?: number;
   availableStock: number;
   isAvailable: boolean;
   isStockSufficient: boolean;
@@ -127,14 +134,23 @@ export const CartPage: React.FC<CartPageProps> = ({
   }
 
   const items = cartData?.items || [];
-  const hasOutofStockItems = items.some((item) => !item.isStockSufficient);
+  const hasOutofStockItems = items.some((item) => {
+    const prod = item.product || (item as any);
+    const rawStock = item.availableStock ?? item.variant?.stockQuantity ?? prod.stockQuantity ?? prod.stock ?? 100;
+    const availableStock = typeof rawStock === 'number' ? rawStock : (!isNaN(Number(rawStock)) ? Number(rawStock) : 100);
+    const isAvailable = item.isAvailable !== undefined ? Boolean(item.isAvailable) : (prod.isActive !== false);
+    const isStockSufficient = item.isStockSufficient !== undefined
+      ? Boolean(item.isStockSufficient)
+      : (isAvailable && availableStock >= (item.quantity || 1));
+    return !isStockSufficient;
+  });
   const subtotal = cartData?.subtotal || 0;
   const tax = cartData?.tax ?? Math.round(
     items.reduce((total, item) => {
-      return (
-        total +
-        ((item.product?.price || 0) * item.quantity * (item.product?.taxPercentage ?? 0)) / 100
-      );
+      const prod = item.product || (item as any);
+      const unitPrice = Number(item.unitPrice ?? item.price ?? prod.price ?? prod.salePrice ?? 0);
+      const taxRate = Number(prod.taxPercentage ?? (item as any).taxPercentage ?? 0);
+      return total + ((unitPrice * item.quantity * taxRate) / 100);
     }, 0)
   );
   const baseShippingFee = cartData?.shippingFee ?? (subtotal > 999 || items.length === 0 ? 0 : 99);
@@ -264,12 +280,25 @@ export const CartPage: React.FC<CartPageProps> = ({
             {items.map((item) => {
               const isUpdating = updatingItemId === item.id;
               const hasVariant = Boolean(item.variant);
+              const prod = item.product || (item as any);
+              const unitPrice = Number(item.unitPrice ?? item.price ?? prod.price ?? prod.salePrice ?? 0);
+              const unitMrp = Number(item.unitMrp ?? item.mrp ?? prod.mrp ?? unitPrice);
+              const lineTotal = Number(item.lineTotal ?? item.totalPrice ?? (unitPrice * item.quantity));
+              const rawStock = item.availableStock ?? item.variant?.stockQuantity ?? prod.stockQuantity ?? prod.stock ?? 100;
+              const availableStock = typeof rawStock === 'number' ? rawStock : (!isNaN(Number(rawStock)) ? Number(rawStock) : 100);
+              const isAvailable = item.isAvailable !== undefined ? Boolean(item.isAvailable) : (prod.isActive !== false);
+              const isStockSufficient = item.isStockSufficient !== undefined
+                ? Boolean(item.isStockSufficient)
+                : (isAvailable && availableStock >= item.quantity);
+              const prodName = prod.name || prod.title || (item as any).title || (item as any).name || 'Product';
+              const prodImg = prod.imageUrl || (prod.images && prod.images[0]) || (item as any).imageUrl || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=400';
+              const categoryName = prod.category?.name || prod.categoryName || prod.brand || null;
 
               return (
                 <div
                   key={item.id}
                   className={`bg-white rounded-3xl p-4 sm:p-5 border transition-all ${
-                    !item.isStockSufficient
+                    !isStockSufficient
                       ? 'border-amber-300 bg-amber-50/30'
                       : 'border-slate-200/90 shadow-xs hover:border-cyan-500/60 hover:shadow-md'
                   }`}
@@ -278,17 +307,17 @@ export const CartPage: React.FC<CartPageProps> = ({
                     {/* Product Image */}
                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border border-slate-200 overflow-hidden shrink-0 bg-slate-50 relative p-1">
                       <OptimizedImage
-                        src={item.product.imageUrl || 'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&q=80&w=400'}
-                        alt={item.product.name}
+                        src={prodImg}
+                        alt={prodName}
                         priority={false}
                         width={200}
                         className="w-full h-full object-contain"
                         pictureClassName="w-full h-full flex items-center justify-center"
                       />
-                      {!item.isStockSufficient && (
+                      {!isStockSufficient && (
                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center p-1 text-center">
                           <span className="text-[9px] font-black text-white uppercase bg-rose-600 px-1.5 py-0.5 rounded">
-                            {item.availableStock <= 0 ? 'Out of Stock' : 'Stock Limit'}
+                            {availableStock <= 0 ? 'Out of Stock' : 'Stock Limit'}
                           </span>
                         </div>
                       )}
@@ -296,13 +325,13 @@ export const CartPage: React.FC<CartPageProps> = ({
 
                     {/* Product & Variant Details */}
                     <div className="flex-1 min-w-0 space-y-1">
-                      {item.product.category && (
+                      {categoryName && (
                         <span className="text-[10px] font-black text-cyan-700 uppercase tracking-wider">
-                          {item.product.category.name}
+                          {categoryName}
                         </span>
                       )}
                       <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
-                        {item.product.name}
+                        {prodName}
                       </h3>
 
                       {hasVariant && item.variant && (
@@ -385,15 +414,15 @@ export const CartPage: React.FC<CartPageProps> = ({
                       {/* Pricing */}
                       <div className="flex items-baseline space-x-2 pt-1">
                         <span className="text-base font-black text-slate-900">
-                          ₹{Number(item.unitPrice || 0).toLocaleString('en-IN')}
+                          ₹{unitPrice.toLocaleString('en-IN')}
                         </span>
-                        {item.unitMrp > item.unitPrice && (
+                        {unitMrp > unitPrice && (
                           <span className="text-xs text-slate-400 line-through">
-                            ₹{Number(item.unitMrp || 0).toLocaleString('en-IN')}
+                            ₹{unitMrp.toLocaleString('en-IN')}
                           </span>
                         )}
                         <span className="text-[11px] font-semibold text-slate-500">
-                          × {item.quantity} = <strong className="text-cyan-700 font-black">₹{Number(item.lineTotal || 0).toLocaleString('en-IN')}</strong>
+                          × {item.quantity} = <strong className="text-cyan-700 font-black">₹{lineTotal.toLocaleString('en-IN')}</strong>
                         </span>
                       </div>
                     </div>

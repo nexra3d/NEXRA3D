@@ -193,25 +193,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <button
-          onClick={() => {
-            const hasVariants = (product.variants && product.variants.length > 0) || ((product as any).productVariants && (product as any).productVariants.length > 0);
-            if (hasVariants) {
-              onQuickView(product);
-            } else {
-              onAddToCart(product);
-            }
-          }}
-          disabled={isOut}
-          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-            !isOut
-              ? 'bg-slate-900 hover:bg-cyan-600 text-white shadow-xs hover:shadow-md hover:shadow-cyan-500/20'
-              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <ShoppingBag className="w-3.5 h-3.5" />
-          <span>{!isOut ? 'Add to Cart' : 'Out of Stock'}</span>
-        </button>
+        {/* Action Button */}
+        {(() => {
+          const hasVariants = (product.variants && product.variants.length > 0) || ((product as any).productVariants && (product as any).productVariants.length > 0);
+          const needsCustomization = Boolean(product.requiresCustomization || (product as any).requires_customization || product.name?.toLowerCase().includes('name keychain'));
+          const needsImageUpload = Boolean(product.requiresImageUpload || (product as any).requires_image_upload);
+          const requiresConfig = hasVariants || needsCustomization || needsImageUpload;
+
+          let buttonText = 'Add to Cart';
+          if (isOut) {
+            buttonText = 'Out of Stock';
+          } else if (needsCustomization || needsImageUpload) {
+            buttonText = 'Customize';
+          } else if (hasVariants) {
+            buttonText = 'Select Options';
+          }
+
+          return (
+            <button
+              onClick={() => {
+                if (requiresConfig) {
+                  onQuickView(product);
+                } else {
+                  onAddToCart(product);
+                }
+              }}
+              disabled={isOut}
+              className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+                !isOut
+                  ? (needsCustomization || needsImageUpload)
+                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-xs hover:shadow-md hover:shadow-cyan-500/25'
+                    : 'bg-slate-900 hover:bg-cyan-600 text-white shadow-xs hover:shadow-md hover:shadow-cyan-500/20'
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              {needsCustomization || needsImageUpload ? (
+                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+              ) : (
+                <ShoppingBag className="w-3.5 h-3.5" />
+              )}
+              <span>{buttonText}</span>
+            </button>
+          );
+        })()}
       </div>
     </div>
   );

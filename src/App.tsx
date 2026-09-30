@@ -393,15 +393,35 @@ export default function App() {
     if (!Array.isArray(rawItems)) return [];
     return rawItems.map((i: any) => {
       const p = i.product || {};
-      const unitPrice = i.unitPrice ?? i.price ?? p.price ?? 0;
-      const unitMrp = i.unitMrp ?? i.mrp ?? p.mrp ?? unitPrice;
-      const availableStock = i.availableStock ?? p.stockQuantity ?? p.stock ?? 100;
+      const unitPrice = Number(i.unitPrice ?? i.price ?? p.price ?? 0);
+      const unitMrp = Number(i.unitMrp ?? i.mrp ?? p.mrp ?? unitPrice);
+      const rawStock = i.availableStock ?? i.variant?.stockQuantity ?? p.stockQuantity ?? p.stock ?? 100;
+      const availableStock = typeof rawStock === 'number' ? rawStock : (!isNaN(Number(rawStock)) ? Number(rawStock) : 100);
+      const qty = Number(i.quantity) || 1;
+      const lineTotal = Number(i.lineTotal ?? i.totalPrice ?? (unitPrice * qty));
+      const isAvailable = i.isAvailable !== undefined ? Boolean(i.isAvailable) : (p.isActive !== false);
+      const isStockSufficient = i.isStockSufficient !== undefined ? Boolean(i.isStockSufficient) : (isAvailable && availableStock >= qty);
 
       return {
         id: i.id,
+        cartId: i.cartId,
         productId: i.productId,
+        unitPrice,
+        unitMrp,
+        price: unitPrice,
+        mrp: unitMrp,
+        lineTotal,
+        totalPrice: lineTotal,
+        availableStock,
+        isAvailable,
+        isStockSufficient,
+        stockIssue: i.stockIssue || null,
+        name: p.name || p.title || i.title || i.name || 'Product',
+        title: p.name || p.title || i.title || i.name || 'Product',
+        imageUrl: p.imageUrl || (p.images && p.images[0]) || i.imageUrl || '',
         product: {
           id: p.id || i.productId,
+          name: p.name || p.title || i.title || 'Product',
           title: p.name || p.title || i.title || 'Product',
           brand: p.category?.name || p.brand || 'Brand',
           price: unitPrice,
@@ -413,16 +433,17 @@ export default function App() {
           sku: p.sku || '',
           categoryId: p.categoryId || '',
           images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.imageUrl || i.imageUrl || ''],
-          imageUrl: p.imageUrl || i.imageUrl || ''
+          imageUrl: p.imageUrl || i.imageUrl || '',
+          isActive: isAvailable
         },
-        quantity: i.quantity,
-        variantId: i.variantId,
-        variant: i.variant,
+        quantity: qty,
+        variantId: i.variantId || null,
+        variant: i.variant || null,
         selectedColour: i.selectedColour || i.variant?.colour || null,
         selectedWattage: i.selectedWattage || i.variant?.wattage || null,
         customizationText: i.customizationText || null,
         taxPercentage: Number(i.taxPercentage ?? p.taxPercentage ?? 0)
-      };
+      } as any;
     });
   };
 
@@ -945,23 +966,54 @@ export default function App() {
     if (existingIndex >= 0) {
       optimisticItems = prevCartItems.map((item, idx) => {
         if (idx === existingIndex) {
+          const newQty = item.quantity + actualQty;
+          const uPrice = Number((item as any).unitPrice ?? (item as any).price ?? item.product?.price ?? prodObj?.price ?? 0);
+          const uMrp = Number((item as any).unitMrp ?? (item as any).mrp ?? item.product?.mrp ?? prodObj?.mrp ?? uPrice);
+          const avStock = Number((item as any).availableStock ?? item.product?.stockQuantity ?? prodObj?.stockQuantity ?? 100);
           return {
             ...item,
-            quantity: item.quantity + actualQty
-          };
+            quantity: newQty,
+            unitPrice: uPrice,
+            unitMrp: uMrp,
+            price: uPrice,
+            mrp: uMrp,
+            lineTotal: uPrice * newQty,
+            totalPrice: uPrice * newQty,
+            availableStock: avStock,
+            isAvailable: true,
+            isStockSufficient: avStock >= newQty
+          } as any;
         }
         return item;
       });
     } else {
-      const price = prodObj?.price ?? 0;
-      const mrp = prodObj?.mrp ?? price;
-      const stock = prodObj?.stockQuantity ?? prodObj?.stock ?? 100;
+      const selectedVar = prodObj?.variants?.find((v: any) => v.id === actualVariantId);
+      const price = Number(selectedVar?.price ?? prodObj?.price ?? 0);
+      const mrp = Number(selectedVar?.mrp ?? prodObj?.mrp ?? price);
+      const rawStock = selectedVar?.stockQuantity ?? prodObj?.stockQuantity ?? prodObj?.stock ?? 100;
+      const stock = typeof rawStock === 'number' ? rawStock : (!isNaN(Number(rawStock)) ? Number(rawStock) : 100);
       const img = prodObj?.imageUrl || (prodObj?.images && prodObj.images[0]) || '';
-      const optimisticItem: CartItem = {
+      const lineTotal = price * actualQty;
+
+      const optimisticItem: any = {
         id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         productId: prodId,
+        unitPrice: price,
+        unitMrp: mrp,
+        price,
+        mrp,
+        lineTotal,
+        totalPrice: lineTotal,
+        availableStock: stock,
+        isAvailable: prodObj?.isActive !== false,
+        isStockSufficient: stock >= actualQty,
+        stockIssue: stock >= actualQty ? null : `Only ${stock} units available`,
+        name: prodObj?.name || prodObj?.title || 'Product',
+        title: prodObj?.name || prodObj?.title || 'Product',
+        imageUrl: img,
         product: {
           id: prodId,
+          name: prodObj?.name || prodObj?.title || 'Product',
           title: prodObj?.name || prodObj?.title || 'Product',
           brand: prodObj?.category?.name || prodObj?.brand || 'Brand',
           price,
@@ -973,10 +1025,12 @@ export default function App() {
           sku: prodObj?.sku || '',
           categoryId: prodObj?.categoryId || '',
           images: Array.isArray(prodObj?.images) && prodObj.images.length > 0 ? prodObj.images : [img],
-          imageUrl: img
+          imageUrl: img,
+          isActive: prodObj?.isActive !== false
         },
         quantity: actualQty,
-        variantId: actualVariantId,
+        variantId: actualVariantId || null,
+        variant: selectedVar || null,
         selectedColour: selectedColour || null,
         selectedWattage: selectedWattage || null,
         customizationText: trimmedCustomization || null,
@@ -987,7 +1041,10 @@ export default function App() {
 
     // 1. INSTANT UI UPDATE (<1ms feedback)
     setCartItems(optimisticItems);
-    const optimisticSubtotal = optimisticItems.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0);
+    const optimisticSubtotal = optimisticItems.reduce((sum: number, item: any) => {
+      const uPrice = Number(item.unitPrice ?? item.price ?? item.product?.price ?? 0);
+      return sum + (uPrice * item.quantity);
+    }, 0);
     setCartData((prev: any) => ({
       ...(prev || {}),
       items: optimisticItems,
@@ -1047,14 +1104,32 @@ export default function App() {
     } else {
       optimisticItems = prevCartItems.map((i) => {
         if (i.id === targetItemId || i.productId === itemIdOrProductId) {
-          return { ...i, quantity };
+          const uPrice = Number((i as any).unitPrice ?? (i as any).price ?? i.product?.price ?? 0);
+          const uMrp = Number((i as any).unitMrp ?? (i as any).mrp ?? i.product?.mrp ?? uPrice);
+          const avStock = Number((i as any).availableStock ?? i.product?.stockQuantity ?? 100);
+          return {
+            ...i,
+            quantity,
+            unitPrice: uPrice,
+            unitMrp: uMrp,
+            price: uPrice,
+            mrp: uMrp,
+            lineTotal: uPrice * quantity,
+            totalPrice: uPrice * quantity,
+            availableStock: avStock,
+            isAvailable: true,
+            isStockSufficient: avStock >= quantity
+          } as any;
         }
         return i;
       });
     }
 
     setCartItems(optimisticItems);
-    const optimisticSubtotal = optimisticItems.reduce((sum, item) => sum + ((item.product?.price || 0) * item.quantity), 0);
+    const optimisticSubtotal = optimisticItems.reduce((sum: number, item: any) => {
+      const uPrice = Number(item.unitPrice ?? item.price ?? item.product?.price ?? 0);
+      return sum + (uPrice * item.quantity);
+    }, 0);
     setCartData((prev: any) => ({
       ...(prev || {}),
       items: optimisticItems,

@@ -32,6 +32,8 @@ interface WishlistItemData {
     imageUrl: string;
     isActive: boolean;
     hasVariants: boolean;
+    requiresCustomization?: boolean;
+    requiresImageUpload?: boolean;
     category?: { id: string; name: string; slug: string } | null;
     variants?: Array<{
       id: string;
@@ -143,14 +145,17 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
   const handleMoveToCart = async (item: WishlistItemData) => {
     setErrorMsg(null);
     const product = item.product;
+    const hasVariants = Boolean(product.hasVariants && product.variants && product.variants.length > 0);
+    const needsCustomization = Boolean(product.requiresCustomization || (product as any).requires_customization || product.name?.toLowerCase().includes('name keychain'));
+    const needsImageUpload = Boolean(product.requiresImageUpload || (product as any).requires_image_upload);
 
-    if (product.hasVariants && product.variants && product.variants.length > 0) {
+    if (hasVariants || needsCustomization || needsImageUpload) {
       const selectedVarId = selectedVariantIds[product.id];
-      if (!selectedVarId) {
+      if (!selectedVarId || needsCustomization || needsImageUpload) {
         if (onSelectProductForDetails) {
           onSelectProductForDetails(product.id);
           return;
-        } else {
+        } else if (hasVariants && !selectedVarId) {
           setErrorMsg(`Please select a variant for ${product.name}`);
           return;
         }
