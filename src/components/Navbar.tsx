@@ -311,21 +311,31 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16 gap-1 sm:gap-4">
           {/* NEXRA 3D Brand Logo */}
           <div className="flex items-center space-x-3 sm:space-x-6 shrink-0">
-            <button
-              onClick={onNavigateHome || (() => onCategorySelect(undefined))}
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateHome) onNavigateHome();
+                else onCategorySelect(undefined);
+              }}
               className="flex items-center text-left group cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+              aria-label="NEXRA 3D Home"
             >
               <NexraLogo size="md" />
-            </button>
+            </a>
 
             {/* Primary Navigation Links */}
             <nav className="hidden lg:flex items-center space-x-1 text-xs font-bold text-slate-700 relative">
-              <button
-                onClick={onNavigateHome}
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateHome) onNavigateHome();
+                }}
                 className="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 HOME
-              </button>
+              </a>
 
               {/* SHOP Mega Menu trigger */}
               <div
@@ -333,8 +343,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onMouseEnter={() => setIsMegaMenuOpen(true)}
                 onMouseLeave={() => setIsMegaMenuOpen(false)}
               >
-                <button
-                  onClick={() => {
+                <a
+                  href="/shop"
+                  onClick={(e) => {
+                    e.preventDefault();
                     if (onNavigateShop) onNavigateShop();
                     else onCategorySelect(undefined);
                   }}
@@ -344,7 +356,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <span>SHOP</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
+                </a>
 
                 {/* Mega Menu Dropdown */}
                 {isMegaMenuOpen && (
@@ -353,8 +365,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div className="col-span-3 grid grid-cols-3 gap-6">
                         {displayCategories.map((cat) => (
                           <div key={cat.id} className="space-y-2">
-                            <button
-                              onClick={() => {
+                            <a
+                              href={`/shop?category=${encodeURIComponent(cat.slug || cat.id)}`}
+                              onClick={(e) => {
+                                e.preventDefault();
                                 onCategorySelect(cat.id);
                                 setIsMegaMenuOpen(false);
                               }}
@@ -362,7 +376,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                             >
                               <span>{cat.name}</span>
                               <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-600 transition-transform group-hover:translate-x-0.5" />
-                            </button>
+                            </a>
                             {cat.subcategories && cat.subcategories.length > 0 ? (
                               <ul className="space-y-1">
                                 {cat.subcategories.slice(0, 4).map((sub) => (
@@ -414,26 +428,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </div>
 
-              <button
-                onClick={onNavigateServices}
+              <a
+                href="/services"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateServices) onNavigateServices();
+                }}
                 className="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 SERVICES
-              </button>
+              </a>
 
-              <button
-                onClick={onNavigateAbout}
+              <a
+                href="/about"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateAbout) onNavigateAbout();
+                }}
                 className="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 ABOUT
-              </button>
+              </a>
 
-              <button
-                onClick={onNavigateContact}
+              <a
+                href="/contact"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateContact) onNavigateContact();
+                }}
                 className="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 CONTACT
-              </button>
+              </a>
             </nav>
           </div>
 

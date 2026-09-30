@@ -85,7 +85,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <div className="h-40 overflow-hidden relative">
                 <OptimizedImage
                   src={cat.imageUrl}
-                  alt={cat.name}
+                  alt={`3D Printed ${cat.name} Collection`}
+                  title={`Explore 3D Printed ${cat.name}`}
                   priority={idx < 2}
                   width={600}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"

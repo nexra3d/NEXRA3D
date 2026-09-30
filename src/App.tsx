@@ -95,27 +95,27 @@ type ViewType =
 
 const VIEW_METADATA: Record<ViewType, { title: string; description: string }> = {
   home: {
-    title: 'NEXRA 3D | Custom 3D Printed Products, Lithophane Lamps & Personalized Gifts',
-    description: 'India’s premier store for custom 3D printed lithophane moon lamps, personalized keychains, divine idols, anime collectibles, and bespoke gifts.'
+    title: '3D Printing & Custom 3D Printing Services | NEXRA 3D',
+    description: 'Custom 3D printing services, personalized photo lithophane lamps, customized gifts, divine idols, and precision 3D printed products in India | NEXRA 3D'
   },
   shop: {
-    title: 'Shop Custom 3D Printed Products & Gifts | NEXRA 3D',
+    title: '3D Printed Products & Custom Gifts | NEXRA 3D',
     description: 'Browse our complete catalog of personalized lithophane lamps, customized gifts, divine idols, home decor, and anime collectibles.'
   },
   aerospace: {
-    title: 'Custom 3D Printing | NEXRA 3D',
-    description: 'Custom 3D printing, lightweight high-performance polymers, and precision rapid prototyping.'
+    title: 'Custom 3D Printing & Prototyping Solutions | NEXRA 3D',
+    description: 'Custom 3D printing, lightweight high-performance polymers, and precision rapid prototyping engineered for demanding applications.'
   },
   services: {
-    title: 'Custom 3D Printing & Prototyping Services | NEXRA 3D',
-    description: 'End-to-end 3D printing, custom design personalization, photo lithophane carving, and on-demand rapid prototyping services.'
+    title: 'Custom 3D Printing Services in India | NEXRA 3D',
+    description: 'End-to-end 3D printing, custom design personalization, photo lithophane carving, and on-demand rapid prototyping services across India.'
   },
   'service-detail': {
-    title: 'Service Details | NEXRA 3D',
+    title: 'Custom 3D Printing Solutions | NEXRA 3D',
     description: 'Explore custom 3D printing and personalized manufacturing solutions tailored for high precision creations.'
   },
   'custom-orders': {
-    title: 'Custom Orders Showcase | NEXRA 3D',
+    title: 'Custom 3D Printing Showcase & Portfolio | NEXRA 3D',
     description: 'Explore completed bespoke 3D-printed creations crafted by NEXRA 3D, including lithophanes, engineering prototypes, and verified customer reviews.'
   },
   about: {
@@ -156,11 +156,11 @@ const VIEW_METADATA: Record<ViewType, { title: string; description: string }> = 
   },
   cart: {
     title: 'Shopping Cart | NEXRA 3D',
-    description: 'Review your selected 3D printers, filaments, custom lamps, and proceed to secure checkout.'
+    description: 'Review your selected custom lamps, gifts, and 3D printed products, and proceed to secure checkout.'
   },
   wishlist: {
     title: 'My Wishlist | NEXRA 3D',
-    description: 'View and manage your saved products and favorite 3D printing equipment.'
+    description: 'View and manage your saved custom 3D printed creations and favorite products.'
   },
   admin: {
     title: 'Admin Portal | NEXRA 3D',
@@ -335,15 +335,137 @@ export default function App() {
 
   // Dynamic Page Title & SEO synchronization for all views & active items
   const activeMeta = VIEW_METADATA[currentView] || VIEW_METADATA.home;
-  const activeTitle =
-    currentView === 'service-detail' && selectedService
-      ? `${selectedService.name || selectedService.seoTitle || 'Service Details'} | NEXRA 3D`
-      : activeMeta.title;
+  const isPrivateView = ['admin', 'cart', 'wishlist', 'account', 'login', 'register', 'forgot-password', 'reset-password', 'unauthorized'].includes(currentView);
+
+  // Category-specific SEO when on shop page
+  const selectedCat = (currentView === 'shop' && filters.categoryId)
+    ? categories.find((c) => c.id === filters.categoryId || c.slug === filters.categoryId)
+    : null;
+
+  let activeTitle = activeMeta.title;
+  let activeDescription = activeMeta.description;
+  let activeCanonicalUrl = viewToPathMap[currentView] || '/';
+
+  if (selectedCat) {
+    if (selectedCat.slug === 'lamps' || selectedCat.name.toLowerCase().includes('lamp')) {
+      activeTitle = '3D Printed Lamps & Custom Lamps | NEXRA 3D';
+    } else {
+      activeTitle = `${selectedCat.name} | 3D Printed Products | NEXRA 3D`;
+    }
+    activeDescription = `Discover custom 3D printed ${selectedCat.name.toLowerCase()} at NEXRA 3D. Precision crafted, personalized gifts, and high quality prints delivered across India.`;
+    activeCanonicalUrl = `/shop?category=${encodeURIComponent(selectedCat.slug || selectedCat.id)}`;
+  } else if (currentView === 'service-detail' && selectedService) {
+    activeTitle = `${selectedService.name || selectedService.seoTitle || 'Custom 3D Printing Service'} | NEXRA 3D`;
+    activeDescription = selectedService.description || activeMeta.description;
+    activeCanonicalUrl = `/services?service=${encodeURIComponent(selectedService.slug || selectedService.id)}`;
+  } else if (currentView === 'shop') {
+    activeCanonicalUrl = '/shop';
+  }
+
+  // When quickViewProduct is active
+  const quickViewCatName = quickViewProduct
+    ? (categories.find((c) => c.id === quickViewProduct.categoryId)?.name || quickViewProduct.category?.name)
+    : null;
+
+  const productTitle = quickViewProduct
+    ? (quickViewCatName
+        ? `${quickViewProduct.name || quickViewProduct.title} | 3D Printed ${quickViewCatName} | NEXRA 3D`
+        : `${quickViewProduct.name || quickViewProduct.title} | NEXRA 3D`)
+    : activeTitle;
+
+  const productDescription = quickViewProduct
+    ? (quickViewProduct.shortDescription || quickViewProduct.description || activeDescription)
+    : activeDescription;
+
+  const productUrl = quickViewProduct
+    ? `/shop?product=${encodeURIComponent(quickViewProduct.slug || quickViewProduct.id)}`
+    : activeCanonicalUrl;
+
+  const productSchemaData = quickViewProduct ? {
+    '@type': 'Product',
+    '@id': `https://www.nexra3d.in/shop?product=${encodeURIComponent(quickViewProduct.slug || quickViewProduct.id)}#product`,
+    name: quickViewProduct.name || quickViewProduct.title,
+    description: quickViewProduct.shortDescription || quickViewProduct.description,
+    image: quickViewProduct.images && quickViewProduct.images.length > 0
+      ? quickViewProduct.images
+      : (quickViewProduct.imageUrl ? [quickViewProduct.imageUrl] : []),
+    sku: quickViewProduct.sku || quickViewProduct.id,
+    brand: {
+      '@type': 'Brand',
+      name: quickViewProduct.brand || 'NEXRA 3D'
+    },
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'INR',
+      price: quickViewProduct.price,
+      availability: (quickViewProduct.stockQuantity ?? quickViewProduct.stock ?? 1) > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      url: `https://www.nexra3d.in/shop?product=${encodeURIComponent(quickViewProduct.slug || quickViewProduct.id)}`
+    },
+    ...(quickViewProduct.reviewCount && quickViewProduct.reviewCount > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: quickViewProduct.rating || 5,
+        reviewCount: quickViewProduct.reviewCount
+      }
+    } : {})
+  } : undefined;
+
+  const breadcrumbSchemaData = quickViewProduct ? {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://www.nexra3d.in/'
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Shop',
+        item: 'https://www.nexra3d.in/shop'
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: quickViewProduct.name || quickViewProduct.title,
+        item: `https://www.nexra3d.in/shop?product=${encodeURIComponent(quickViewProduct.slug || quickViewProduct.id)}`
+      }
+    ]
+  } : (selectedCat ? {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://www.nexra3d.in/'
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Shop',
+        item: 'https://www.nexra3d.in/shop'
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: selectedCat.name,
+        item: `https://www.nexra3d.in/shop?category=${encodeURIComponent(selectedCat.slug || selectedCat.id)}`
+      }
+    ]
+  } : undefined);
 
   useSEO({
-    title: quickViewProduct ? `${quickViewProduct.name || quickViewProduct.title} | NEXRA 3D` : activeTitle,
-    description: quickViewProduct?.shortDescription || quickViewProduct?.description || activeMeta.description,
-    image: quickViewProduct?.imageUrl || quickViewProduct?.images?.[0]
+    title: productTitle,
+    description: productDescription,
+    image: quickViewProduct?.imageUrl || quickViewProduct?.images?.[0] || 'https://www.nexra3d.in/logo.png',
+    url: productUrl,
+    noindex: isPrivateView,
+    productSchema: productSchemaData,
+    breadcrumbSchema: breadcrumbSchemaData
   });
 
   // Coupon state

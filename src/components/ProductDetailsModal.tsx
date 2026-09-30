@@ -175,17 +175,23 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   };
 
   // SEO Hook
+  const catTitleName = product?.category?.name;
+  const modalSeoTitle = product
+    ? (catTitleName ? `${productName} | 3D Printed ${catTitleName} | NEXRA 3D` : `${productName} | NEXRA 3D`)
+    : 'NEXRA 3D';
+
   useSEO({
-    title: product ? `${productName} | NEXRA 3D` : 'NEXRA 3D',
-    description: product?.shortDescription || product?.description || `Buy ${productName} at NEXRA 3D.`,
-    image: imagesList[0],
+    title: modalSeoTitle,
+    description: product?.shortDescription || product?.description || `Explore ${productName} crafted with precision 3D printing at NEXRA 3D.`,
+    image: imagesList[0] || 'https://www.nexra3d.in/logo.png',
+    url: product ? `/shop?product=${encodeURIComponent(product.slug || product.id)}` : '/shop',
     productSchema: product ? {
-      '@context': 'https://schema.org/',
       '@type': 'Product',
+      '@id': `https://www.nexra3d.in/shop?product=${encodeURIComponent(product.slug || product.id)}#product`,
       name: productName,
-      image: imagesList,
+      image: imagesList.length > 0 ? imagesList : ['https://www.nexra3d.in/logo.png'],
       description: product.shortDescription || product.description,
-      sku: product.sku,
+      sku: product.sku || product.id,
       brand: {
         '@type': 'Brand',
         name: product.brand || 'NEXRA 3D'
@@ -194,8 +200,39 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         '@type': 'Offer',
         priceCurrency: 'INR',
         price: selectedVariant ? selectedVariant.price : product.price,
-        availability: stockQty > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
-      }
+        availability: stockQty > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        url: `https://www.nexra3d.in/shop?product=${encodeURIComponent(product.slug || product.id)}`
+      },
+      ...(product.reviewCount && product.reviewCount > 0 ? {
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: product.rating || 5,
+          reviewCount: product.reviewCount
+        }
+      } : {})
+    } : undefined,
+    breadcrumbSchema: product ? {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://www.nexra3d.in/'
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Shop',
+          item: 'https://www.nexra3d.in/shop'
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: productName,
+          item: `https://www.nexra3d.in/shop?product=${encodeURIComponent(product.slug || product.id)}`
+        }
+      ]
     } : undefined
   });
 

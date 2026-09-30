@@ -98,12 +98,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       {/* Top Header & Sort Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-            <span>Product Catalog</span>
+          <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+            <span>{selectedCategoryObj ? `3D Printed ${selectedCategoryObj.name}` : '3D Printed Products Catalog'}</span>
             <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
               {safeProducts.length} Products Found
             </span>
-          </h2>
+          </h1>
           {filters.searchQuery && (
             <p className="text-xs text-slate-500 mt-1">
               Search results for <strong className="text-indigo-600">"{filters.searchQuery}"</strong>

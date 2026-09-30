@@ -162,39 +162,88 @@ export const Footer: React.FC<FooterProps> = ({
             <h4 className="font-extrabold text-white text-sm uppercase tracking-wider">Navigation</h4>
             <ul className="space-y-2 text-slate-400">
               <li>
-                <button onClick={onNavigateHome} className="hover:text-white transition-colors cursor-pointer">
+                <a
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateHome) onNavigateHome();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   Home Page
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateShop} className="hover:text-white transition-colors cursor-pointer">
+                <a
+                  href="/shop"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateShop) onNavigateShop();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   Shop Products
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateCustomOrders} className="hover:text-white transition-colors cursor-pointer text-cyan-400 font-semibold">
+                <a
+                  href="/custom-orders"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateCustomOrders) onNavigateCustomOrders();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-cyan-400 font-semibold"
+                >
                   Custom Orders Showcase
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateServices} className="hover:text-white transition-colors cursor-pointer">
+                <a
+                  href="/services"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateServices) onNavigateServices();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   Custom Services
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateAbout} className="hover:text-white transition-colors cursor-pointer">
+                <a
+                  href="/about"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateAbout) onNavigateAbout();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   About NEXRA 3D
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateContact} className="hover:text-white transition-colors cursor-pointer">
+                <a
+                  href="/contact"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateContact) onNavigateContact();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   Contact Us
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigatePrivacyPolicy} className="hover:text-white transition-colors cursor-pointer">
+                <a
+                  href="/privacy-policy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigatePrivacyPolicy) onNavigatePrivacyPolicy();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
                   Privacy Policy
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -209,24 +258,52 @@ export const Footer: React.FC<FooterProps> = ({
                 </button>
               </li>
               <li>
-                <button onClick={onNavigateShop} className="hover:text-white transition-colors cursor-pointer text-left block">
+                <a
+                  href="/shop?category=lamps"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateShop) onNavigateShop();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
                   Lithophane Moon Lamps
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateShop} className="hover:text-white transition-colors cursor-pointer text-left block">
-                  Spiritual & Temple Idols
-                </button>
+                <a
+                  href="/shop?category=idols"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateShop) onNavigateShop();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Spiritual &amp; Temple Idols
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateShop} className="hover:text-white transition-colors cursor-pointer text-left block">
+                <a
+                  href="/shop?category=customized"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateShop) onNavigateShop();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
                   Personalized Photo Frames
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={onNavigateShop} className="hover:text-white transition-colors cursor-pointer text-left block">
-                  Custom Keychains & Anime Figures
-                </button>
+                <a
+                  href="/shop?category=key-chains"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateShop) onNavigateShop();
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer text-left block"
+                >
+                  Custom Keychains &amp; Anime Figures
+                </a>
               </li>
             </ul>
           </div>

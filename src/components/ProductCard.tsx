@@ -67,17 +67,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const primaryImg = optimizeThumbnailUrl(rawPrimaryImg);
 
-  const categoryName = product.category?.name || product.brand || 'AeroCore';
+  const categoryName = product.category?.name || product.brand || '3D Printed Product';
   const productName = product.name || product.title || 'Product';
+  const imageAlt = `${productName}${categoryName ? ` - 3D Printed ${categoryName}` : ''}`;
 
   return (
     <div className="group bg-white rounded-2xl border border-slate-200/90 hover:border-cyan-500/80 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 flex flex-col justify-between overflow-hidden relative">
       <div>
         {/* Product Image Thumbnail */}
-        <div className="relative aspect-[4/3] h-52 sm:h-56 w-full bg-slate-50 overflow-hidden cursor-pointer flex items-center justify-center p-2" onClick={() => onQuickView(product)}>
+        <div
+          className="relative aspect-[4/3] h-52 sm:h-56 w-full bg-slate-50 overflow-hidden cursor-pointer flex items-center justify-center p-2"
+          onClick={() => onQuickView(product)}
+          role="button"
+          tabIndex={0}
+          aria-label={`View details for ${productName}`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onQuickView(product);
+            }
+          }}
+        >
           <OptimizedImage
             src={primaryImg}
-            alt={productName}
+            alt={imageAlt}
+            title={productName}
             priority={false}
             width={600}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"

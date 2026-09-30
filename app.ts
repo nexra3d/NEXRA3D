@@ -1537,6 +1537,96 @@ app.use((req, res, next) => {
   next();
 });
 
+// SEO: Public robots.txt
+app.get('/robots.txt', (req: Request, res: Response) => {
+  res.type('text/plain; charset=utf-8');
+  res.send(`User-agent: *
+Allow: /
+Allow: /shop
+Allow: /services
+Allow: /custom-orders
+Allow: /about
+Allow: /contact
+Allow: /privacy-policy
+
+# Disallow private user, cart, checkout and administrative areas
+Disallow: /admin
+Disallow: /admin/
+Disallow: /account
+Disallow: /account/
+Disallow: /cart
+Disallow: /cart/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /wishlist
+Disallow: /wishlist/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /unauthorized
+Disallow: /api/
+
+Sitemap: https://www.nexra3d.in/sitemap.xml
+`);
+});
+
+// SEO: Dynamic XML Sitemap
+app.get('/sitemap.xml', async (req: Request, res: Response) => {
+  try {
+    const DOMAIN = 'https://www.nexra3d.in';
+    const today = new Date().toISOString().split('T')[0];
+
+    const [products, categories, services] = await Promise.all([
+      prisma.product.findMany({ select: { id: true, slug: true, updatedAt: true } }).catch(() => []),
+      prisma.category.findMany({ select: { id: true, slug: true } }).catch(() => []),
+      prisma.service.findMany({ select: { id: true, slug: true } }).catch(() => [])
+    ]);
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    // Static canonical pages
+    xml += `  <url><loc>${DOMAIN}/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
+    xml += `  <url><loc>${DOMAIN}/shop</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
+    xml += `  <url><loc>${DOMAIN}/services</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+    xml += `  <url><loc>${DOMAIN}/custom-orders</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+    xml += `  <url><loc>${DOMAIN}/about</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
+    xml += `  <url><loc>${DOMAIN}/contact</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
+    xml += `  <url><loc>${DOMAIN}/privacy-policy</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>\n`;
+
+    // Categories
+    for (const cat of categories) {
+      const catKey = (cat as any).slug || (cat as any).id;
+      if (catKey) {
+        xml += `  <url><loc>${DOMAIN}/shop?category=${encodeURIComponent(catKey)}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      }
+    }
+
+    // Products
+    for (const prod of products) {
+      const prodKey = (prod as any).slug || (prod as any).id;
+      const modDate = (prod as any).updatedAt ? new Date((prod as any).updatedAt).toISOString().split('T')[0] : today;
+      if (prodKey) {
+        xml += `  <url><loc>${DOMAIN}/shop?product=${encodeURIComponent(prodKey)}</loc><lastmod>${modDate}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      }
+    }
+
+    // Services
+    for (const srv of services) {
+      const srvKey = (srv as any).slug || (srv as any).id;
+      if (srvKey) {
+        xml += `  <url><loc>${DOMAIN}/services?service=${encodeURIComponent(srvKey)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+      }
+    }
+
+    xml += `</urlset>`;
+    res.type('application/xml; charset=utf-8');
+    res.send(xml);
+  } catch (err: any) {
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 // API Health Check (Sanitized to not leak customer/user count telemetry)
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
