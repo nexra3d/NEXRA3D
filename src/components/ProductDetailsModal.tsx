@@ -64,14 +64,48 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     ? product.images
     : ((product as any)?.productImages && (product as any).productImages.length > 0 ? (product as any).productImages : []);
 
-  const imagesList: string[] = rawImages.length > 0
-    ? rawImages.map((img: any) => typeof img === 'string' ? img : (img?.url || '')).filter(Boolean)
-    : [product?.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800'];
-
   const variantsList: ProductVariant[] = product?.variants || product?.productVariants || [];
+
+  // Extract variant-specific images so colour-specific variant images can be displayed
+  const variantImages: string[] = variantsList
+    .map((v) => (v as any)?.imageUrl || (v as any)?.image || v?.attributes?.imageUrl || v?.attributes?.image)
+    .filter((url): url is string => typeof url === 'string' && url.trim().length > 0);
+
+  const baseImageUrls: string[] = rawImages
+    .map((img: any) => typeof img === 'string' ? img : (img?.url || ''))
+    .filter(Boolean);
+
+  const allDistinctImages = Array.from(new Set([...baseImageUrls, ...variantImages]));
+
+  const imagesList: string[] = allDistinctImages.length > 0
+    ? allDistinctImages
+    : [product?.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800'];
 
   const productName = product?.name || product?.title || 'Product Item';
   const stockQty = product?.stockQuantity ?? product?.stock ?? 0;
+
+  // Custom Size options extraction from administrator configured variants and product properties
+  const sizesFromVariants = variantsList
+    .map((v) => (v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize)
+    .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    .map((s) => s.trim());
+
+  const productSizes: string[] = Array.isArray((product as any)?.sizes)
+    ? (product as any).sizes
+    : Array.isArray((product as any)?.customSizes)
+    ? (product as any).customSizes
+    : Array.isArray((product as any)?.sizeOptions)
+    ? (product as any).sizeOptions
+    : [];
+
+  const specSize = (product?.specifications as any)?.Size || (product?.specifications as any)?.size || (product?.specifications as any)?.Sizes;
+  const specSizes = typeof specSize === 'string' && specSize.includes(',')
+    ? specSize.split(',').map((s) => s.trim()).filter(Boolean)
+    : (typeof specSize === 'string' && specSize.trim() ? [specSize.trim()] : []);
+
+  const availableSizes: string[] = Array.from(new Set([...sizesFromVariants, ...productSizes, ...specSizes]));
+
+  const [selectedSize, setSelectedSize] = useState<string>('');
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
@@ -245,6 +279,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     setCustomizationImages([]);
     setImageUploadError(null);
     setCustomizationError(null);
+
+    // Initialize custom size if available
+    if (availableSizes.length > 0) {
+      setSelectedSize(availableSizes[0]);
+    } else {
+      setSelectedSize('');
+    }
+
     if (variantsList.length > 0) {
       setSelectedVariant(variantsList[0]);
     } else {
@@ -270,28 +312,36 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       // ignore
     }
 
-    // Fetch related products
+    // Fetch related products safely
     setIsLoadingRelated(true);
     fetch(`/api/products/${product.id}/related?limit=4`)
-      .then((res) => (res.ok ? res.json() : []))
+      .then((res) => (res.ok ? res.json().catch(() => []) : []))
       .then((data) => {
-        if (Array.isArray(data)) setRelatedProducts(data);
+        if (Array.isArray(data)) {
+          const safeData = data.filter((item: any) => item && typeof item === 'object');
+          setRelatedProducts(safeData);
+        }
       })
       .catch((err) => console.error('Related products fetch error:', err))
       .finally(() => setIsLoadingRelated(false));
 
-    // Fetch Reviews
+    // Fetch Reviews safely
     fetch(`/api/products/${product.id}/reviews`)
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
         if (data) {
           const revs = Array.isArray(data) ? data : (data.reviews || []);
-          setReviews(revs);
-          if (data.summary) {
-            setRatingSummary(data.summary);
-          } else if (revs.length > 0) {
-            const avg = Number((revs.reduce((acc: number, r: any) => acc + (r.rating || 5), 0) / revs.length).toFixed(1));
-            setRatingSummary({ averageRating: avg, totalCount: revs.length, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
+          const safeRevs = revs.filter((r: any) => r && typeof r === 'object');
+          setReviews(safeRevs);
+          if (data.summary && typeof data.summary === 'object') {
+            setRatingSummary({
+              averageRating: Number(data.summary.averageRating || 0),
+              totalCount: Number(data.summary.totalCount || safeRevs.length),
+              distribution: data.summary.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            });
+          } else if (safeRevs.length > 0) {
+            const avg = Number((safeRevs.reduce((acc: number, r: any) => acc + Number(r.rating || 5), 0) / safeRevs.length).toFixed(1));
+            setRatingSummary({ averageRating: avg, totalCount: safeRevs.length, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
           } else {
             setRatingSummary({ averageRating: (product.reviewCount && product.reviewCount > 0) ? Number(product.rating || 0) : 0, totalCount: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
           }
@@ -342,7 +392,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     fetch(`/api/products/${encodeURIComponent(product.id)}/lamp-options`, {
       signal: controller.signal
     })
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
         if (data && (Array.isArray(data.colours) || Array.isArray(data.wattages))) {
           const fetchedColours: LampOptionItem[] = Array.isArray(data.colours) ? data.colours : [];
@@ -386,32 +436,42 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     };
   }, [product?.id]);
 
-  // Extract options strictly belonging to variants of THIS product if DB options aren't present
+  // Extract colours from variants and product properties
   const availableColoursFromVariants = Array.from(
     new Set(
       variantsList
-        .map((v) => v.colour || (v.attributes as any)?.colour)
-        .filter(Boolean) as string[]
+        .map((v) => v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color)
+        .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        .map((c) => c.trim())
     )
   );
 
-  const availableWattagesFromVariants = Array.from(
-    new Set(
-      variantsList
-        .map((v) => v.wattage || (v.attributes as any)?.wattage)
-        .filter(Boolean) as string[]
-    )
-  );
+  const productColours: string[] = Array.isArray((product as any)?.colours)
+    ? (product as any).colours
+    : Array.isArray((product as any)?.colors)
+    ? (product as any).colors
+    : [];
+
+  const allDetectedColours = Array.from(new Set([...availableColoursFromVariants, ...productColours]));
 
   const colourOptionsList: LampOptionItem[] = (hasLoadedDbOptions && dbColours.length > 0)
     ? dbColours
-    : availableColoursFromVariants.map((c, idx) => ({
+    : allDetectedColours.map((c, idx) => ({
         id: `col-${idx}`,
         value: c,
         priceDelta: c.toUpperCase().includes('RGB') ? 200 : 0,
         sortOrder: idx + 1,
         isActive: true
       }));
+
+  const availableWattagesFromVariants = Array.from(
+    new Set(
+      variantsList
+        .map((v) => v.wattage || (v as any).wattage || (v.attributes as any)?.wattage)
+        .filter((w): w is string => typeof w === 'string' && w.trim().length > 0)
+        .map((w) => w.trim())
+    )
+  );
 
   const wattageOptionsList: LampOptionItem[] = (hasLoadedDbOptions && dbWattages.length > 0)
     ? dbWattages
@@ -433,11 +493,101 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         };
       });
 
+  // Helper to find image matching a colour
+  const getImageForColour = (colour: string): string | null => {
+    if (!colour) return null;
+    const normCol = colour.trim().toLowerCase();
+
+    // 1. Check if selected variant or any matching variant has an image
+    if (selectedVariant) {
+      const svCol = (selectedVariant.colour || (selectedVariant as any).color || (selectedVariant.attributes as any)?.colour || (selectedVariant.attributes as any)?.color || '').trim().toLowerCase();
+      if (svCol === normCol) {
+        const vImg = (selectedVariant as any)?.imageUrl || (selectedVariant as any)?.image || selectedVariant.attributes?.imageUrl || selectedVariant.attributes?.image;
+        if (typeof vImg === 'string' && vImg.trim()) return vImg.trim();
+      }
+    }
+
+    const matchingVar = variantsList.find((v) => {
+      const vCol = (v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color || '').trim().toLowerCase();
+      return vCol === normCol;
+    });
+
+    const varImg = (matchingVar as any)?.imageUrl ||
+      (matchingVar as any)?.image ||
+      matchingVar?.attributes?.imageUrl ||
+      matchingVar?.attributes?.image ||
+      (matchingVar?.attributes?.images && matchingVar.attributes.images[0]);
+
+    if (typeof varImg === 'string' && varImg.trim()) {
+      return varImg.trim();
+    }
+
+    // 2. Check if product.productImages or product.images has colour metadata or altText matching
+    for (const img of rawImages) {
+      if (typeof img === 'object' && img !== null) {
+        const imgCol = (img.colour || img.color || img.attributes?.colour || img.attributes?.color || '').trim().toLowerCase();
+        if (imgCol && (imgCol === normCol || normCol.includes(imgCol) || imgCol.includes(normCol))) {
+          return img.url || '';
+        }
+        const alt = (img.altText || img.alt || '').toLowerCase();
+        if (alt && alt.includes(normCol)) {
+          return img.url || '';
+        }
+      }
+    }
+
+    // 3. Check if image URL contains the colour name in its path / filename
+    for (const imgUrl of imagesList) {
+      if (typeof imgUrl === 'string') {
+        const urlLower = imgUrl.toLowerCase();
+        const cleanCol = normCol.replace(/[^a-z0-9]/g, '');
+        if (cleanCol.length >= 3 && urlLower.includes(cleanCol)) {
+          return imgUrl;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Helper to switch main gallery image when colour is selected
+  const switchImageToColour = (colour: string) => {
+    if (!colour) return;
+    const colImg = getImageForColour(colour);
+    if (colImg) {
+      const foundIdx = imagesList.findIndex((img) => img === colImg);
+      if (foundIdx >= 0) {
+        setSelectedImageIndex(foundIdx);
+      }
+    }
+  };
+
+  // Select colour handler that changes image and state
+  const handleSelectColour = (col: string) => {
+    setSelectedColour(col);
+    switchImageToColour(col);
+  };
+
+  // Keep selected size in sync
+  useEffect(() => {
+    if (availableSizes.length > 0 && (!selectedSize || !availableSizes.includes(selectedSize))) {
+      setSelectedSize(availableSizes[0]);
+    }
+  }, [availableSizes]);
+
+  // Keep selected colour in sync
   useEffect(() => {
     if (colourOptionsList.length > 0 && (!selectedColour || !colourOptionsList.some((c) => c.value === selectedColour))) {
       setSelectedColour(colourOptionsList[0].value);
     }
   }, [colourOptionsList]);
+
+  // When selectedColour changes, update the main image
+  useEffect(() => {
+    if (selectedColour) {
+      switchImageToColour(selectedColour);
+    }
+  }, [selectedColour, imagesList]);
 
   useEffect(() => {
     if (wattageOptionsList.length > 0 && (!selectedWattage || !wattageOptionsList.some((w) => w.value === selectedWattage))) {
@@ -445,46 +595,65 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     }
   }, [wattageOptionsList]);
 
-  // Debug log variants when product is loaded
-  useEffect(() => {
-    if (product && variantsList.length > 0) {
-      console.log('[LAMP VARIANTS]', variantsList);
-    }
-  }, [product?.id, variantsList]);
-
-  // Sync selected variant when colour or wattage changes
+  // Sync selected variant when size, colour, or wattage changes
   useEffect(() => {
     if (variantsList.length > 0) {
+      const normSize = (selectedSize || '').trim().toLowerCase();
       const normCol = (selectedColour || '').trim().toLowerCase();
       const normWat = (selectedWattage || '').trim().toLowerCase();
 
-      const match = variantsList.find((v) => {
+      // 1. Match size, colour, and wattage
+      let match = variantsList.find((v) => {
         if (v.isActive === false) return false;
-        const vCol = (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase();
+        const vSize = ((v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+        const vCol = (v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color || '').trim().toLowerCase();
         const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase();
 
-        const colMatches = !normCol || vCol === normCol;
-        const watMatches = !normWat || vWat === normWat;
+        const sizeMatches = !normSize || !vSize || vSize === normSize;
+        const colMatches = !normCol || !vCol || vCol === normCol;
+        const watMatches = !normWat || !vWat || vWat === normWat;
 
-        return colMatches && watMatches;
+        return sizeMatches && colMatches && watMatches;
       });
+
+      // 2. Fallback matching size and colour
+      if (!match && (normSize || normCol)) {
+        match = variantsList.find((v) => {
+          if (v.isActive === false) return false;
+          const vSize = ((v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+          const vCol = (v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color || '').trim().toLowerCase();
+
+          const sizeMatches = !normSize || !vSize || vSize === normSize;
+          const colMatches = !normCol || !vCol || vCol === normCol;
+          return sizeMatches && colMatches;
+        });
+      }
+
+      // 3. Fallback matching just size
+      if (!match && normSize) {
+        match = variantsList.find((v) => {
+          if (v.isActive === false) return false;
+          const vSize = ((v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+          return vSize === normSize;
+        });
+      }
+
+      // 4. Default to first active variant
+      if (!match) {
+        match = variantsList.find((v) => v.isActive !== false) || variantsList[0];
+      }
 
       setSelectedVariant(match || null);
-
-      console.log('[SELECTED LAMP VARIANT]', {
-        selectedColour,
-        selectedWattage,
-        selectedVariant: match
-      });
     } else {
       setSelectedVariant(null);
     }
-  }, [selectedColour, selectedWattage, variantsList]);
+  }, [selectedSize, selectedColour, selectedWattage, variantsList]);
 
   if (!product) return null;
 
   const isVariantProduct = variantsList.length > 0;
-  const isCombinationUnavailable = isVariantProduct && Boolean(selectedColour || selectedWattage) && !selectedVariant;
+  const hasConfigurableOptions = availableSizes.length > 0 || colourOptionsList.length > 0 || wattageOptionsList.length > 0;
+  const isCombinationUnavailable = isVariantProduct && hasConfigurableOptions && !selectedVariant;
 
   const calculatedBasePrice = Number(product.price || 0);
   const calculatedBaseMrp = Number(product.mrp || product.price || 0);
@@ -492,6 +661,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const activePrice = selectedVariant ? Number(selectedVariant.price) : calculatedBasePrice;
   const activeMrp = selectedVariant ? Number(selectedVariant.mrp || selectedVariant.price) : calculatedBaseMrp;
   const activeSku = selectedVariant ? selectedVariant.sku : (product.sku || 'NX-LMP-SPRL');
+  const activeStockQty = selectedVariant ? (selectedVariant.stockQuantity ?? 10) : stockQty;
 
   const formatINR = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -499,6 +669,27 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       currency: 'INR',
       maximumFractionDigits: 0
     }).format(val);
+  };
+
+  const getColourDotClass = (col: string) => {
+    const lower = col.toLowerCase();
+    if (lower.includes('cool')) return 'bg-sky-200';
+    if (lower.includes('warm')) return 'bg-amber-300';
+    if (lower.includes('neutral')) return 'bg-orange-100';
+    if (lower.includes('rgb') || lower.includes('multi') || lower.includes('rainbow')) return 'bg-gradient-to-r from-red-500 via-green-500 to-blue-500';
+    if (lower.includes('black')) return 'bg-slate-900';
+    if (lower.includes('white')) return 'bg-white border-slate-300';
+    if (lower.includes('red')) return 'bg-rose-500';
+    if (lower.includes('blue')) return 'bg-blue-500';
+    if (lower.includes('green')) return 'bg-emerald-500';
+    if (lower.includes('yellow')) return 'bg-amber-400';
+    if (lower.includes('purple') || lower.includes('violet')) return 'bg-purple-500';
+    if (lower.includes('pink')) return 'bg-pink-400';
+    if (lower.includes('orange')) return 'bg-orange-500';
+    if (lower.includes('gold')) return 'bg-amber-400';
+    if (lower.includes('silver') || lower.includes('grey') || lower.includes('gray')) return 'bg-slate-400';
+    if (lower.includes('brown')) return 'bg-amber-800';
+    return 'bg-indigo-400';
   };
 
   const handlePrevImage = () => {
@@ -518,6 +709,8 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
+  const activeColourImage = (selectedColour ? getImageForColour(selectedColour) : null) || imagesList[selectedImageIndex] || imagesList[0];
+
   const handleAddCustomProduct = () => {
     if (!product) return;
     if (needsCustomization && !customizationText.trim()) {
@@ -529,7 +722,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       return;
     }
     setCustomizationError(null);
-    onAddToCart(product, selectedVariant?.id, quantity, customizationText.trim(), selectedColour, selectedWattage, customizationImages);
+
+    const productWithSelectedImage = activeColourImage ? { ...product, imageUrl: activeColourImage } : product;
+    onAddToCart(productWithSelectedImage, selectedVariant?.id, quantity, customizationText.trim(), selectedColour, selectedWattage, customizationImages);
   };
 
   const handleAddReview = async (e: React.FormEvent) => {
@@ -721,136 +916,188 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <span className="text-xs text-slate-500 font-medium">({reviews.length} Verified Customer Reviews)</span>
               </div>
 
-              {/* Lamp Options or Standard Variant Selector */}
-              {isLampProduct ? (
+              {/* Product Variant Options (Custom Size, Colour, Wattage) */}
+              {(availableSizes.length > 0 || colourOptionsList.length > 0 || wattageOptionsList.length > 0) ? (
                 <div className="space-y-4 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200">
-                  {!hasLoadedDbOptions ? (
-                    <div className="text-xs text-slate-500 font-medium animate-pulse py-2 px-1">
-                      Loading product options...
+                  {/* 1. Custom Size Options Display */}
+                  {availableSizes.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Size:</span>
+                        </span>
+                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                          {selectedSize || 'Default'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {availableSizes.map((sz) => {
+                          const isSel = selectedSize === sz;
+                          const matchingVar = variantsList.find((v) => {
+                            if (v.isActive === false) return false;
+                            const vSz = ((v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+                            const vCol = (v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color || '').trim().toLowerCase();
+                            const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase();
+
+                            const szMatches = !vSz || vSz === sz.trim().toLowerCase();
+                            const colMatches = !selectedColour || !vCol || vCol === selectedColour.trim().toLowerCase();
+                            const watMatches = !selectedWattage || !vWat || vWat === selectedWattage.trim().toLowerCase();
+                            return szMatches && colMatches && watMatches;
+                          });
+
+                          const isAvailable = variantsList.length === 0 || !!matchingVar;
+                          const displayPrice = matchingVar ? Number(matchingVar.price) : null;
+
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => setSelectedSize(sz)}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
+                                isSel
+                                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-300'
+                                  : isAvailable
+                                  ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+                                  : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                              }`}
+                            >
+                              <span>{sz}</span>
+                              {displayPrice !== null && (
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${isSel ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-600'}`}>
+                                  {formatINR(displayPrice)}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ) : colourOptionsList.length === 0 && wattageOptionsList.length === 0 ? (
-                    <div className="text-xs text-slate-500 font-medium italic py-1 px-1">
-                      No customizable lamp options configured for this product.
+                  )}
+
+                  {/* 2. Colour Options Display */}
+                  {colourOptionsList.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Colour:</span>
+                        </span>
+                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                          {selectedColour || 'Default'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {colourOptionsList.map((colObj) => {
+                          const col = colObj.value;
+                          const isSel = selectedColour === col;
+                          const bgDot = getColourDotClass(col);
+
+                          const matchingVar = variantsList.find((v) => {
+                            if (v.isActive === false) return false;
+                            const vSz = ((v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+                            const vCol = (v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color || '').trim().toLowerCase();
+                            const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase();
+
+                            const szMatches = !selectedSize || !vSz || vSz === selectedSize.trim().toLowerCase();
+                            const colMatches = vCol === col.trim().toLowerCase();
+                            const watMatches = !selectedWattage || !vWat || vWat === selectedWattage.trim().toLowerCase();
+                            return szMatches && colMatches && watMatches;
+                          });
+
+                          const displayPrice = matchingVar ? Number(matchingVar.price) : null;
+                          const isAvailable = variantsList.length === 0 || !!matchingVar;
+
+                          return (
+                            <button
+                              key={colObj.id || col}
+                              type="button"
+                              onClick={() => handleSelectColour(col)}
+                              className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                                isSel
+                                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-300'
+                                  : isAvailable
+                                  ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+                                  : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={`w-3 h-3 rounded-full shrink-0 ${bgDot} border border-slate-300`} />
+                                <span className="truncate">{col}</span>
+                              </div>
+                              {displayPrice !== null ? (
+                                <span className={`text-[10px] shrink-0 font-bold px-1.5 py-0.5 rounded ${isSel ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-700'}`}>
+                                  {formatINR(displayPrice)}
+                                </span>
+                              ) : isVariantProduct ? (
+                                <span className="text-[10px] shrink-0 font-medium text-rose-500">
+                                  N/A
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      {/* Lamp Colour Selector */}
-                      {colourOptionsList.length > 0 && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                              <span>Lamp Light Colour:</span>
-                            </span>
-                            <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                              {selectedColour || 'Default'}
-                            </span>
-                          </div>
+                  )}
 
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {colourOptionsList.map((colObj) => {
-                              const col = colObj.value;
-                              const isSel = selectedColour === col;
-                              let bgDot = 'bg-amber-300';
-                              if (col.toLowerCase().includes('cool')) bgDot = 'bg-sky-200';
-                              if (col.toLowerCase().includes('neutral')) bgDot = 'bg-orange-100';
-                              if (col.toLowerCase().includes('rgb')) bgDot = 'bg-gradient-to-r from-red-500 via-green-500 to-blue-500';
+                  {/* 3. Bulb Wattage Option (if present) */}
+                  {wattageOptionsList.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Bulb Wattage Option:</span>
+                        </span>
+                        <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                          {selectedWattage || 'Default'}
+                        </span>
+                      </div>
 
-                              const matchingVar = variantsList.find(
-                                (v) =>
-                                  v.isActive !== false &&
-                                  (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase() === col.trim().toLowerCase() &&
-                                  (!selectedWattage || (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase() === selectedWattage.trim().toLowerCase())
-                              );
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {wattageOptionsList.map((wattObj) => {
+                          const watt = wattObj.value;
+                          const isSel = selectedWattage === watt;
 
-                              const displayPrice = matchingVar ? Number(matchingVar.price) : null;
-                              const isAvailable = variantsList.length === 0 || !!matchingVar;
+                          const matchingVar = variantsList.find((v) => {
+                            if (v.isActive === false) return false;
+                            const vSz = ((v as any).size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+                            const vCol = (v.colour || (v as any).color || (v.attributes as any)?.colour || (v.attributes as any)?.color || '').trim().toLowerCase();
+                            const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase();
 
-                              return (
-                                <button
-                                  key={colObj.id || col}
-                                  type="button"
-                                  onClick={() => setSelectedColour(col)}
-                                  className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
-                                    isSel
-                                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-300'
-                                      : isAvailable
-                                      ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
-                                      : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <span className={`w-3 h-3 rounded-full shrink-0 ${bgDot} border border-slate-300`} />
-                                    <span className="truncate">{col}</span>
-                                  </div>
-                                  {displayPrice !== null ? (
-                                    <span className={`text-[10px] shrink-0 font-bold px-1.5 py-0.5 rounded ${isSel ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-700'}`}>
-                                      {formatINR(displayPrice)}
-                                    </span>
-                                  ) : isVariantProduct ? (
-                                    <span className="text-[10px] shrink-0 font-medium text-rose-500">
-                                      N/A
-                                    </span>
-                                  ) : null}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
+                            const szMatches = !selectedSize || !vSz || vSz === selectedSize.trim().toLowerCase();
+                            const colMatches = !selectedColour || !vCol || vCol === selectedColour.trim().toLowerCase();
+                            const watMatches = vWat === watt.trim().toLowerCase();
+                            return szMatches && colMatches && watMatches;
+                          });
 
-                      {/* Bulb Wattage Selector */}
-                      {wattageOptionsList.length > 0 && (
-                        <div className="space-y-1.5 pt-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
-                              <Zap className="w-3.5 h-3.5 text-amber-500" />
-                              <span>Bulb Wattage Option:</span>
-                            </span>
-                            <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
-                              {selectedWattage || 'Default'}
-                            </span>
-                          </div>
+                          const displayPrice = matchingVar ? Number(matchingVar.price) : null;
+                          const isAvailable = variantsList.length === 0 || !!matchingVar;
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {wattageOptionsList.map((wattObj) => {
-                              const watt = wattObj.value;
-                              const isSel = selectedWattage === watt;
-
-                              const matchingVar = variantsList.find(
-                                (v) =>
-                                  v.isActive !== false &&
-                                  (!selectedColour || (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase() === selectedColour.trim().toLowerCase()) &&
-                                  (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase() === watt.trim().toLowerCase()
-                              );
-
-                              const displayPrice = matchingVar ? Number(matchingVar.price) : null;
-                              const isAvailable = variantsList.length === 0 || !!matchingVar;
-
-                              return (
-                                <button
-                                  key={wattObj.id || watt}
-                                  type="button"
-                                  onClick={() => setSelectedWattage(watt)}
-                                  className={`p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                                    isSel
-                                      ? 'bg-amber-500 border-amber-500 text-slate-950 font-black shadow-xs ring-2 ring-amber-300'
-                                      : isAvailable
-                                      ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
-                                      : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
-                                  }`}
-                                >
-                                  <div>{watt}</div>
-                                  <div className={`text-[10px] mt-0.5 ${isSel ? 'text-slate-950 font-bold' : isAvailable ? 'text-slate-600 font-semibold' : 'text-rose-500'}`}>
-                                    {displayPrice !== null ? formatINR(displayPrice) : (isVariantProduct ? 'Unavailable' : '')}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </>
+                          return (
+                            <button
+                              key={wattObj.id || watt}
+                              type="button"
+                              onClick={() => setSelectedWattage(watt)}
+                              className={`p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                                isSel
+                                  ? 'bg-amber-500 border-amber-500 text-slate-950 font-black shadow-xs ring-2 ring-amber-300'
+                                  : isAvailable
+                                  ? 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+                                  : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                              }`}
+                            >
+                              <div>{watt}</div>
+                              <div className={`text-[10px] mt-0.5 ${isSel ? 'text-slate-950 font-bold' : isAvailable ? 'text-slate-600 font-semibold' : 'text-rose-500'}`}>
+                                {displayPrice !== null ? formatINR(displayPrice) : (isVariantProduct ? 'Unavailable' : '')}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : variantsList.length > 0 ? (
@@ -904,10 +1151,10 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     <span className="bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1 rounded-full">
                       Unavailable
                     </span>
-                  ) : stockQty > 0 ? (
+                  ) : activeStockQty > 0 ? (
                     <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{stockQty} Units In Stock</span>
+                      <span>{activeStockQty} Units In Stock</span>
                     </span>
                   ) : (
                     <span className="bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1 rounded-full">
@@ -918,7 +1165,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               </div>
 
               {/* Quantity Selector */}
-              {stockQty > 0 && !isCombinationUnavailable && (
+              {activeStockQty > 0 && !isCombinationUnavailable && (
                 <div className="flex items-center space-x-4">
                   <span className="text-xs font-bold text-slate-700 uppercase">Quantity:</span>
                   <div className="flex items-center border border-slate-300 rounded-xl bg-slate-50 overflow-hidden">
@@ -930,7 +1177,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     </button>
                     <span className="px-4 py-1.5 text-xs font-bold text-slate-900">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(Math.min(stockQty, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(activeStockQty, quantity + 1))}
                       className="px-3 py-1.5 text-slate-600 font-bold hover:bg-slate-200 transition-colors"
                     >
                       +
@@ -1085,7 +1332,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleAddCustomProduct}
-                    disabled={isCombinationUnavailable || stockQty <= 0}
+                    disabled={isCombinationUnavailable || activeStockQty <= 0}
                     className="w-full py-3.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-sm rounded-2xl flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
                   >
                     <ShoppingBag className="w-4 h-4" />
@@ -1104,10 +1351,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                         return;
                       }
                       setCustomizationError(null);
-                      onBuyNow(product, customizationText.trim(), selectedColour, selectedWattage, selectedVariant?.id, customizationImages);
+
+                      const productWithSelectedImage = activeColourImage ? { ...product, imageUrl: activeColourImage } : product;
+                      onBuyNow(productWithSelectedImage, customizationText.trim(), selectedColour, selectedWattage, selectedVariant?.id, customizationImages);
                       onClose();
                     }}
-                    disabled={isCombinationUnavailable || stockQty <= 0}
+                    disabled={isCombinationUnavailable || activeStockQty <= 0}
                     className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold text-sm rounded-2xl flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
                   >
                     <Zap className="w-4 h-4 text-slate-900 fill-slate-900" />
@@ -1446,10 +1695,15 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             ) : relatedProducts.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {relatedProducts.map((relProd) => {
-                  const relImg = relProd.imageUrl || (relProd.images && relProd.images[0]) || '';
+                  if (!relProd || typeof relProd !== 'object') return null;
+                  const rawRelImg = relProd.imageUrl || (Array.isArray(relProd.images) && relProd.images[0]) || (Array.isArray((relProd as any).productImages) && (relProd as any).productImages[0]) || '';
+                  const relImg = (typeof rawRelImg === 'string' ? rawRelImg : (rawRelImg?.url || rawRelImg?.imageUrl || '')) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800';
+                  const relTitle = String(relProd.name || relProd.title || '3D Printed Product');
+                  const relPrice = typeof relProd.price === 'number' ? formatINR(relProd.price) : (relProd.price ? formatINR(Number(relProd.price)) : '');
+
                   return (
                     <div
-                      key={relProd.id}
+                      key={relProd.id || Math.random()}
                       onClick={() => {
                         if (onSelectRelatedProduct) {
                           onSelectRelatedProduct(relProd);
@@ -1460,7 +1714,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                       <div className="aspect-[4/3] min-h-[100px] w-full bg-white rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center p-1">
                         <OptimizedImage
                           src={relImg}
-                          alt={relProd.name || relProd.title}
+                          alt={relTitle}
                           priority={false}
                           width={240}
                           className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-200"
@@ -1469,11 +1723,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                          {relProd.name || relProd.title}
+                          {relTitle}
                         </h4>
-                        <span className="text-xs font-black text-slate-900 block mt-0.5">
-                          {formatINR(relProd.price)}
-                        </span>
+                        {relPrice && (
+                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                            {relPrice}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
