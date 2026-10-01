@@ -36,7 +36,8 @@ import {
   ArrowRight,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Palette
 } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 import {
@@ -450,6 +451,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newLampWattageDeltaInput, setNewLampWattageDeltaInput] = useState('');
   const [variantSuccess, setVariantSuccess] = useState<string | null>(null);
 
+  // Custom Size & Colour Options State
+  const [hasColourOptions, setHasColourOptions] = useState(false);
+  const [customColours, setCustomColours] = useState<string[]>([]);
+  const [newColourInput, setNewColourInput] = useState('');
+
+  const [hasSizeOptions, setHasSizeOptions] = useState(false);
+  const [customSizes, setCustomSizes] = useState<string[]>([]);
+  const [newSizeInput, setNewSizeInput] = useState('');
+
+  // Map image identifier (ID or URL) -> assigned colour name
+  const [imageColourMap, setImageColourMap] = useState<Record<string, string>>({});
+  // For pending images (index -> assigned colour name)
+  const [pendingImageColours, setPendingImageColours] = useState<Record<number, string>>({});
+
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const selectedCatObj = safeCategories.find((c) => c?.id === prodCategoryId || c?.slug === prodCategoryId);
+  const safeCatId = (prodCategoryId || '').toLowerCase();
+  const safeProdName = (prodName || '').toLowerCase();
+  const safeEditId = (editingProductId || '').toLowerCase();
+
+  const isLampCategory = Boolean(
+    (selectedCatObj?.name || '').toLowerCase().includes('lamp') ||
+    (selectedCatObj?.slug || '').toLowerCase().includes('lamp') ||
+    (selectedCatObj?.id || '').toLowerCase().includes('lamp') ||
+    (selectedCatObj?.name || '').toLowerCase().includes('light') ||
+    (selectedCatObj?.slug || '').toLowerCase().includes('light') ||
+    (selectedCatObj?.id || '').toLowerCase().includes('light') ||
+    safeCatId.includes('lamp') ||
+    safeCatId.includes('light') ||
+    safeProdName.includes('lamp') ||
+    safeProdName.includes('light') ||
+    safeEditId.includes('lamp') ||
+    safeEditId.includes('light')
+  );
+
   // Variant Form State
   const [showAddVariantForm, setShowAddVariantForm] = useState(false);
   const [varSku, setVarSku] = useState('');
@@ -506,18 +542,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (varRes.ok) {
         const vars = await varRes.json();
         setProductVariants(vars);
+
+        const vSizes: string[] = Array.from(new Set(
+          vars
+            .map((v: any) => v.size || v.attributes?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize)
+            .filter((s: any): s is string => typeof s === 'string' && s.trim().length > 0)
+            .map((s: string) => s.trim())
+        ));
+        if (vSizes.length > 0) {
+          setHasSizeOptions(true);
+          setCustomSizes((prev) => Array.from(new Set([...prev, ...vSizes])));
+        }
+
+        const vColours: string[] = Array.from(new Set(
+          vars
+            .map((v: any) => v.colour || (v.attributes as any)?.colour || (v.attributes as any)?.color)
+            .filter((c: any): c is string => typeof c === 'string' && c.trim().length > 0)
+            .map((c: string) => c.trim())
+        ));
+        if (vColours.length > 0) {
+          setHasColourOptions(true);
+          setCustomColours((prev) => Array.from(new Set([...prev, ...vColours])));
+        }
+
+        const vColImgMap: Record<string, string> = {};
+        vars.forEach((v: any) => {
+          const col = v.colour || (v.attributes as any)?.colour;
+          const img = (v.attributes as any)?.imageUrl || (v.attributes as any)?.image || v.imageUrl;
+          if (col && img && typeof col === 'string' && typeof img === 'string') {
+            vColImgMap[col] = img;
+          }
+        });
+        if (Object.keys(vColImgMap).length > 0) {
+          setImageColourMap((prev) => ({ ...vColImgMap, ...prev }));
+        }
       }
       if (lampRes.ok) {
         const lampData = await lampRes.json();
         if (lampData && Array.isArray(lampData.colours)) {
-          setLampColours(
-            lampData.colours.map((c: any) => {
-              if (typeof c === 'string') return c;
-              const val = c?.value || c?.colour || '';
-              const delta = Number(c?.priceDelta || 0);
-              return delta > 0 ? `${val} (+₹${delta})` : val;
-            })
-          );
+          const lCols = lampData.colours.map((c: any) => {
+            if (typeof c === 'string') return c;
+            const val = c?.value || c?.colour || '';
+            const delta = Number(c?.priceDelta || 0);
+            return delta > 0 ? `${val} (+₹${delta})` : val;
+          });
+          setLampColours(lCols);
+          if (lCols.length > 0) {
+            setHasColourOptions(true);
+            setCustomColours((prev) => Array.from(new Set([...prev, ...lCols.map((c: string) => c.replace(/\s*\(\+₹\d+\)/, '').trim())])));
+          }
         }
         if (lampData && Array.isArray(lampData.wattages)) {
           setLampWattages(
@@ -574,6 +647,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNewLampWattageInput('');
     setNewLampWattageDeltaInput('');
     setVariantSuccess(null);
+    setHasColourOptions(false);
+    setCustomColours([]);
+    setNewColourInput('');
+    setHasSizeOptions(false);
+    setCustomSizes([]);
+    setNewSizeInput('');
+    setImageColourMap({});
+    setPendingImageColours({});
   };
 
   // Open Add Product Modal
@@ -611,6 +692,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setProdHeight(p.height !== null && p.height !== undefined ? String(p.height) : '');
     setProductFormError(null);
     setPendingProductImages([]);
+
+    const pSpecs = (p.specifications as any) || {};
+    const specSizes: string[] = Array.isArray(pSpecs.customSizes)
+      ? pSpecs.customSizes
+      : (typeof pSpecs.Size === 'string' ? pSpecs.Size.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+
+    if (specSizes.length > 0 || pSpecs.hasSizeOptions) {
+      setHasSizeOptions(true);
+      setCustomSizes(specSizes);
+    } else {
+      setHasSizeOptions(false);
+      setCustomSizes([]);
+    }
+
+    const specColours: string[] = Array.isArray(pSpecs.customColours) ? pSpecs.customColours : [];
+    if (specColours.length > 0 || pSpecs.hasColourOptions) {
+      setHasColourOptions(true);
+      setCustomColours(specColours);
+    } else {
+      setHasColourOptions(false);
+      setCustomColours([]);
+    }
+
+    if (pSpecs.colourImages && typeof pSpecs.colourImages === 'object') {
+      setImageColourMap(pSpecs.colourImages);
+    } else {
+      setImageColourMap({});
+    }
 
     loadProductImagesAndVariants(p.id);
     setShowProductModal(true);
@@ -780,48 +889,166 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return { value: str, priceDelta: delta };
   };
 
-  // Lamp Matrix Generation Functions
-  const handleGenerateLampMatrix = () => {
-    if (lampColours.length === 0 || lampWattages.length === 0) {
-      setVariantError('Please configure at least one Lamp Colour and one Bulb Wattage before generating matrix.');
+  // Custom Size & Colour Option Handlers
+  const handleAddColour = () => {
+    const trimmed = newColourInput.trim();
+    if (!trimmed) return;
+    if (customColours.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setNewColourInput('');
+      return;
+    }
+    const updated = [...customColours, trimmed];
+    setCustomColours(updated);
+    setNewColourInput('');
+    if (isLampCategory && !lampColours.includes(trimmed)) {
+      setLampColours([...lampColours, trimmed]);
+    }
+  };
+
+  const handleRemoveColour = (colToRemove: string, indexToRemove: number) => {
+    const updated = customColours.filter((_, i) => i !== indexToRemove);
+    setCustomColours(updated);
+
+    const newMap = { ...imageColourMap };
+    Object.keys(newMap).forEach((key) => {
+      if (newMap[key] === colToRemove) {
+        delete newMap[key];
+      }
+    });
+    setImageColourMap(newMap);
+
+    const newPending = { ...pendingImageColours };
+    Object.keys(newPending).forEach((key) => {
+      if (newPending[Number(key)] === colToRemove) {
+        delete newPending[Number(key)];
+      }
+    });
+    setPendingImageColours(newPending);
+  };
+
+  const handleAddSize = () => {
+    const trimmed = newSizeInput.trim();
+    if (!trimmed) return;
+    if (customSizes.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+      setNewSizeInput('');
+      return;
+    }
+    setCustomSizes([...customSizes, trimmed]);
+    setNewSizeInput('');
+  };
+
+  const handleRemoveSize = (_sizeToRemove: string, indexToRemove: number) => {
+    const updated = customSizes.filter((_, i) => i !== indexToRemove);
+    setCustomSizes(updated);
+  };
+
+  const handleAssignImageColour = (imgId: string, imgUrl: string, col: string) => {
+    const updated = { ...imageColourMap };
+    if (!col) {
+      delete updated[imgId];
+      if (imgUrl) delete updated[imgUrl];
+    } else {
+      updated[imgId] = col;
+      if (imgUrl) updated[imgUrl] = col;
+    }
+    setImageColourMap(updated);
+  };
+
+  // Variant Matrix Generation Functions (Size × Colour × Wattage)
+  const handleGenerateVariantsMatrix = () => {
+    const basePrice = Number(prodPrice || 0);
+    const baseMrp = Number(prodMrp || (basePrice ? basePrice * 1.2 : 0));
+    const baseStock = Number(prodStock || 10);
+    const defaultSku = prodSku || 'NEX';
+
+    const cleanForSku = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8);
+
+    const activeSizes = hasSizeOptions ? customSizes.filter((s) => s.trim()) : [];
+    const activeColours = hasColourOptions
+      ? customColours.filter((c) => c.trim())
+      : (isLampCategory ? lampColours.map((c) => parseOptionInput(c, 'COLOUR').value).filter(Boolean) : []);
+    const activeWattages = isLampCategory
+      ? lampWattages.map((w) => parseOptionInput(w, 'WATTAGE').value).filter(Boolean)
+      : [];
+
+    if (activeSizes.length === 0 && activeColours.length === 0 && activeWattages.length === 0) {
+      setVariantError('Please configure at least one Size or Colour option first.');
       return;
     }
 
     setVariantError(null);
     setVariantSuccess(null);
-    const base = Number(prodPrice || 1499);
-    const baseMrp = Number(prodMrp || base * 1.2);
 
-    const parsedCols = lampColours.map((c) => parseOptionInput(c, 'COLOUR')).filter((c) => c.value);
-    const parsedWatts = lampWattages.map((w) => parseOptionInput(w, 'WATTAGE')).filter((w) => w.value);
+    const colourToImage: Record<string, string> = {};
+    productImages.forEach((img) => {
+      const col = imageColourMap[img.id] || imageColourMap[img.url];
+      if (col && !colourToImage[col]) {
+        colourToImage[col] = img.url;
+      }
+    });
+    pendingProductImages.forEach((img, idx) => {
+      const col = pendingImageColours[idx];
+      if (col && !colourToImage[col]) {
+        colourToImage[col] = img.url;
+      }
+    });
+
+    const findExisting = (size?: string, colour?: string, wattage?: string) => {
+      return productVariants.find((v) => {
+        const vSize = (v.size || v.attributes?.size || (v.attributes as any)?.customSize || '').trim().toLowerCase();
+        const vCol = (v.colour || (v.attributes as any)?.colour || '').trim().toLowerCase();
+        const vWat = (v.wattage || (v.attributes as any)?.wattage || '').trim().toLowerCase();
+
+        const sMatch = !size || vSize === size.trim().toLowerCase();
+        const cMatch = !colour || vCol === colour.trim().toLowerCase();
+        const wMatch = !wattage || vWat === wattage.trim().toLowerCase();
+
+        return sMatch && cMatch && wMatch;
+      });
+    };
 
     const generated: any[] = [];
-    parsedCols.forEach((colObj) => {
-      parsedWatts.forEach((wattObj) => {
-        const col = colObj.value;
-        const watt = wattObj.value;
-        const delta = colObj.priceDelta + wattObj.priceDelta;
+    const sizes = activeSizes.length > 0 ? activeSizes : [null];
+    const colours = activeColours.length > 0 ? activeColours : [null];
+    const wattages = activeWattages.length > 0 ? activeWattages : [null];
 
-        const price = Math.max(0, base + delta);
-        const mrp = Math.max(price, baseMrp + delta);
-        const cleanSku = `${prodSku || 'LAMP'}-${col.replace(/[^a-zA-Z0-9]/g, '')}-${watt.replace(/[^a-zA-Z0-9]/g, '')}`.toUpperCase();
-        const name = `${col} - ${watt}`;
+    sizes.forEach((s) => {
+      colours.forEach((c) => {
+        wattages.forEach((w) => {
+          const existing = findExisting(s || undefined, c || undefined, w || undefined);
+          const skuParts = [defaultSku];
+          if (s) skuParts.push(cleanForSku(s));
+          if (c) skuParts.push(cleanForSku(c));
+          if (w) skuParts.push(cleanForSku(w));
+          const genSku = skuParts.join('-');
 
-        // Check if an existing variant matches
-        const existingMatch = productVariants.find(
-          (v) => (v.colour === col || v.attributes?.colour === col) && (v.wattage === watt || v.attributes?.wattage === watt)
-        );
+          const nameParts: string[] = [];
+          if (s) nameParts.push(s);
+          if (c) nameParts.push(c);
+          if (w) nameParts.push(w);
+          const genName = nameParts.length > 0 ? nameParts.join(' - ') : (prodName || 'Variant');
 
-        generated.push({
-          id: existingMatch?.id,
-          sku: existingMatch?.sku || cleanSku,
-          name,
-          price,
-          mrp,
-          stockQuantity: existingMatch ? existingMatch.stockQuantity : Number(prodStock || 10),
-          colour: col,
-          wattage: watt,
-          isActive: true
+          const colImg = c ? (colourToImage[c] || imageColourMap[c] || null) : null;
+
+          generated.push({
+            id: existing?.id,
+            sku: existing?.sku || genSku,
+            name: existing?.name || genName,
+            price: existing?.price !== undefined ? Number(existing.price) : basePrice,
+            mrp: existing?.mrp !== undefined ? Number(existing.mrp) : baseMrp,
+            stockQuantity: existing?.stockQuantity !== undefined ? Number(existing.stockQuantity) : baseStock,
+            size: s || null,
+            colour: c || null,
+            wattage: w || null,
+            attributes: {
+              ...(existing?.attributes || {}),
+              ...(s ? { size: s, customSize: s } : {}),
+              ...(c ? { colour: c } : {}),
+              ...(w ? { wattage: w } : {}),
+              ...(colImg ? { imageUrl: colImg } : {})
+            },
+            isActive: existing?.isActive !== false
+          });
         });
       });
     });
@@ -829,46 +1056,130 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setProductVariants(generated);
   };
 
-  const handleSaveLampMatrix = async () => {
+  // Lamp Matrix Generation Functions (Legacy Alias)
+  const handleGenerateLampMatrix = () => {
+    handleGenerateVariantsMatrix();
+  };
+
+  const handleSaveVariantsMatrix = async () => {
     if (!editingProductId) {
       setVariantError('Please save the main product first before saving variant matrix to database.');
       return;
     }
     if (productVariants.length === 0) {
-      setVariantError('No variants generated. Click "Generate Matrix" first.');
+      setVariantError('No variants generated. Click "Generate Combinations" first.');
       return;
     }
 
     setVariantError(null);
     setVariantSuccess(null);
     try {
-      // Sync lamp options and variant matrix in parallel
-      const [res] = await Promise.all([
+      const colImgMap: Record<string, string> = { ...imageColourMap };
+      productImages.forEach((img) => {
+        const col = imageColourMap[img.id] || imageColourMap[img.url];
+        if (col) colImgMap[col] = img.url;
+      });
+
+      const formattedVariants = productVariants.map((v) => {
+        const vSize = v.size || (v.attributes as any)?.size || (v.attributes as any)?.customSize || null;
+        const vCol = v.colour || (v.attributes as any)?.colour || null;
+        const vWat = v.wattage || (v.attributes as any)?.wattage || null;
+        const colImg = vCol ? (colImgMap[vCol] || (v.attributes as any)?.imageUrl || null) : null;
+
+        const attrs: any = { ...(v.attributes || {}) };
+        if (vSize) {
+          attrs.size = vSize;
+          attrs.customSize = vSize;
+        }
+        if (vCol) {
+          attrs.colour = vCol;
+          if (colImg) attrs.imageUrl = colImg;
+        }
+        if (vWat) {
+          attrs.wattage = vWat;
+        }
+
+        return {
+          id: v.id,
+          sku: v.sku,
+          name: v.name,
+          price: Number(v.price),
+          mrp: v.mrp !== undefined ? Number(v.mrp) : Number(v.price),
+          stockQuantity: Number(v.stockQuantity !== undefined ? v.stockQuantity : 10),
+          colour: vCol,
+          wattage: vWat,
+          attributes: Object.keys(attrs).length > 0 ? attrs : null,
+          isActive: v.isActive !== false
+        };
+      });
+
+      const existingP = products.find((p) => p.id === editingProductId);
+      const existingSpecs = (existingP?.specifications as any) || {};
+      const updatedSpecs = {
+        ...existingSpecs,
+        ...(hasSizeOptions && customSizes.length > 0 ? {
+          Size: customSizes.join(', '),
+          customSizes: customSizes,
+          hasSizeOptions: true
+        } : {
+          customSizes: [],
+          hasSizeOptions: false
+        }),
+        ...(hasColourOptions && customColours.length > 0 ? {
+          customColours: customColours,
+          hasColourOptions: true,
+          colourImages: colImgMap
+        } : {
+          customColours: [],
+          hasColourOptions: false,
+          colourImages: {}
+        })
+      };
+
+      const syncTasks: Promise<any>[] = [
         fetch(`/api/products/${editingProductId}/variants/matrix`, {
           method: 'POST',
           headers: getAuthHeaders(),
           credentials: 'include',
-          body: JSON.stringify({ variants: productVariants })
+          body: JSON.stringify({ variants: formattedVariants })
         }),
-        fetch(`/api/products/${editingProductId}/lamp-options/sync`, {
-          method: 'POST',
+        fetch(`/api/products/${editingProductId}`, {
+          method: 'PUT',
           headers: getAuthHeaders(),
           credentials: 'include',
-          body: JSON.stringify({ colours: lampColours, wattages: lampWattages })
-        }).catch((err) => console.warn('Lamp sync error:', err))
-      ]);
-      const data = await res.json();
-      if (!res.ok) {
+          body: JSON.stringify({ specifications: updatedSpecs })
+        })
+      ];
+
+      if (isLampCategory && (lampColours.length > 0 || lampWattages.length > 0)) {
+        syncTasks.push(
+          fetch(`/api/products/${editingProductId}/lamp-options/sync`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ colours: lampColours, wattages: lampWattages })
+          }).catch((err) => console.warn('Lamp sync error:', err))
+        );
+      }
+
+      const results = await Promise.all(syncTasks);
+      const matrixRes = results[0];
+      const data = await matrixRes.json();
+      if (!matrixRes.ok) {
         setVariantError(data.error || 'Failed to save variant matrix');
       } else {
         await loadProductImagesAndVariants(editingProductId);
         onRefreshData();
-        setVariantSuccess('Lamp options & variant matrix saved successfully!');
+        setVariantSuccess('Variants and options saved successfully!');
         setTimeout(() => setVariantSuccess(null), 3000);
       }
     } catch (err: any) {
       setVariantError(err.message || 'Error saving variant matrix');
     }
+  };
+
+  const handleSaveLampMatrix = async () => {
+    handleSaveVariantsMatrix();
   };
 
   // Add Variant
@@ -987,6 +1298,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const existingP = editingProductId ? products.find((p) => p.id === editingProductId) : null;
     const existingSpecs = (existingP?.specifications as any) || {};
 
+    const colImgMap: Record<string, string> = { ...imageColourMap };
+    productImages.forEach((img) => {
+      const col = imageColourMap[img.id] || imageColourMap[img.url];
+      if (col) colImgMap[col] = img.url;
+    });
+
+    const updatedSpecs = {
+      ...existingSpecs,
+      ...(hasSizeOptions && customSizes.length > 0 ? {
+        Size: customSizes.join(', '),
+        customSizes: customSizes,
+        hasSizeOptions: true
+      } : {
+        customSizes: [],
+        hasSizeOptions: false
+      }),
+      ...(hasColourOptions && customColours.length > 0 ? {
+        customColours: customColours,
+        hasColourOptions: true,
+        colourImages: colImgMap
+      } : {
+        customColours: [],
+        hasColourOptions: false,
+        colourImages: {}
+      })
+    };
+
     const payload = {
       name: prodName,
       sku: prodSku,
@@ -1001,7 +1339,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       length: numLength,
       width: numWidth,
       height: numHeight,
-      specifications: existingSpecs,
+      specifications: updatedSpecs,
       shortDescription: prodShortDesc || undefined,
       description: prodDescription || undefined,
       imageUrl: prodImageUrl || undefined,
@@ -1045,12 +1383,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         if (formData.has('images')) {
           try {
-            await fetch(`/api/products/${savedProductId}/images/batch`, {
+            const batchRes = await fetch(`/api/products/${savedProductId}/images/batch`, {
               method: 'POST',
               headers: getAuthHeadersForFormData(),
               credentials: 'include',
               body: formData
             });
+            if (batchRes.ok) {
+              const batchData = await batchRes.json();
+              if (batchData?.newImages && Array.isArray(batchData.newImages)) {
+                batchData.newImages.forEach((newImg: any, idx: number) => {
+                  const assignedCol = pendingImageColours[idx];
+                  if (assignedCol) {
+                    colImgMap[assignedCol] = newImg.url;
+                  }
+                });
+              }
+            }
           } catch (uploadErr) {
             console.error('Batch upload error for new product:', uploadErr);
           }
@@ -1073,12 +1422,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       // Sync variant matrix if defined
       if (savedProductId && productVariants.length > 0) {
+        const formattedVariants = productVariants.map((v) => {
+          const vSize = v.size || (v.attributes as any)?.size || (v.attributes as any)?.customSize || null;
+          const vCol = v.colour || (v.attributes as any)?.colour || null;
+          const vWat = v.wattage || (v.attributes as any)?.wattage || null;
+          const colImg = vCol ? (colImgMap[vCol] || (v.attributes as any)?.imageUrl || null) : null;
+
+          const attrs: any = { ...(v.attributes || {}) };
+          if (vSize) {
+            attrs.size = vSize;
+            attrs.customSize = vSize;
+          }
+          if (vCol) {
+            attrs.colour = vCol;
+            if (colImg) attrs.imageUrl = colImg;
+          }
+          if (vWat) {
+            attrs.wattage = vWat;
+          }
+
+          return {
+            id: v.id,
+            sku: v.sku,
+            name: v.name,
+            price: Number(v.price),
+            mrp: v.mrp !== undefined ? Number(v.mrp) : Number(v.price),
+            stockQuantity: Number(v.stockQuantity !== undefined ? v.stockQuantity : 10),
+            colour: vCol,
+            wattage: vWat,
+            attributes: Object.keys(attrs).length > 0 ? attrs : null,
+            isActive: v.isActive !== false
+          };
+        });
+
         try {
           await fetch(`/api/products/${savedProductId}/variants/matrix`, {
             method: 'POST',
             headers: getAuthHeaders(),
             credentials: 'include',
-            body: JSON.stringify({ variants: productVariants })
+            body: JSON.stringify({ variants: formattedVariants })
           });
         } catch (varErr) {
           console.error('Variant matrix sync error:', varErr);
@@ -2201,6 +2583,156 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     />
                   </div>
 
+                  {/* Colour Options Configuration */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="hasColourOptionsCheckbox"
+                          checked={hasColourOptions}
+                          onChange={(e) => setHasColourOptions(e.target.checked)}
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                        />
+                        <label htmlFor="hasColourOptionsCheckbox" className="font-bold text-slate-800 text-xs cursor-pointer select-none">
+                          This product has Colour options
+                        </label>
+                      </div>
+                      {hasColourOptions && (
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          {customColours.length} {customColours.length === 1 ? 'colour' : 'colours'} configured
+                        </span>
+                      )}
+                    </div>
+
+                    {hasColourOptions && (
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2.5">
+                        <span className="text-[11px] font-bold text-slate-700 block">Colour Options</span>
+
+                        {customColours.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {customColours.map((col, idx) => (
+                              <span
+                                key={idx}
+                                className="bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-2 shadow-xs"
+                              >
+                                <span>{col}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveColour(col, idx)}
+                                  className="text-indigo-400 hover:text-rose-600 font-bold text-xs cursor-pointer transition-colors"
+                                  title={`Remove ${col}`}
+                                >
+                                  Remove
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">No colour options added yet. Add colours below.</p>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Add colour (e.g. Black, White, Pink, Gold, Custom Green...)"
+                            value={newColourInput}
+                            onChange={(e) => setNewColourInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddColour();
+                              }
+                            }}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 flex-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddColour}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors shadow-xs"
+                          >
+                            + Add Colour
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Size Options Configuration */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="hasSizeOptionsCheckbox"
+                          checked={hasSizeOptions}
+                          onChange={(e) => setHasSizeOptions(e.target.checked)}
+                          className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                        />
+                        <label htmlFor="hasSizeOptionsCheckbox" className="font-bold text-slate-800 text-xs cursor-pointer select-none">
+                          This product has Size options
+                        </label>
+                      </div>
+                      {hasSizeOptions && (
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          {customSizes.length} {customSizes.length === 1 ? 'size' : 'sizes'} configured
+                        </span>
+                      )}
+                    </div>
+
+                    {hasSizeOptions && (
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2.5">
+                        <span className="text-[11px] font-bold text-slate-700 block">Size Options</span>
+
+                        {customSizes.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {customSizes.map((sz, idx) => (
+                              <span
+                                key={idx}
+                                className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-2 shadow-xs"
+                              >
+                                <span>{sz}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSize(sz, idx)}
+                                  className="text-amber-500 hover:text-rose-600 font-bold text-xs cursor-pointer transition-colors"
+                                  title={`Remove ${sz}`}
+                                >
+                                  Remove
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">No custom sizes added yet. Add sizes below.</p>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Add size (e.g. 10 cm Height, 10 × 15 cm, 20 × 30 cm, 100 mm...)"
+                            value={newSizeInput}
+                            onChange={(e) => setNewSizeInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddSize();
+                              }
+                            }}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 flex-1 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddSize}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors shadow-xs"
+                          >
+                            + Add Size
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Stage 5: Product Image Gallery & Multi-Upload Management */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
@@ -2240,63 +2772,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {productImages.map((img, idx) => (
                         <div
                           key={img.id}
-                          className="relative aspect-[4/3] min-h-[120px] w-full bg-white rounded-xl overflow-hidden border border-slate-200 group shadow-xs"
+                          className="bg-white rounded-xl overflow-hidden border border-slate-200 group shadow-xs flex flex-col justify-between"
                         >
-                          <OptimizedImage
-                            src={img.url}
-                            alt={img.altText || 'Product'}
-                            priority={false}
-                            width={200}
-                            className="w-full h-full object-cover"
-                            pictureClassName="w-full h-full block"
-                          />
+                          <div className="relative aspect-[4/3] min-h-[110px] w-full overflow-hidden">
+                            <OptimizedImage
+                              src={img.url}
+                              alt={img.altText || 'Product'}
+                              priority={false}
+                              width={200}
+                              className="w-full h-full object-cover"
+                              pictureClassName="w-full h-full block"
+                            />
 
-                          {img.isPrimary && (
-                            <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-xs">
-                              PRIMARY
-                            </span>
-                          )}
+                            {img.isPrimary && (
+                              <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-xs z-10">
+                                PRIMARY
+                              </span>
+                            )}
 
-                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 p-1">
-                            {idx > 0 && (
+                            {(imageColourMap[img.id] || imageColourMap[img.url]) && (
+                              <span className="absolute bottom-1.5 left-1.5 bg-indigo-700/90 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow-xs z-10 flex items-center gap-1">
+                                <Palette className="w-2.5 h-2.5" />
+                                <span>{imageColourMap[img.id] || imageColourMap[img.url]}</span>
+                              </span>
+                            )}
+
+                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 p-1 z-20">
+                              {idx > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReorderImage(idx, 'left')}
+                                  className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
+                                  title="Move Left"
+                                >
+                                  &larr;
+                                </button>
+                              )}
+                              {idx < productImages.length - 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReorderImage(idx, 'right')}
+                                  className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
+                                  title="Move Right"
+                                >
+                                  &rarr;
+                                </button>
+                              )}
+                              {!img.isPrimary && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetPrimaryImage(img.id)}
+                                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-bold px-2 py-1 rounded cursor-pointer"
+                                  title="Set as primary product image"
+                                >
+                                  Primary
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => handleReorderImage(idx, 'left')}
-                                className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
-                                title="Move Left"
+                                onClick={() => handleDeleteImage(img.id)}
+                                className="bg-rose-600 hover:bg-rose-500 text-white p-1 rounded cursor-pointer"
+                                title="Delete image"
                               >
-                                &larr;
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            )}
-                            {idx < productImages.length - 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleReorderImage(idx, 'right')}
-                                className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
-                                title="Move Right"
-                              >
-                                &rarr;
-                              </button>
-                            )}
-                            {!img.isPrimary && (
-                              <button
-                                type="button"
-                                onClick={() => handleSetPrimaryImage(img.id)}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-bold px-2 py-1 rounded cursor-pointer"
-                                title="Set as primary product image"
-                              >
-                                Primary
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteImage(img.id)}
-                              className="bg-rose-600 hover:bg-rose-500 text-white p-1 rounded cursor-pointer"
-                              title="Delete image"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            </div>
                           </div>
+
+                          {/* Colour Assignment Dropdown */}
+                          {hasColourOptions && customColours.length > 0 && (
+                            <div className="p-2 bg-slate-50 border-t border-slate-100">
+                              <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                                Assign Colour:
+                              </label>
+                              <select
+                                value={imageColourMap[img.id] || imageColourMap[img.url] || ''}
+                                onChange={(e) => handleAssignImageColour(img.id, img.url, e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">None (General Image)</option>
+                                {customColours.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       ))}
 
@@ -2305,50 +2867,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         pendingProductImages.map((item, idx) => (
                           <div
                             key={idx}
-                            className="relative aspect-[4/3] min-h-[120px] w-full bg-white rounded-xl overflow-hidden border border-slate-200 group shadow-xs"
+                            className="bg-white rounded-xl overflow-hidden border border-slate-200 group shadow-xs flex flex-col justify-between"
                           >
-                            <OptimizedImage
-                              src={item.url}
-                              alt={`Pending ${idx}`}
-                              priority={false}
-                              width={200}
-                              className="w-full h-full object-cover"
-                              pictureClassName="w-full h-full block"
-                            />
-                            {item.isPrimary && (
-                              <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-xs">
-                                PRIMARY
-                              </span>
-                            )}
-                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 p-1">
-                              {idx > 0 && (
+                            <div className="relative aspect-[4/3] min-h-[110px] w-full overflow-hidden">
+                              <OptimizedImage
+                                src={item.url}
+                                alt={`Pending ${idx}`}
+                                priority={false}
+                                width={200}
+                                className="w-full h-full object-cover"
+                                pictureClassName="w-full h-full block"
+                              />
+                              {item.isPrimary && (
+                                <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-xs z-10">
+                                  PRIMARY
+                                </span>
+                              )}
+                              {pendingImageColours[idx] && (
+                                <span className="absolute bottom-1.5 left-1.5 bg-indigo-700/90 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow-xs z-10 flex items-center gap-1">
+                                  <Palette className="w-2.5 h-2.5" />
+                                  <span>{pendingImageColours[idx]}</span>
+                                </span>
+                              )}
+                              <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 p-1 z-20">
+                                {idx > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleReorderImage(idx, 'left')}
+                                    className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
+                                  >
+                                    &larr;
+                                  </button>
+                                )}
+                                {idx < pendingProductImages.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleReorderImage(idx, 'right')}
+                                    className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
+                                  >
+                                    &rarr;
+                                  </button>
+                                )}
                                 <button
                                   type="button"
-                                  onClick={() => handleReorderImage(idx, 'left')}
-                                  className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
+                                  onClick={() =>
+                                    setPendingProductImages(pendingProductImages.filter((_, i) => i !== idx))
+                                  }
+                                  className="bg-rose-600 text-white p-1 rounded cursor-pointer"
                                 >
-                                  &larr;
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
-                              )}
-                              {idx < pendingProductImages.length - 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleReorderImage(idx, 'right')}
-                                  className="bg-white/90 text-slate-800 text-[10px] font-bold px-1.5 py-1 rounded hover:bg-white"
-                                >
-                                  &rarr;
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPendingProductImages(pendingProductImages.filter((_, i) => i !== idx))
-                                }
-                                className="bg-rose-600 text-white p-1 rounded cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              </div>
                             </div>
+
+                            {/* Colour Assignment Dropdown for Pending Images */}
+                            {hasColourOptions && customColours.length > 0 && (
+                              <div className="p-2 bg-slate-50 border-t border-slate-100">
+                                <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                                  Assign Colour:
+                                </label>
+                                <select
+                                  value={pendingImageColours[idx] || ''}
+                                  onChange={(e) => {
+                                    const updated = { ...pendingImageColours, [idx]: e.target.value };
+                                    setPendingImageColours(updated);
+                                  }}
+                                  className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-indigo-500"
+                                >
+                                  <option value="">None (General Image)</option>
+                                  {customColours.map((c) => (
+                                    <option key={c} value={c}>
+                                      {c}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
                           </div>
                         ))}
 
@@ -2360,33 +2954,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Stage 6: Lamp Category Configurator & Variant Matrix Generator (ONLY shown for Lamp & Light category products) */}
-                  {isLampCategory && (
+                  {/* Stage 6: Product Variant Matrix & Price Configuration */}
+                  {(hasSizeOptions || hasColourOptions || isLampCategory || productVariants.length > 0) && (
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
                         <h5 className="font-bold text-amber-700 text-xs flex items-center gap-1.5">
                           <Layers className="w-4 h-4" />
-                          <span>Lamp Configurator & Variant Price Matrix</span>
+                          <span>Product Variant Matrix & Price Configuration</span>
                         </h5>
                         <p className="text-[10px] text-slate-500">
-                          Configure Lamp Colours (Warm White, Cool White, Neutral White) & Bulb Wattages (5W, 7W, 9W, 12W)
+                          Configure Size, Colour, SKU, Price, MRP, and Stock for each product variant combination.
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={handleGenerateLampMatrix}
-                          className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer shadow-xs"
+                          onClick={handleGenerateVariantsMatrix}
+                          className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer shadow-xs transition-colors"
                         >
-                          Generate Matrix
+                          Generate Combinations
                         </button>
                         {editingProductId && productVariants.length > 0 && (
                           <button
                             type="button"
-                            onClick={handleSaveLampMatrix}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer shadow-xs"
+                            onClick={handleSaveVariantsMatrix}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl cursor-pointer shadow-xs transition-colors"
                           >
                             Save Matrix to Database
                           </button>
@@ -2394,53 +2988,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     </div>
 
-                    {/* Colour Options Config */}
+                    {/* Lamp Wattage Options Config (ONLY if Lamp Category) */}
+                    {isLampCategory && (
                     <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-                      <span className="text-[11px] font-bold text-slate-700 block">Configured Lamp Colours:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {lampColours.map((col, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
-                          >
-                            <span>{col}</span>
-                            <button
-                              type="button"
-                              onClick={() => setLampColours(lampColours.filter((_, i) => i !== idx))}
-                              className="text-slate-400 hover:text-rose-500 text-xs"
-                            >
-                              &times;
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
-                        <input
-                          type="text"
-                          placeholder="Add new colour option (e.g. RGB Multi-Colour)"
-                          value={newLampColourInput}
-                          onChange={(e) => setNewLampColourInput(e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (newLampColourInput.trim()) {
-                              setLampColours([...lampColours, newLampColourInput.trim()]);
-                              setNewLampColourInput('');
-                            }
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-lg"
-                        >
-                          + Add Colour
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Wattage Options Config */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-                      <span className="text-[11px] font-bold text-slate-700 block">Configured Bulb Wattages:</span>
+                      <span className="text-[11px] font-bold text-slate-700 block">Bulb Wattage Options:</span>
                       <div className="flex flex-wrap gap-1.5">
                         {lampWattages.map((watt, idx) => (
                           <span
@@ -2491,6 +3042,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                       </div>
                     </div>
+                    )}
 
                     {variantError && (
                       <div className="bg-rose-50 text-rose-700 text-xs p-2 rounded-lg border border-rose-200">
@@ -2509,68 +3061,135 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <table className="w-full text-left text-[11px]">
                         <thead>
                           <tr className="text-slate-500 font-bold border-b border-slate-200">
-                            <th className="py-1.5">SKU</th>
-                            <th className="py-1.5">Colour</th>
-                            <th className="py-1.5">Wattage</th>
-                            <th className="py-1.5">Price (₹)</th>
-                            <th className="py-1.5">Stock</th>
-                            <th className="py-1.5 text-right">Action</th>
+                            <th className="py-1.5 pr-2">SKU</th>
+                            {(hasSizeOptions || productVariants.some((v) => v.size || (v.attributes as any)?.size || (v.attributes as any)?.customSize)) && (
+                              <th className="py-1.5 px-2">Size</th>
+                            )}
+                            {(hasColourOptions || isLampCategory || productVariants.some((v) => v.colour || (v.attributes as any)?.colour)) && (
+                              <th className="py-1.5 px-2">Colour</th>
+                            )}
+                            {(isLampCategory || productVariants.some((v) => v.wattage || (v.attributes as any)?.wattage)) && (
+                              <th className="py-1.5 px-2">Wattage</th>
+                            )}
+                            <th className="py-1.5 px-2">Price (₹)</th>
+                            <th className="py-1.5 px-2">MRP (₹)</th>
+                            <th className="py-1.5 px-2">Stock</th>
+                            <th className="py-1.5 px-2 text-center">Active</th>
+                            <th className="py-1.5 text-right pl-2">Action</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {productVariants.map((v, idx) => (
-                            <tr key={v.id || idx} className="border-b border-slate-100 text-slate-800">
-                              <td className="py-1.5 font-mono text-indigo-600">{v.sku}</td>
-                              <td className="py-1.5 font-bold text-amber-700">{v.colour || v.attributes?.colour || 'Standard'}</td>
-                              <td className="py-1.5 font-bold text-amber-700">{v.wattage || v.attributes?.wattage || 'Base'}</td>
-                              <td className="py-1.5">
-                                <input
-                                  type="number"
-                                  value={v.price}
-                                  onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    const updated = [...productVariants];
-                                    updated[idx].price = val;
-                                    setProductVariants(updated);
-                                  }}
-                                  className="w-20 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-emerald-600"
-                                />
-                              </td>
-                              <td className="py-1.5 font-medium">
-                                <input
-                                  type="number"
-                                  value={v.stockQuantity}
-                                  onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    const updated = [...productVariants];
-                                    updated[idx].stockQuantity = val;
-                                    setProductVariants(updated);
-                                  }}
-                                  className="w-16 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs text-slate-800"
-                                />
-                              </td>
-                              <td className="py-1.5 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (v.id && editingProductId) {
-                                      handleDeleteVariant(v.id);
-                                    } else {
-                                      setProductVariants(productVariants.filter((_, i) => i !== idx));
-                                    }
-                                  }}
-                                  className="text-rose-600 hover:text-rose-500 p-1 cursor-pointer"
-                                  title="Delete Variant"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                          {productVariants.map((v, idx) => {
+                            const vSize = v.size || (v.attributes as any)?.size || (v.attributes as any)?.Size || (v.attributes as any)?.customSize || '';
+                            const vCol = v.colour || (v.attributes as any)?.colour || (v.attributes as any)?.color || '';
+                            const vWat = v.wattage || (v.attributes as any)?.wattage || '';
+                            const showSizeCol = hasSizeOptions || productVariants.some((x) => x.size || (x.attributes as any)?.size || (x.attributes as any)?.customSize);
+                            const showColCol = hasColourOptions || isLampCategory || productVariants.some((x) => x.colour || (x.attributes as any)?.colour);
+                            const showWatCol = isLampCategory || productVariants.some((x) => x.wattage || (x.attributes as any)?.wattage);
+
+                            return (
+                              <tr key={v.id || idx} className="border-b border-slate-100 text-slate-800">
+                                <td className="py-1.5 pr-2">
+                                  <input
+                                    type="text"
+                                    value={v.sku || ''}
+                                    onChange={(e) => {
+                                      const updated = [...productVariants];
+                                      updated[idx].sku = e.target.value;
+                                      setProductVariants(updated);
+                                    }}
+                                    className="w-32 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-mono text-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                  />
+                                </td>
+                                {showSizeCol && (
+                                  <td className="py-1.5 px-2 font-bold text-amber-700 whitespace-nowrap">
+                                    {vSize || '-'}
+                                  </td>
+                                )}
+                                {showColCol && (
+                                  <td className="py-1.5 px-2 font-bold text-indigo-700 whitespace-nowrap">
+                                    {vCol || '-'}
+                                  </td>
+                                )}
+                                {showWatCol && (
+                                  <td className="py-1.5 px-2 font-bold text-amber-600 whitespace-nowrap">
+                                    {vWat || '-'}
+                                  </td>
+                                )}
+                                <td className="py-1.5 px-2">
+                                  <input
+                                    type="number"
+                                    value={v.price}
+                                    onChange={(e) => {
+                                      const val = Number(e.target.value);
+                                      const updated = [...productVariants];
+                                      updated[idx].price = val;
+                                      setProductVariants(updated);
+                                    }}
+                                    className="w-20 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  />
+                                </td>
+                                <td className="py-1.5 px-2">
+                                  <input
+                                    type="number"
+                                    value={v.mrp !== undefined ? v.mrp : v.price}
+                                    onChange={(e) => {
+                                      const val = Number(e.target.value);
+                                      const updated = [...productVariants];
+                                      updated[idx].mrp = val;
+                                      setProductVariants(updated);
+                                    }}
+                                    className="w-20 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-medium text-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                </td>
+                                <td className="py-1.5 px-2 font-medium">
+                                  <input
+                                    type="number"
+                                    value={v.stockQuantity}
+                                    onChange={(e) => {
+                                      const val = Number(e.target.value);
+                                      const updated = [...productVariants];
+                                      updated[idx].stockQuantity = val;
+                                      setProductVariants(updated);
+                                    }}
+                                    className="w-16 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                </td>
+                                <td className="py-1.5 px-2 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={v.isActive !== false}
+                                    onChange={(e) => {
+                                      const updated = [...productVariants];
+                                      updated[idx].isActive = e.target.checked;
+                                      setProductVariants(updated);
+                                    }}
+                                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                                  />
+                                </td>
+                                <td className="py-1.5 text-right pl-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (v.id && editingProductId) {
+                                        handleDeleteVariant(v.id);
+                                      } else {
+                                        setProductVariants(productVariants.filter((_, i) => i !== idx));
+                                      }
+                                    }}
+                                    className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
+                                    title="Delete Variant"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                           {productVariants.length === 0 && (
                             <tr>
-                              <td colSpan={6} className="py-3 text-slate-400 italic text-center">
-                                No variants generated. Click "Generate Matrix" above to auto-create Colour & Wattage combinations.
+                              <td colSpan={9} className="py-4 text-slate-400 italic text-center">
+                                No variant combinations generated yet. Configure Size and/or Colour options above and click "Generate Combinations".
                               </td>
                             </tr>
                           )}
