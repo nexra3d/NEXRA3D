@@ -919,6 +919,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               {/* Product Variant Options (Custom Size, Colour, Wattage) */}
               {(availableSizes.length > 0 || colourOptionsList.length > 0 || wattageOptionsList.length > 0) ? (
                 <div className="space-y-4 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200">
+                  <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Available Options</h2>
                   {/* 1. Custom Size Options Display */}
                   {availableSizes.length > 0 && (
                     <div className="space-y-1.5">
@@ -1428,10 +1429,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
             {/* Tab Content */}
             {activeTab === 'description' && (
-              <div className="text-sm text-slate-700 leading-relaxed space-y-3">
-                <p>{product.description}</p>
+              <div className="text-sm text-slate-700 leading-relaxed space-y-4">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 mb-1">Product Details</h2>
+                  <p>{product.description}</p>
+                </div>
                 {product.tags && product.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-2">
+                  <div className="flex flex-wrap gap-1.5 pt-1">
                     {product.tags.map((tag, i) => (
                       <span key={i} className="bg-slate-100 text-slate-600 text-[11px] font-semibold px-2.5 py-1 rounded-md">
                         #{tag}
@@ -1439,11 +1443,18 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     ))}
                   </div>
                 )}
+                <div className="pt-2 border-t border-slate-100">
+                  <h2 className="text-sm font-bold text-slate-900 mb-1">About This 3D Printed Product</h2>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Individually manufactured using high-precision additive 3D printing at NEXRA 3D. Crafted with premium polymers, calibrated layer resolution, and finished by hand for exceptional aesthetics and durability.
+                  </p>
+                </div>
               </div>
             )}
 
             {activeTab === 'specs' && (
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
+                <h2 className="text-sm font-bold text-slate-900">Product Specifications</h2>
                 <table className="w-full text-xs text-left">
                   <tbody>
                     {Object.entries(product.specifications || {}).map(([key, val], i) => (
@@ -1680,10 +1691,10 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           {/* Section 11: Related Products */}
           <div className="border-t border-slate-200 pt-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Related Products</span>
-              </h3>
+                <span>Related 3D Printed Products</span>
+              </h2>
             </div>
 
             {isLoadingRelated ? (

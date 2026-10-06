@@ -55,10 +55,10 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               <Sparkles className="w-3.5 h-3.5" /> NEXRA 3D Industrial Additive Services
             </span>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-              Precision 3D Printing & Custom Manufacturing Services
+              Custom 3D Printing Services in India
             </h1>
             <p className="text-lg text-slate-300 leading-relaxed mb-8">
-              From micron-accurate SLA prototypes and high-temp carbon fiber engineering jigs to precision assembly tooling, aerospace components, and architectural masterplans. Receive engineering quotes in under 4 hours.
+              End-to-end 3D printing, custom design personalization, photo lithophane carving, and on-demand rapid prototyping services across India. From micron-accurate SLA prototypes and high-temp engineering polymers to functional assemblies. Receive engineering quotes in under 4 hours.
             </p>
             <div className="flex flex-wrap items-center gap-4">
               <button
@@ -190,6 +190,37 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Semantic Service Core Capabilities */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <h2 className="text-xl font-bold text-slate-900">Rapid Prototyping</h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Verify form, fit, and functional assembly in record time. Our rapid prototyping services support fast turnaround with high-grade engineering polymers including Tough PLA, PETG, ABS, and Polycarbonate. Eliminate costly retooling errors with early-stage dimensional validation.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <h2 className="text-xl font-bold text-slate-900">Industrial 3D Printing</h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Deploy additive manufacturing for jigs, fixtures, drone frames, robotic end-effectors, and functional enclosures. With build volumes accommodating small to large-scale parts and layer resolutions from 0.08mm to 0.28mm, our industrial printing delivers robust mechanical performance.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <h2 className="text-xl font-bold text-slate-900">Engineering Applications</h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              We collaborate closely with hardware startups, product designers, academic institutions, and manufacturing enterprises across India. We accept standard 3D CAD files (.STL, .OBJ, .STEP, .IGES) and provide rapid design-for-additive-manufacturing guidance.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <h2 className="text-xl font-bold text-slate-900">Custom 3D Printing</h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Beyond industrial parts, we specialize in consumer personalization: custom photo lithophane lamps, bespoke architectural scale models, customized figurines, and personalized corporate merchandise delivered with pan-India express shipping.
+            </p>
+          </div>
         </div>
 
         {/* Workflow Process */}

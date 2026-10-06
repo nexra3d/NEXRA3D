@@ -35,24 +35,25 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-            Create. Customize. Print. <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-indigo-200 to-emerald-300 bg-clip-text text-transparent">
-              3D Printed Products & Additive Services
-            </span>
+            3D Printing &amp; Custom 3D Printing Services in India
           </h1>
 
           <p className="text-slate-300 text-base sm:text-lg max-w-xl font-normal leading-relaxed">
-            Discover premium 3D printed products, personalized creations, and professional additive manufacturing services from NEXRA 3D.
+            Discover premium 3D printed products, personalized photo lithophanes, custom lamps, divine idols, and professional additive manufacturing services from NEXRA 3D.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-3">
-            <button
-              onClick={onExploreProducts}
+            <a
+              href="/shop"
+              onClick={(e) => {
+                e.preventDefault();
+                onExploreProducts();
+              }}
               className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold px-7 py-3.5 rounded-2xl transition-all shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 cursor-pointer transform hover:-translate-y-0.5"
             >
               <span>Shop Products</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </a>
 
             <button
               onClick={onRequestQuoteClick}
@@ -77,9 +78,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {displayCategories.map((cat, idx) => (
-            <div
+            <a
               key={cat.id}
-              onClick={() => onSelectCategory(cat.id)}
+              href={`/shop?category=${encodeURIComponent(cat.slug || cat.id)}`}
+              onClick={(e) => {
+                e.preventDefault();
+                onSelectCategory(cat.id);
+              }}
               className="group relative overflow-hidden rounded-2xl bg-white border border-slate-200/90 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-300 cursor-pointer flex flex-col justify-between"
             >
               <div className="h-40 overflow-hidden relative">
@@ -112,7 +117,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
                 </div>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </div>

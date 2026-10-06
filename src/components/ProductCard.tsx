@@ -171,12 +171,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
 
           {/* Title */}
-          <h3
-            onClick={() => onQuickView(product)}
-            className="font-bold text-slate-900 text-sm line-clamp-2 cursor-pointer hover:text-cyan-600 transition-colors leading-snug"
-            title={productName}
-          >
-            {productName}
+          <h3 className="font-bold text-slate-900 text-sm line-clamp-2 leading-snug">
+            <a
+              href={`/shop?product=${encodeURIComponent(product.slug || product.id)}`}
+              onClick={(e) => {
+                e.preventDefault();
+                onQuickView(product);
+              }}
+              className="cursor-pointer hover:text-cyan-600 transition-colors"
+              title={productName}
+            >
+              {productName}
+            </a>
           </h3>
 
           {/* Rating */}

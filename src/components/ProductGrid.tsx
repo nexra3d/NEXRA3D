@@ -491,6 +491,28 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           )}
         </div>
       </div>
+
+      {selectedCategoryObj && (
+        <div className="mt-8 bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">
+              3D Printed {selectedCategoryObj.name} &amp; Custom Options
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Explore our handcrafted selection of 3D printed {selectedCategoryObj.name.toLowerCase()} produced with high-resolution additive technology at NEXRA 3D. We use premium non-toxic polymers and calibrated layer heights to ensure enduring structural durability and refined aesthetic finishes.
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100">
+            <h2 className="text-lg font-bold text-slate-900 mb-2">
+              Customisation Options
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Looking for tailored dimensions, unique color schemes, custom engraved names, or personalized photo lithophane integration for {selectedCategoryObj.name.toLowerCase()}? NEXRA 3D accommodates custom orders with fast pan-India express dispatch.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

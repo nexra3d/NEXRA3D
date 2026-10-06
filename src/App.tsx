@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
+import { HomeSEOSections } from './components/HomeSEOSections';
 import { Footer } from './components/Footer';
 import { WhatsAppFloatingButton } from './components/WhatsAppFloatingButton';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
@@ -95,7 +96,7 @@ type ViewType =
 
 const VIEW_METADATA: Record<ViewType, { title: string; description: string }> = {
   home: {
-    title: '3D Printing & Custom 3D Printing Services | NEXRA 3D',
+    title: '3D Printing & Custom 3D Printing Services in India | NEXRA 3D',
     description: 'Custom 3D printing services, personalized photo lithophane lamps, customized gifts, divine idols, and precision 3D printed products in India | NEXRA 3D'
   },
   shop: {
@@ -1779,6 +1780,23 @@ export default function App() {
               setIsQuoteModalOpen(true);
             }}
             onExploreServices={() => setCurrentView('services')}
+          />
+          <HomeSEOSections
+            onNavigateShop={() => {
+              setFilters({ ...filters, categoryId: undefined });
+              setCurrentView('shop');
+            }}
+            onNavigateServices={() => setCurrentView('services')}
+            onNavigateCustomOrders={() => setCurrentView('custom-orders')}
+            onNavigateCategory={(catSlug) => {
+              const matchedCat = categories.find((c) => (c.slug || '').toLowerCase().includes(catSlug.toLowerCase()));
+              if (matchedCat) {
+                setFilters({ ...filters, categoryId: matchedCat.id });
+              }
+              setCurrentView('shop');
+            }}
+            onNavigateAbout={() => setCurrentView('about')}
+            onNavigateContact={() => setCurrentView('contact')}
           />
         </main>
       )}

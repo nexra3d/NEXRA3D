@@ -42,25 +42,33 @@ export const AboutPage: React.FC<AboutPageProps> = ({
               <Sparkles className="w-3.5 h-3.5" /> NEXRA 3D — Custom 3D Printed Creations
             </span>
             <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white mb-6">
-              Transforming Ideas into Personalized 3D Printed Art
+              About NEXRA 3D — Custom 3D Printing in India
             </h1>
             <p className="text-lg text-slate-300 leading-relaxed mb-8">
               NEXRA 3D is India's premier destination for custom 3D-printed products, personalized photo lithophane lamps, divine idols, anime collectibles, bespoke keychains, and tailored gifts crafted with ultra-fine precision.
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
-              <button
-                onClick={handleProducts}
+              <a
+                href="/shop"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleProducts();
+                }}
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-cyan-500/25 cursor-pointer"
               >
                 Browse Shop Catalog
-              </button>
-              <button
-                onClick={handleServices}
+              </a>
+              <a
+                href="/services"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleServices();
+                }}
                 className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-6 py-3.5 rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
                 Custom 3D Printing Services
-              </button>
+              </a>
             </div>
           </div>
         </div>

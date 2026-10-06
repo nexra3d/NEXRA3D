@@ -210,11 +210,22 @@ export const CustomOrdersShowcasePage: React.FC<CustomOrdersShowcasePageProps> =
                 <span>Bespoke 3D Manufacturing Gallery</span>
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
-                Custom Orders Showcase
+                Custom 3D Printing Showcase &amp; Portfolio
               </h1>
-              <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl">
-                Explore custom manufactured 3D items, functional engineering prototypes, personalized lithophanes, and architectural creations crafted by NEXRA 3D.
+              <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+                Explore custom manufactured 3D items, functional engineering prototypes, personalized photo lithophane lamps, and architectural creations crafted by NEXRA 3D.
               </p>
+              <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold">
+                <a href="/shop" className="text-cyan-600 dark:text-cyan-400 hover:underline">
+                  Browse Shop Catalog &rarr;
+                </a>
+                <a href="/services" className="text-cyan-600 dark:text-cyan-400 hover:underline">
+                  Custom 3D Printing Services &rarr;
+                </a>
+                <a href="/contact" className="text-slate-500 hover:underline">
+                  Contact Support &rarr;
+                </a>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

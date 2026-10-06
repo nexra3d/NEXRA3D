@@ -691,6 +691,28 @@ var INITIAL_EMAILS = [
 function generateId(prefix = "id") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 }
+function applyAtomicOperation(currentVal, updateVal) {
+  if (updateVal && typeof updateVal === "object" && !Array.isArray(updateVal) && !(updateVal instanceof Date)) {
+    const curNum = typeof currentVal === "number" ? currentVal : Number(currentVal) || 0;
+    if ("decrement" in updateVal) {
+      return curNum - Number(updateVal.decrement || 0);
+    }
+    if ("increment" in updateVal) {
+      return curNum + Number(updateVal.increment || 0);
+    }
+    if ("multiply" in updateVal) {
+      return curNum * Number(updateVal.multiply || 0);
+    }
+    if ("divide" in updateVal) {
+      const div = Number(updateVal.divide);
+      return div !== 0 ? curNum / div : curNum;
+    }
+    if ("set" in updateVal) {
+      return updateVal.set;
+    }
+  }
+  return updateVal;
+}
 var MemoryStore = class {
   constructor() {
     this.collections = {
@@ -1435,19 +1457,20 @@ var MemoryStore = class {
     if (include.items) {
       let rawItems = [];
       if (modelLower === "cart") {
-        rawItems = this.getStore("cartItem").filter((ci) => ci.cartId === item.id);
+        rawItems = this.getStore("cartItem").filter((ci) => ci.cartId === item.id || ci.cart_id === item.id);
       } else if (modelLower === "wishlist") {
-        rawItems = this.getStore("wishlistItem").filter((wi) => wi.wishlistId === item.id);
+        rawItems = this.getStore("wishlistItem").filter((wi) => wi.wishlistId === item.id || wi.wishlist_id === item.id);
       } else if (modelLower === "order") {
-        rawItems = this.getStore("orderItem").filter((oi) => oi.orderId === item.id);
+        rawItems = this.getStore("orderItem").filter((oi) => oi.orderId === item.id || oi.order_id === item.id);
       }
       const itemIncludes = typeof include.items === "object" ? include.items.include || { product: true, variant: true } : { product: true, variant: true };
       const modelChildType = modelLower === "cart" ? "cartItem" : modelLower === "wishlist" ? "wishlistItem" : "orderItem";
       cloned.items = rawItems.map((child) => this.attachIncludes(child, modelChildType, itemIncludes));
     }
     if (include.product || modelLower === "cartitem" || modelLower === "wishlistitem" || modelLower === "orderitem") {
-      if (item.productId && !cloned.product) {
-        const prod = this.getStore("product").find((p) => p.id === item.productId) || null;
+      const prodId = item.productId || item.product_id;
+      if (prodId && !cloned.product) {
+        const prod = this.getStore("product").find((p) => p.id === prodId) || null;
         if (prod) {
           const prodIncludes = typeof include.product === "object" ? include.product.include || { images: true, category: true } : { images: true, category: true };
           cloned.product = this.attachIncludes(prod, "product", prodIncludes);
@@ -1457,8 +1480,9 @@ var MemoryStore = class {
       }
     }
     if (include.variant || modelLower === "cartitem" || modelLower === "orderitem") {
-      if (item.variantId && !cloned.variant) {
-        cloned.variant = this.getStore("productVariant").find((v) => v.id === item.variantId) || null;
+      const varId = item.variantId || item.variant_id;
+      if (varId && !cloned.variant) {
+        cloned.variant = this.getStore("productVariant").find((v) => v.id === varId) || null;
       }
     }
     if (include.payment) {
@@ -1646,16 +1670,17 @@ var MemoryStore = class {
         const updateData = this.processDataRelations(args.data || {});
         const updated = {
           ...current,
-          ...updateData,
           updatedAt: /* @__PURE__ */ new Date()
         };
         for (const [k, v] of Object.entries(updateData)) {
+          const appliedVal = applyAtomicOperation(current[k], v);
+          updated[k] = appliedVal;
           if (/[A-Z]/.test(k)) {
             const snakeKey = k.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-            updated[snakeKey] = v;
+            updated[snakeKey] = appliedVal;
           } else if (k.includes("_")) {
             const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-            updated[camelKey] = v;
+            updated[camelKey] = appliedVal;
           }
         }
         store[itemIndex] = updated;
@@ -1667,7 +1692,19 @@ var MemoryStore = class {
         const updateData = this.processDataRelations(args.data || {});
         store.forEach((item, idx) => {
           if (this.matchWhere(item, args.where)) {
-            store[idx] = { ...item, ...updateData, updatedAt: /* @__PURE__ */ new Date() };
+            const updated = { ...item, updatedAt: /* @__PURE__ */ new Date() };
+            for (const [k, v] of Object.entries(updateData)) {
+              const appliedVal = applyAtomicOperation(item[k], v);
+              updated[k] = appliedVal;
+              if (/[A-Z]/.test(k)) {
+                const snakeKey = k.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+                updated[snakeKey] = appliedVal;
+              } else if (k.includes("_")) {
+                const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+                updated[camelKey] = appliedVal;
+              }
+            }
+            store[idx] = updated;
             count++;
           }
         });
@@ -1681,15 +1718,18 @@ var MemoryStore = class {
           existingIndex = store.findIndex((i) => String(i.id || "").trim().toLowerCase() === targetId);
         }
         if (existingIndex !== -1) {
+          const current = store[existingIndex];
           const updateData = this.processDataRelations(args.update || {});
-          const updated = { ...store[existingIndex], ...updateData, updatedAt: /* @__PURE__ */ new Date() };
+          const updated = { ...current, updatedAt: /* @__PURE__ */ new Date() };
           for (const [k, v] of Object.entries(updateData)) {
+            const appliedVal = applyAtomicOperation(current[k], v);
+            updated[k] = appliedVal;
             if (/[A-Z]/.test(k)) {
               const snakeKey = k.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-              updated[snakeKey] = v;
+              updated[snakeKey] = appliedVal;
             } else if (k.includes("_")) {
               const camelKey = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-              updated[camelKey] = v;
+              updated[camelKey] = appliedVal;
             }
           }
           store[existingIndex] = updated;
@@ -5605,6 +5645,8 @@ function formatPrismaProductResponse(p) {
   }));
   const priceNum = Number(p.price) || 0;
   const mrpNum = Number(p.mrp) || priceNum;
+  const rawStock = p.stockQuantity ?? p.stock;
+  const stockQty = typeof rawStock === "number" ? rawStock : typeof rawStock === "object" && rawStock && "decrement" in rawStock ? 0 : !isNaN(Number(rawStock)) ? Number(rawStock) : 0;
   const reviewList = p.reviews || [];
   const reviewCount = reviewList.length;
   const avgRating = reviewCount > 0 ? Number((reviewList.reduce((acc, r) => acc + Number(r.rating || 5), 0) / reviewCount).toFixed(1)) : 0;
@@ -5620,8 +5662,8 @@ function formatPrismaProductResponse(p) {
     mrp: mrpNum,
     discountPercentage: Number(p.discountPercentage) || 0,
     taxPercentage: Number(p.taxPercentage) || 0,
-    stockQuantity: p.stockQuantity ?? 0,
-    stock: p.stockQuantity ?? 0,
+    stockQuantity: stockQty,
+    stock: stockQty,
     lowStockThreshold: p.lowStockThreshold ?? 5,
     weight: p.weight !== null && p.weight !== void 0 ? Number(p.weight) : null,
     length: p.length !== null && p.length !== void 0 ? Number(p.length) : null,
@@ -6254,7 +6296,11 @@ async function getFormattedCart(userId) {
     }
     const itemMrp = baseMrp + Math.max(0, itemPrice - basePrice);
     const itemTotal = itemPrice * ci.quantity;
-    const availableStock = v ? v.stockQuantity ?? 100 : p ? p.stockQuantity && p.stockQuantity > 0 ? p.stockQuantity : 100 : 100;
+    const vRawStock = v?.stockQuantity ?? v?.stock;
+    const vStock = v ? typeof vRawStock === "number" ? vRawStock : !isNaN(Number(vRawStock)) ? Number(vRawStock) : 100 : null;
+    const pRawStock = p?.stockQuantity ?? p?.stock;
+    const pStock = p ? typeof pRawStock === "number" ? pRawStock : !isNaN(Number(pRawStock)) ? Number(pRawStock) : 100 : 100;
+    const availableStock = vStock !== null ? vStock : pStock;
     const isAvailable = p ? p.isActive !== false : true;
     const isStockSufficient = isAvailable && availableStock >= ci.quantity;
     const stockIssue = !isAvailable ? "Product is no longer available" : !isStockSufficient ? `Only ${availableStock} units available` : null;
@@ -6503,6 +6549,93 @@ app.use((req, res, next) => {
     "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.googleusercontent.com https://images.unsplash.com https://*.razorpay.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com; frame-src 'self' https://api.razorpay.com https://*.razorpay.com; frame-ancestors 'self' https://*.google.com https://*.run.app https://ai.studio;"
   );
   next();
+});
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain; charset=utf-8");
+  res.send(`User-agent: *
+Allow: /
+Allow: /shop
+Allow: /services
+Allow: /custom-orders
+Allow: /about
+Allow: /contact
+Allow: /privacy-policy
+
+# Disallow private user, cart, checkout and administrative areas
+Disallow: /admin
+Disallow: /admin/
+Disallow: /account
+Disallow: /account/
+Disallow: /cart
+Disallow: /cart/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /wishlist
+Disallow: /wishlist/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /unauthorized
+Disallow: /api/
+
+Sitemap: https://www.nexra3d.in/sitemap.xml
+`);
+});
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    const DOMAIN = "https://www.nexra3d.in";
+    const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const [products, categories, services] = await Promise.all([
+      prisma.product.findMany({ select: { id: true, slug: true, updatedAt: true } }).catch(() => []),
+      prisma.category.findMany({ select: { id: true, slug: true } }).catch(() => []),
+      prisma.service.findMany({ select: { id: true, slug: true } }).catch(() => [])
+    ]);
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+`;
+    xml += `  <url><loc>${DOMAIN}/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
+`;
+    xml += `  <url><loc>${DOMAIN}/shop</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+`;
+    xml += `  <url><loc>${DOMAIN}/services</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+`;
+    xml += `  <url><loc>${DOMAIN}/custom-orders</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+`;
+    xml += `  <url><loc>${DOMAIN}/about</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+`;
+    xml += `  <url><loc>${DOMAIN}/contact</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+`;
+    xml += `  <url><loc>${DOMAIN}/privacy-policy</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>
+`;
+    for (const cat of categories) {
+      const catKey = cat.slug || cat.id;
+      if (catKey) {
+        xml += `  <url><loc>${DOMAIN}/shop?category=${encodeURIComponent(catKey)}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+`;
+      }
+    }
+    for (const prod of products) {
+      const prodKey = prod.slug || prod.id;
+      const modDate = prod.updatedAt ? new Date(prod.updatedAt).toISOString().split("T")[0] : today;
+      if (prodKey) {
+        xml += `  <url><loc>${DOMAIN}/shop?product=${encodeURIComponent(prodKey)}</loc><lastmod>${modDate}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+`;
+      }
+    }
+    for (const srv of services) {
+      const srvKey = srv.slug || srv.id;
+      if (srvKey) {
+        xml += `  <url><loc>${DOMAIN}/services?service=${encodeURIComponent(srvKey)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+`;
+      }
+    }
+    xml += `</urlset>`;
+    res.type("application/xml; charset=utf-8");
+    res.send(xml);
+  } catch (err) {
+    res.status(500).send("Error generating sitemap");
+  }
 });
 app.get("/api/health", async (req, res) => {
   try {

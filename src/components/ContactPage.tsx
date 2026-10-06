@@ -158,7 +158,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               <Sparkles className="w-3.5 h-3.5" /> NEXRA 3D — Industrial Additive Manufacturing
             </span>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-              Get in Touch with NEXRA 3D
+              Contact NEXRA 3D — Custom 3D Printing &amp; Support
             </h1>
             <p className="text-lg text-slate-300 leading-relaxed">
               Have questions about SLA 3D printers, engineering resin compatibility, or need a custom CAD manufacturing quote? Our application engineering team is ready to assist you.
@@ -174,9 +174,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({
           {/* Contact Details Column */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
-              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-                Business & Facility Information
-              </h3>
+              <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+                Business &amp; Facility Information
+              </h2>
 
               <div className="space-y-4 text-xs sm:text-sm">
                 <div className="flex items-start gap-3">
